@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 game_project/log.txt
 game_project/traceback.txt
+.idea/
+game_project/game/story.rpy
+game_project/game/options.rpy
