@@ -1483,17 +1483,28 @@ assets:
       bottines de cuir
     description: ''
     parent: char_eve
-    status: draft
-    validated_candidate: null
-    candidates: []
-    prompt: Eve, a 21-year-old woman with long blonde hair loosely tied back, a few
-      strands across her forehead, and bright blue eyes, stands full body beside a
-      wooden pasture fence with a coil of wire at her feet. She wears a light floral
-      summer skirt stirred by the breeze, a white blouse knotted at the waist, worn
-      leather work gloves, and brown leather ankle boots. Her slim, sturdy frame leans
-      playfully, a teasing half-smile on her face. Green meadow, golden afternoon
-      light. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2/cand_00.png
+      created: '2026-10-19T15:48:52'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Change her outfit: dress her in a light floral summer skirt,
+        a white blouse knotted at the waist, sturdy work gloves and brown leather
+        ankle boots. Remove any garment or accessory not part of this outfit. Photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture'
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Change her outfit: dress her in a light floral summer skirt,
+      a white blouse knotted at the waist, sturdy work gloves and brown leather ankle
+      boots. Remove any garment or accessory not part of this outfit. Photorealistic
+      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture'
   loc_sous_le_grand_chene_au_sommet_de_la_coll:
     kind: location
     name: Sous le grand chêne, au sommet de la colline
@@ -2057,3 +2068,1151 @@ assets:
     status: draft
     validated_candidate: null
     candidates: []
+  scene_s4_p12:
+    kind: scene
+    name: Une tenue inhabituelle · image p12
+    description: Pierre arrive à la ferme, mais Eve n'est pas à l'étable. Son père
+      lui indique qu'elle travaille dans les champs. En la découvrant au bout du sentier,
+      vêtue d'une jupe légère au milieu des herbes hautes, il en perd ses mots. Eve,
+      qui l'a vu venir de loin, feint de n'avoir rien prévu et lui lance un « Tu es
+      en avance, encore ».
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates:
+    - file: assets/scene_s4_p12/cand_00.png
+      created: '2026-10-19T14:54:05'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The woman laughs
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_01.png
+      created: '2026-10-19T14:54:23'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The woman laughs
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_02.png
+      created: '2026-10-19T14:54:54'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The woman from image 2 laughs
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_03.png
+      created: '2026-10-19T14:55:52'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Wide low-angle shot from within the tall grass at the edge of the path,
+        the camera about ten meters from Eve, with her in sharp focus and blurred
+        grass stalks in the foreground. Eve from image 1 keeps her face, hair and
+        light skirt unchanged, and the meadow takes its look from image 1. She stands
+        in the middle of the path, laughing openly with a complicit gaze, her chin
+        pointing toward a large oak whose shadow stretches across the field. A few
+        birds lift from the grass in warm afternoon sunlight. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_04.png
+      created: '2026-10-19T15:06:05'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 1 while keeping its framing, camera angle, composition, lighting
+        and the place exactly as they are. Eve, the woman from image 1, among the
+        tall grasses of the path, bursts into clear laughter with a playful, knowing
+        look of complicity. She tilts her chin toward the large oak and its shade
+        stretching across the meadow further on. Her pose and light skirt stay the
+        same, a few birds lifting from the grass. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_05.png
+      created: '2026-10-19T15:07:54'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 2 while keeping its framing, camera angle, composition, lighting
+        and the place exactly as they are. Eve, the woman from image 1, among the
+        tall grasses of the path, bursts into clear laughter with a playful, knowing
+        look of complicity. She tilts her chin toward the large oak and its shade
+        stretching across the meadow further on. Her pose and light skirt stay the
+        same, a few birds lifting from the grass. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_06.png
+      created: '2026-10-19T15:10:45'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 1 while keeping its framing, camera angle, composition, lighting
+        and the place exactly as they are. Eve, the woman from image 1, among the
+        tall grasses of the path, bursts into clear laughter with a playful, knowing
+        look of complicity. She tilts her chin toward the large oak and its shade
+        stretching across the meadow further on. Her pose and light skirt stay the
+        same, a few birds lifting from the grass. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    - file: assets/scene_s4_p12/cand_07.png
+      created: '2026-10-19T15:13:24'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 2 while keeping its framing, camera angle, composition, lighting
+        and the place exactly as they are. Eve, the woman from image 1, among the
+        tall grasses of the path, bursts into clear laughter with a playful, knowing
+        look of complicity. She tilts her chin toward the large oak and its shade
+        stretching across the meadow further on. Her pose and light skirt stay the
+        same, a few birds lifting from the grass. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - scene_s4_p7
+      aspect: '16:9'
+    prompt: Edit image 2 while keeping its framing, camera angle, composition, lighting
+      and the place exactly as they are. Eve, the woman from image 1, among the tall
+      grasses of the path, bursts into clear laughter with a playful, knowing look
+      of complicity. She tilts her chin toward the large oak and its shade stretching
+      across the meadow further on. Her pose and light skirt stay the same, a few
+      birds lifting from the grass. photorealistic 3D render, realistic CGI character,
+      soft cinematic lighting, detailed skin texture
+  scene_s4_p12_2:
+    kind: scene
+    name: Une tenue inhabituelle · image p12
+    description: Pierre arrive à la ferme, mais Eve n'est pas à l'étable. Son père
+      lui indique qu'elle travaille dans les champs. En la découvrant au bout du sentier,
+      vêtue d'une jupe légère au milieu des herbes hautes, il en perd ses mots. Eve,
+      qui l'a vu venir de loin, feint de n'avoir rien prévu et lui lance un « Tu es
+      en avance, encore ».
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []
+  scene_s4_p12_3:
+    kind: scene
+    name: Une tenue inhabituelle · image p12
+    description: Pierre arrive à la ferme, mais Eve n'est pas à l'étable. Son père
+      lui indique qu'elle travaille dans les champs. En la découvrant au bout du sentier,
+      vêtue d'une jupe légère au milieu des herbes hautes, il en perd ses mots. Eve,
+      qui l'a vu venir de loin, feint de n'avoir rien prévu et lui lance un « Tu es
+      en avance, encore ».
+    parent: null
+    status: validated
+    validated_candidate: 2
+    candidates:
+    - file: assets/scene_s4_p12_3/cand_00.png
+      created: '2026-10-19T15:16:53'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 3 while keeping its framing, camera angle, composition and
+        lighting exactly as they are. The woman from image 2, in her floral skirt
+        and knotted white blouse, stays in the tall golden grass of the path from
+        image 1. She now laughs openly, her blue eyes warm and complicit, and tilts
+        her chin toward the distant oak and its shade. Only her expression and gesture
+        change. photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - loc_sentier_du_grand_pre
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla
+      - scene_s4_p7@4
+      aspect: '16:9'
+    - file: assets/scene_s4_p12_3/cand_01.png
+      created: '2026-10-19T15:17:33'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 2 while keeping its framing, camera angle, composition and
+        lighting exactly as they are. The woman from image 2, in her floral skirt
+        and knotted white blouse, stays in the tall golden grass of the path from
+        image 1. She now laughs openly, her blue eyes warm and complicit, and tilts
+        her chin toward the distant oak and its shade. Only her expression and gesture
+        change. photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - scene_s4_p7@4
+      aspect: '16:9'
+    - file: assets/scene_s4_p12_3/cand_02.png
+      created: '2026-10-19T15:21:16'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 1 while keeping its framing, camera angle, composition, lighting
+        and the path through the tall grass exactly as they are. Eve, the woman already
+        in image 1 in her light skirt, bursts into clear laughter with a playful,
+        knowing look of complicity. She tilts her head and points with her chin toward
+        the large oak and its shade farther along the meadow. Nothing else changes.
+        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture
+      refs:
+      - scene_s4_p7@4
+      aspect: '16:9'
+    prompt: Edit image 1 while keeping its framing, camera angle, composition, lighting
+      and the path through the tall grass exactly as they are. Eve, the woman already
+      in image 1 in her light skirt, bursts into clear laughter with a playful, knowing
+      look of complicity. She tilts her head and points with her chin toward the large
+      oak and its shade farther along the meadow. Nothing else changes. photorealistic
+      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture
+  obj_cloture_du_pre:
+    kind: object
+    name: Clôture du pré
+    description: Une clôture de piquets de bois avec un fil tendu. Un fil pend mollement
+      entre deux piquets, en apparence endommagé, mais la clôture est en réalité solide.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/obj_cloture_du_pre/cand_00.png
+      created: '2026-10-19T15:30:45'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: A weathered pasture fence of rough oak posts, gray and cracked, stands
+        firmly planted in dewy green grass at early morning. Two strands of galvanized
+        wire run taut between the posts, while one middle strand hangs in a loose,
+        drooping curve between two posts, looking broken though its ends are still
+        stapled tight. Low three-quarter view, shallow depth of field, misty hills
+        behind. Photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      aspect: '2:3'
+    - file: assets/obj_cloture_du_pre/cand_01.png
+      created: '2026-10-19T15:32:34'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: A weathered pasture fence of rough oak posts, gray and cracked, stands
+        firmly planted in dewy green grass at early morning. Two strands of galvanized
+        wire run taut between the posts, while one middle strand hangs in a loose,
+        drooping curve between two posts, looking broken though its ends are still
+        stapled tight. Low three-quarter view, shallow depth of field, misty hills
+        behind. Photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - loc_sentier_du_grand_pre
+      - loc_pre_en_bordure_de_la_ferme
+      aspect: '2:3'
+    prompt: A weathered pasture fence of rough oak posts, gray and cracked, stands
+      firmly planted in dewy green grass at early morning. Two strands of galvanized
+      wire run taut between the posts, while one middle strand hangs in a loose, drooping
+      curve between two posts, looking broken though its ends are still stapled tight.
+      Low three-quarter view, shallow depth of field, misty hills behind. Photorealistic
+      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture
+  scene_s5_p2:
+    kind: scene
+    name: La clôture à réparer · image p2
+    description: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    parent: null
+    status: validated
+    validated_candidate: 3
+    candidates:
+    - file: assets/scene_s5_p2/cand_00.png
+      created: '2026-10-19T15:35:44'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at chest height from a slightly low angle, sharp focus on Eve
+        and Pierre's faces and hands, with the meadow of image 1 softly blurred behind
+        them. The fence of image 2 runs diagonally beside them. Eve stands very close
+        to Pierre, her light skirt stirred by the wind, gazing at him with a tender
+        smile. Pierre, flushed red, grips the wire with a shy smile. Their shoulders
+        almost touch, complicit, in warm golden light. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - obj_cloture_du_pre@1
+      aspect: '16:9'
+    - file: assets/scene_s5_p2/cand_01.png
+      created: '2026-10-19T15:39:11'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up from a low three-quarter angle at chest height, sharp on Eve
+        and Pierre, with the sunlit meadow of image 1 softly blurred behind them and
+        the wooden fence of image 2 running beside them. Eve stands with her back
+        to Pierre, her light skirt stirring in the wind, her head turned over her
+        shoulder with a tender smile. Pierre stands close behind her, flushed, with
+        a shy smile, holding the wire taut. Warm golden light, a complicit mood. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - obj_cloture_du_pre@1
+      aspect: '16:9'
+    - file: assets/scene_s5_p2/cand_02.png
+      created: '2026-10-19T15:49:54'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up from a low three-quarter angle behind Eve, sharp focus on her
+        face glancing over her shoulder, Pierre slightly softer just behind. The meadow
+        from image 1 gives the setting, and the fence from image 3 runs beside them.
+        Keep the woman from image 2 exactly as she is, with her outfit. Eve stands
+        with her back to Pierre, pulling the wire taut with a tender smile. Pierre
+        stands very close, cheeks flushed, with a shy smile. Wind stirs her skirt.
+        Warm golden afternoon light. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - obj_cloture_du_pre@1
+      aspect: '16:9'
+    - file: assets/scene_s5_p2/cand_03.png
+      created: '2026-10-19T15:50:48'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up from a low side angle at waist height, sharp focus on the hips
+        of the woman from image 2 and Pierre as they stand close together, her fluttering
+        skirt brushing against him, a taut wire strand held between their hands. The
+        fence from image 3 runs behind them, with the meadow from image 1 blurred
+        beyond. Keep the woman from image 2 exactly as she is, with her outfit. Eve
+        smiles tenderly, Pierre smiles shyly, both complicit. Warm golden afternoon
+        light, breeze moving the grass. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - obj_cloture_du_pre@1
+      aspect: '16:9'
+    prompt: Close-up from a low side angle at waist height, sharp focus on the hips
+      of the woman from image 2 and Pierre as they stand close together, her fluttering
+      skirt brushing against him, a taut wire strand held between their hands. The
+      fence from image 3 runs behind them, with the meadow from image 1 blurred beyond.
+      Keep the woman from image 2 exactly as she is, with her outfit. Eve smiles tenderly,
+      Pierre smiles shyly, both complicit. Warm golden afternoon light, breeze moving
+      the grass. photorealistic 3D render, realistic CGI character, soft cinematic
+      lighting, detailed skin texture
+  outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3:
+    kind: outfit
+    name: Jupe d'été légère à fleurs, chemisier blanc noué à la taille, pieds nus
+      dans l'herbe, bottines posées à côté
+    description: ''
+    parent: char_eve
+    status: validated
+    validated_candidate: 3
+    candidates:
+    - file: assets/outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3/cand_00.png
+      created: '2026-10-19T15:42:12'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Eve, a 21-year-old woman with long blonde hair loosely tied back and
+        a few strands falling across her forehead, stands barefoot in sunlit meadow
+        grass beneath a large oak. She wears a light floral summer skirt and a white
+        blouse knotted at the waist, with her slim, sturdy build visible. Her ankle
+        boots rest in the grass beside her. Her blue eyes hold a playful, knowing
+        smile as she looks at the viewer. Dappled shade, warm afternoon light, full
+        body framing. photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla
+      aspect: '2:3'
+    - file: assets/outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3/cand_01.png
+      created: '2026-10-19T15:43:02'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Eve, a 21-year-old woman with long blonde hair loosely tied back and
+        a few strands falling across her forehead, stands barefoot in sunlit meadow
+        grass beneath a large oak. She wears a light floral summer skirt and a white
+        blouse knotted at the waist, with her slim, sturdy build visible. Her ankle
+        boots rest in the grass beside her. Her blue eyes hold a playful, knowing
+        smile as she looks at the viewer. Dappled shade, warm afternoon light, full
+        body framing. photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla
+      aspect: '2:3'
+    - file: assets/outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3/cand_02.png
+      created: '2026-10-19T15:46:22'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Dress her in a light floral summer skirt and a white blouse
+        knotted at the waist. Remove any other garment or accessory. She is barefoot
+        in the grass, with a pair of ankle boots placed beside her. Photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture'
+      refs: []
+      aspect: '2:3'
+    - file: assets/outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3/cand_03.png
+      created: '2026-10-19T15:46:45'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Dress her in a light floral summer skirt and a white blouse
+        knotted at the waist. Remove any other garment or accessory. She is barefoot
+        in the grass, with a pair of ankle boots placed beside her. Photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture'
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Dress her in a light floral summer skirt and a white blouse
+      knotted at the waist. Remove any other garment or accessory. She is barefoot
+      in the grass, with a pair of ankle boots placed beside her. Photorealistic 3D
+      render, realistic CGI character, soft cinematic lighting, detailed skin texture'
+  scene_s5_p3:
+    kind: scene
+    name: La clôture à réparer · image p3
+    description: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s5_p3/cand_00.png
+      created: '2026-10-19T15:52:27'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium shot from a low side angle at waist height, sharp focus on Eve
+        and Pierre, the meadow softly blurred behind. The meadow from image 1 gives
+        the setting, and the fence from image 3 with its loose wire runs behind them.
+        Keep the woman from image 2 exactly as she is, with her outfit. Eve stands
+        with her back to Pierre, leaning lightly against him, looking over her shoulder
+        with a tender smile, her skirt stirring in the wind. Pierre, a flushed young
+        man, holds the wire with a shy smile. Warm golden afternoon light. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - scene_s5_p2@3
+      aspect: '16:9'
+    - file: assets/scene_s5_p3/cand_01.png
+      created: '2026-10-19T15:54:02'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up from behind at hip height, slightly low angle, sharp focus
+        on the woman from image 2 as she bends toward the fence wire with her back
+        to the man, who is softly blurred a few steps behind her. Keep the woman from
+        image 2 exactly as she is, with her outfit. Use the meadow from image 1 and
+        the fence from image 3 as the setting. She glances back over her shoulder
+        with a tender smile, her skirt stirring in the breeze. The man, a shy young
+        farmer, holds the wire with a bashful smile. Warm golden afternoon light.
+        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - scene_s5_p2@3
+      aspect: '16:9'
+      rejected: true
+    - file: assets/scene_s5_p3/cand_02.png
+      created: '2026-10-19T15:55:48'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up view of the panties of the woman, skirt lifted
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - scene_s5_p2@3
+      aspect: '16:9'
+    - file: assets/scene_s5_p3/cand_03.png
+      created: '2026-10-19T15:56:27'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Same picture with lifted skirt by the wind, Close-up view of the panties
+        of the woman, skirt lifted
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - scene_s5_p2@3
+      aspect: '16:9'
+    prompt: Same picture with lifted skirt by the wind, Close-up view of the panties
+      of the woman, skirt lifted
+  scene_s5_p4:
+    kind: scene
+    name: La clôture à réparer · image p4
+    description: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []
+  scene_s5_p4_2:
+    kind: scene
+    name: La clôture à réparer · image p4
+    description: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []
+  scene_s5_p4_3:
+    kind: scene
+    name: La clôture à réparer · image p4
+    description: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s5_p4_3/cand_00.png
+      created: '2026-10-19T16:05:01'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium-low angle shot from the side, at hip height, a few meters away,
+        with Eve in sharp focus and the fence, farmhouse and hills softly blurred
+        behind her. The meadow from image 1 provides the look of the place. Keep the
+        woman from image 2 exactly as she is, with her outfit. She leans laughing
+        against a fence post, bent slightly forward, one gloved hand shaking the air,
+        with a tender smile and playful eyes turned toward the off-screen side, as
+        the wind lifts her skirt. Add loose wire near her hand. Warm golden afternoon
+        sunlight from behind. photorealistic 3D render, realistic CGI character, soft
+        cinematic lighting, detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      aspect: '16:9'
+    prompt: Medium-low angle shot from the side, at hip height, a few meters away,
+      with Eve in sharp focus and the fence, farmhouse and hills softly blurred behind
+      her. The meadow from image 1 provides the look of the place. Keep the woman
+      from image 2 exactly as she is, with her outfit. She leans laughing against
+      a fence post, bent slightly forward, one gloved hand shaking the air, with a
+      tender smile and playful eyes turned toward the off-screen side, as the wind
+      lifts her skirt. Add loose wire near her hand. Warm golden afternoon sunlight
+      from behind. photorealistic 3D render, realistic CGI character, soft cinematic
+      lighting, detailed skin texture
+  scene_s5_p6:
+    kind: scene
+    name: La clôture à réparer · image p6
+    description: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s5_p6/cand_00.png
+      created: '2026-10-19T16:06:24'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 3 and keep its framing, camera angle, composition, lighting
+        and the meadow fence from image 1 exactly as they are. The woman from image
+        2 stays in her floral skirt, knotted white blouse, work gloves and boots,
+        and her face now shows a tender smile as she looks warmly at Pierre, inviting
+        him to dinner. Pierre stays in place beside her, laughing softly, both of
+        them relaxed and complicit in the breeze. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - scene_s5_p4_3@0
+      aspect: '16:9'
+    - file: assets/scene_s5_p6/cand_01.png
+      created: '2026-10-19T16:10:02'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium close-up from a slightly low side angle, focus on both faces,
+        the meadow softly blurred behind. Use the meadow from image 1 for the look
+        of the place, and the sagging fence with loose wire from image 3 between them.
+        Keep the woman from image 2 exactly as she is, with her outfit. Eve stands
+        at left, leaning toward Pierre with a tender smile, holding his gaze. Pierre,
+        a flushed young farmhand in a rolled-sleeve shirt, laughs beside her, both
+        gripping the wire. Wind stirs her skirt. Warm golden light. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_pre_en_bordure_de_la_ferme
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_2
+      - scene_s5_p3@1
+      aspect: '16:9'
+    prompt: Medium close-up from a slightly low side angle, focus on both faces, the
+      meadow softly blurred behind. Use the meadow from image 1 for the look of the
+      place, and the sagging fence with loose wire from image 3 between them. Keep
+      the woman from image 2 exactly as she is, with her outfit. Eve stands at left,
+      leaning toward Pierre with a tender smile, holding his gaze. Pierre, a flushed
+      young farmhand in a rolled-sleeve shirt, laughs beside her, both gripping the
+      wire. Wind stirs her skirt. Warm golden light. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture
+  loc_vallee_et_pres_en_contrebas:
+    kind: location
+    name: Vallée et prés en contrebas
+    description: La vallée vue depuis la colline, avec des prés et des vaches qui
+      ressemblent à de petites taches pâles.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/loc_vallee_et_pres_en_contrebas/cand_00.png
+      created: '2026-10-19T16:12:20'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A wide establishing shot from the crest of a grassy hill, looking down
+        into a broad green valley. Patchwork meadows in layered shades of emerald
+        and gold slope toward a thin silver stream, divided by low stone walls and
+        hedgerows. Tiny pale cows dot the pastures like scattered cream-colored specks.
+        Distant wooded ridges fade into soft blue haze beneath a pale morning sky,
+        while wildflowers and tall grass fill the foreground. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '16:9'
+    prompt: A wide establishing shot from the crest of a grassy hill, looking down
+      into a broad green valley. Patchwork meadows in layered shades of emerald and
+      gold slope toward a thin silver stream, divided by low stone walls and hedgerows.
+      Tiny pale cows dot the pastures like scattered cream-colored specks. Distant
+      wooded ridges fade into soft blue haze beneath a pale morning sky, while wildflowers
+      and tall grass fill the foreground. photorealistic 3D render, realistic CGI
+      character, soft cinematic lighting, detailed skin texture
+  scene_s6_p2:
+    kind: scene
+    name: Sous le grand chêne · image p2
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s6_p2/cand_00.png
+      created: '2026-10-19T16:18:34'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium close-up at seated eye level, three-quarter front angle, shallow
+        depth of field with both faces sharp and the valley softly blurred behind.
+        Keep the woman from image 2 exactly as she is, with her outfit, and the oak
+        and hillside from image 1 as the setting. She sits shoulder to shoulder with
+        Pierre, a young man, both leaning against the trunk. Eve has a feigned serious
+        look, chin slightly raised. Pierre looks nervous and sincere, turning the
+        lemonade bottle in his fingers. Warm dappled light filters through the leaves.
+        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture
+      refs:
+      - loc_sous_le_grand_chene_au_sommet_de_la_coll
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      aspect: '16:9'
+    prompt: Medium close-up at seated eye level, three-quarter front angle, shallow
+      depth of field with both faces sharp and the valley softly blurred behind. Keep
+      the woman from image 2 exactly as she is, with her outfit, and the oak and hillside
+      from image 1 as the setting. She sits shoulder to shoulder with Pierre, a young
+      man, both leaning against the trunk. Eve has a feigned serious look, chin slightly
+      raised. Pierre looks nervous and sincere, turning the lemonade bottle in his
+      fingers. Warm dappled light filters through the leaves. photorealistic 3D render,
+      realistic CGI character, soft cinematic lighting, detailed skin texture
+  scene_s6_p3:
+    kind: scene
+    name: Sous le grand chêne · image p3
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s6_p3/cand_00.png
+      created: '2026-10-19T16:20:21'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Edit image 2, keeping its framing, camera angle, composition, lighting,
+        the oak tree, the hillside and both people exactly as they are. The woman
+        from image 1 is Eve, sitting shoulder to shoulder with Pierre against the
+        trunk in her floral skirt and white blouse. Her expression turns falsely serious,
+        lips pressed, one eyebrow slightly raised, a hidden spark of yes in her eyes.
+        Pierre beside her looks nervous yet sincere, his fingers turning the bottle.
+        Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      - scene_s6_p2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p3/cand_01.png
+      created: '2026-10-19T16:21:07'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium close-up from a slightly low front angle, both figures framed
+        from the chest up, focus sharp on Eve's smile, the valley softly blurred behind.
+        The oak's shade and picnic spread come from image 1 and image 3. Keep the
+        woman from image 2 exactly as she is, with her outfit. Pierre, a young countryman
+        with short brown hair, sits against the trunk, shoulder to shoulder with her,
+        turning the lemonade bottle in his fingers, nervous but sincere. Eve wears
+        a mock-serious look and a mischievous smile. Dappled golden light filters
+        through the leaves. photorealistic 3D render, realistic CGI character, soft
+        cinematic lighting, detailed skin texture
+      refs:
+      - loc_sous_le_grand_chene_au_sommet_de_la_coll
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      - scene_s6_p2@0
+      aspect: '16:9'
+    prompt: Medium close-up from a slightly low front angle, both figures framed from
+      the chest up, focus sharp on Eve's smile, the valley softly blurred behind.
+      The oak's shade and picnic spread come from image 1 and image 3. Keep the woman
+      from image 2 exactly as she is, with her outfit. Pierre, a young countryman
+      with short brown hair, sits against the trunk, shoulder to shoulder with her,
+      turning the lemonade bottle in his fingers, nervous but sincere. Eve wears a
+      mock-serious look and a mischievous smile. Dappled golden light filters through
+      the leaves. photorealistic 3D render, realistic CGI character, soft cinematic
+      lighting, detailed skin texture
+  scene_s6_p4:
+    kind: scene
+    name: Sous le grand chêne · image p4
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s6_p4/cand_00.png
+      created: '2026-10-19T16:22:38'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Extreme close-up at eye level on Pierre's face, filling most of the
+        frame, sharp focus on his lips and eyes as he speaks, while Eve is a soft
+        blur at the frame's edge. Keep Pierre exactly as in image 1, with their outfits,
+        and the oak hilltop from image 1 behind them. Pierre looks nervous and sincere,
+        mouth slightly open mid-sentence, his fingers turning the lemonade bottle
+        at the bottom edge. Eve sits close beside him with a falsely serious look.
+        Dappled shade from the oak leaves, warm soft light. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - scene_s6_p3@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p4/cand_01.png
+      created: '2026-10-19T16:23:46'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Extreme close-up at eye level on Pierre's face, filling most of the
+        frame, sharp focus on his lips and eyes as he speaks,
+      refs:
+      - scene_s6_p3@1
+      aspect: '16:9'
+    prompt: 'Extreme close-up at eye level on Pierre''s face, filling most of the
+      frame, sharp focus on his lips and eyes as he speaks, '
+  scene_s6_p5:
+    kind: scene
+    name: Sous le grand chêne · image p5
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 4
+    candidates:
+    - file: assets/scene_s6_p5/cand_00.png
+      created: '2026-10-19T16:25:14'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Edit image 2 while keeping its framing, camera angle, composition,
+        lighting, the oak tree, the hilltop and the grass exactly as they are. Only
+        Eve appears, as the woman from image 1, in her floral summer skirt and knotted
+        white blouse. Her expression turns playfully serious: lips pressed together
+        to hold back a smile, one eyebrow slightly raised, warm eyes that already
+        say yes, as she pretends to weigh her answer.'
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      - scene_s6_p3@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p5/cand_01.png
+      created: '2026-10-19T16:25:52'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Edit image 2 while keeping its framing, camera angle, composition,
+        lighting, the oak tree, the hilltop and the grass exactly as they are. Only
+        Eve appears, as the woman from image 1, in her floral summer skirt and knotted
+        white blouse. Her expression turns playfully serious: lips pressed together
+        to hold back a smile, one eyebrow slightly raised, warm eyes that already
+        say yes, as she pretends to weigh her answer.'
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      - scene_s6_p3@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p5/cand_02.png
+      created: '2026-10-19T16:26:57'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Edit image 2 while keeping its framing, camera angle, composition,
+        lighting, the oak tree, the hilltop and the grass exactly as they are. Only
+        Eve appears, as the woman from image 1, in her floral summer skirt and knotted
+        white blouse. Her expression turns playfully serious: lips pressed together
+        to hold back a smile, one eyebrow slightly raised, warm eyes that already
+        say yes, as she pretends to weigh her answer.'
+      refs:
+      - scene_s6_p3@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p5/cand_03.png
+      created: '2026-10-19T16:28:44'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'close-up portrait of the woman from image 2. Her expression turns playfully
+        serious: lips pressed together to hold back a smile, one eyebrow slightly
+        raised, warm eyes that already say yes, as she pretends to weigh her answer.'
+      refs:
+      - scene_s6_p3@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p5/cand_04.png
+      created: '2026-10-19T16:29:34'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'close-up portrait of the woman from image 2. Her expression turns playfully
+        serious: lips pressed together to hold back a smile, one eyebrow slightly
+        raised, warm eyes that already say yes, as she pretends to weigh her answer.'
+      refs:
+      - scene_s6_p3@1
+      - scene_s4_p5@0
+      aspect: '16:9'
+    prompt: 'close-up portrait of the woman from image 2. Her expression turns playfully
+      serious: lips pressed together to hold back a smile, one eyebrow slightly raised,
+      warm eyes that already say yes, as she pretends to weigh her answer.'
+  scene_s6_p6:
+    kind: scene
+    name: Sous le grand chêne · image p6
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []
+  scene_s6_p6_2:
+    kind: scene
+    name: Sous le grand chêne · image p6
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s6_p6_2/cand_00.png
+      created: '2026-10-19T16:32:14'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Change the woman position to spread her legs, revealing her panties
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      - scene_s6_p3@1
+      aspect: '16:9'
+    prompt: Change the woman position to spread her legs, revealing her panties
+  scene_s6_p8:
+    kind: scene
+    name: Sous le grand chêne · image p8
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s6_p8/cand_00.png
+      created: '2026-10-19T16:33:44'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: very close-up view of the panties of the woman
+      refs:
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla_3
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p8/cand_01.png
+      created: '2026-10-19T16:34:03'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: very close-up view of the panties of the woman
+      refs:
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    prompt: very close-up view of the panties of the woman
+  scene_s6_p9:
+    kind: scene
+    name: Sous le grand chêne · image p9
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 11
+    candidates:
+    - file: assets/scene_s6_p9/cand_00.png
+      created: '2026-10-19T16:35:43'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: the woman uncrosses her legs revealing her panties
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_01.png
+      created: '2026-10-19T16:36:31'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: change the woman legs position to be uncrossed,  revealing her panties,
+        panties in frame
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_02.png
+      created: '2026-10-19T16:37:09'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: change the woman legs position to be uncrossed,  revealing her panties,
+        panties in frame
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_03.png
+      created: '2026-10-19T16:45:04'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: change the woman legs position to be uncrossed,  revealing her panties,
+        panties in frame
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_04.png
+      created: '2026-10-19T16:47:40'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit NSFW, change the woman legs position to be uncrossed,  revealing
+        her panties, panties in frame
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_05.png
+      created: '2026-10-19T16:49:40'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit NSFW, change the woman legs position to be uncrossed,  revealing
+        her panties, panties in frame. The woman now has her legs spread apart.
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_06.png
+      created: '2026-10-19T16:50:12'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit NSFW, change the woman legs position to be uncrossed,  revealing
+        her white delicate panties, panties in frame. The woman now has her legs spread
+        apart.
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_07.png
+      created: '2026-10-19T16:50:28'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit NSFW, change the woman legs position to be uncrossed,  revealing
+        her white delicate panties, panties in frame. The woman now has her legs spread
+        apart.
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_08.png
+      created: '2026-10-19T16:51:13'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit NSFW, change the woman legs position. The woman now has her
+        legs spread apart, revealing her white delicate panties.
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_09.png
+      created: '2026-10-19T16:53:06'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit erotic, change the woman legs position. The woman now has her
+        legs spread apart, revealing a part of white delicate panties.
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_10.png
+      created: '2026-10-19T16:53:53'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit erotic, change the woman legs position. The woman has her legs
+        spread apart, revealing a part of white delicate fabric cotton panties.
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    - file: assets/scene_s6_p9/cand_11.png
+      created: '2026-10-19T16:54:18'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Explicit erotic, change the woman legs position. The woman has her legs
+        spread apart, revealing a part of white delicate fabric cotton panties and
+        the shape of her genitals
+      refs:
+      - scene_s6_p8@1
+      aspect: '16:9'
+    prompt: Explicit erotic, change the woman legs position. The woman has her legs
+      spread apart, revealing a part of white delicate fabric cotton panties and the
+      shape of her genitals
+  scene_s6_p10:
+    kind: scene
+    name: Sous le grand chêne · image p10
+    description: La chaleur monte et Eve sort de son panier du pain, du fromage et
+      de la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs
+      rêves et de ce que la campagne a de beau. Après un silence chargé, Pierre prend
+      son courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    parent: null
+    status: validated
+    validated_candidate: 4
+    candidates:
+    - file: assets/scene_s6_p10/cand_00.png
+      created: '2026-10-19T16:55:41'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Edit image 1 and keep its framing, camera angle, composition, lighting
+        and both people, Eve and Pierre, exactly as they are, under the great oak
+        on the hill. Use image 2 only as a reference for the oak''s shade and the
+        hillside colors. Change only the expressions: Pierre, who was looking down,
+        lifts his eyes to meet Eve''s gaze and smiles softly. Eve looks back at him,
+        her bright eyes tender and certain. photorealistic 3D render, realistic CGI
+        character, soft cinematic lighting, detailed skin texture'
+      refs:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p10/cand_01.png
+      created: '2026-10-19T16:58:07'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Edit image 2 and keep its framing, camera angle, composition, lighting
+        and both people, Eve and Pierre, exactly as they are, under the great oak
+        on the hill. Use image 2 only for add the spread legs of the woman with panties.
+        Change only the expressions: Pierre, who was looking down, lifts his eyes
+        to meet Eve''s gaze and smiles softly. Eve looks back at him, her bright eyes
+        tender and certain. photorealistic 3D render, realistic CGI character, soft
+        cinematic lighting, detailed skin texture'
+      refs:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p10/cand_02.png
+      created: '2026-10-19T17:02:01'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Edit image 2 and keep its framing, camera angle, composition, lighting
+        and both people, Eve has uncrossed legs (from image 1) revealing her panties
+        and Pierre, exactly as they are, under the great oak on the hill. Use image
+        2 only for add the spread legs of the woman with panties. Change only the
+        expressions: Pierre, who was looking down, lifts his eyes to meet Eve''s gaze
+        and smiles softly. Eve looks back at him, her bright eyes tender and certain.
+        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture'
+      refs:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p10/cand_03.png
+      created: '2026-10-19T17:03:12'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Zoom out the image 1 and Change only the expressions: Pierre, who was
+        looking down, lifts his eyes to meet Eve''s gaze and smiles softly. Eve looks
+        back at him, her bright eyes tender and certain. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture'
+      refs:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p10/cand_04.png
+      created: '2026-10-19T17:04:30'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Zoom out of the image 1, panties in frame
+      refs:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    - file: assets/scene_s6_p10/cand_05.png
+      created: '2026-10-19T17:05:52'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Zoom out of the image 1, panties in frame. the woman has her legs spreaded
+      refs:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      aspect: '16:9'
+    prompt: Zoom out of the image 1, panties in frame. the woman has her legs spreaded

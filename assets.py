@@ -136,13 +136,31 @@ def english_warnings(text: str) -> list[str]:
     return []
 
 
+def split_ref(ref: str) -> tuple[str, int | None]:
+    """« aid » = image retenue de l'élément ; « aid@k » = candidat k précis, retenu ou non."""
+    if "@" in ref:
+        aid, k = ref.rsplit("@", 1)
+        return aid, int(k)
+    return ref, None
+
+
+def ref_path(ref: str, data: dict) -> Path:
+    aid, k = split_ref(ref)
+    if k is None:
+        return validated_path(aid, data)
+    a = _get(data, aid)
+    if not 0 <= k < len(a["candidates"]):
+        raise ValueError(f"Candidat {k} inconnu pour {aid}")
+    return ROOT / a["candidates"][k]["file"]
+
+
 def generate(data: dict, asset_id: str, ref_ids: list[str], prompt: str, seed: int | None,
              backend: str = "replicate", aspect: str | None = None) -> int:
     """Génère un candidat. `prompt` est envoyé tel quel, sans ajout ni modification."""
     a = _get(data, asset_id)
     if not prompt or not prompt.strip():
         raise ValueError("Prompt vide")
-    refs = [validated_path(r, data) for r in ref_ids]
+    refs = [ref_path(r, data) for r in ref_ids]
     n = len(a["candidates"])
     out_rel = f"assets/{asset_id}/cand_{n:02d}.png"
     out_abs = ROOT / out_rel

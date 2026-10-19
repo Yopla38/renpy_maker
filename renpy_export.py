@@ -63,32 +63,63 @@ def rpy_text(text: str) -> str:
     return t.replace("{", "{{").replace("[", "[[")
 
 
-def problems(st: dict, assets_data: dict) -> list[str]:
-    """Points bloquants pour l'export (vide = on peut exporter). Reçoit le registre complet."""
-    assets = assets_data["assets"]
-    out = list(S.validate(st, assets_data))
-    scenes = S.all_scenes(st)
-    if not scenes:
-        return ["aucune scène"]
-    for sc in scenes:
-        where = sc["id"]
-        if not sc.get("dialogue"):
-            out.append(f"{where} : pas de répliques")
-            continue
-        if not sc.get("plans") or sc["plans"][0]["from_line"] != 0:
-            out.append(f"{where} : pas d'image au début de la scène")
-        for plan in sc.get("plans", []):
-            a = assets.get(plan["asset"])
-            if a is None:
-                out.append(f"{where} / {plan['id']} : image absente du registre")
-            elif plan_index(plan, a) is None or plan_index(plan, a) != a.get("validated_candidate"):
-                out.append(f"{where} / {plan['id']} : image « {a.get('name', plan['asset'])} » non retenue")
-    return list(dict.fromkeys(out))
-
-
 def plan_index(plan: dict, asset: dict):
     """Candidat affiché pour un plan : celui choisi, sinon l'image retenue de l'élément."""
     return plan.get("candidate", asset.get("validated_candidate"))
+
+
+def has_image(plan: dict, assets: dict) -> bool:
+    """Image exportable : un candidat choisi existe. Une image vide (rien de généré) est ignorée."""
+    a = assets.get(plan["asset"])
+    if a is None:
+        return False
+    idx = plan_index(plan, a)
+    return idx is not None and 0 <= idx < len(a.get("candidates", []))
+
+
+def exportable_plans(sc: dict, assets: dict) -> list[dict]:
+    return [p for p in sc.get("plans", []) if has_image(p, assets)]
+
+
+def split_problems(st: dict, assets_data: dict) -> tuple[list[str], list[str]]:
+    """(bloquants, à vérifier). Seuls les bloquants empêchent l'export : ils rendraient le script
+    invalide ou une image introuvable. Le reste est indicatif."""
+    assets = assets_data["assets"]
+    blocking: list[str] = []
+    warnings: list[str] = []
+    scenes = S.all_scenes(st)
+    if not scenes:
+        blocking.append("aucune scène")
+    for sc in scenes:
+        where = sc["id"]
+        if not sc.get("dialogue"):
+            blocking.append(f"{where} : pas de répliques")
+        for n, line in enumerate(sc.get("dialogue", []), 1):
+            if not str(line.get("text", "")).strip():
+                blocking.append(f"{where} : réplique {n} vide")
+        if sc.get("dialogue") and (not sc.get("plans") or sc["plans"][0]["from_line"] != 0):
+            warnings.append(f"{where} : pas d'image au début de la scène")
+        for plan in sc.get("plans", []):
+            a = assets.get(plan["asset"])
+            if a is None:
+                blocking.append(f"{where} / {plan['id']} : image absente du registre")
+                continue
+            if not has_image(plan, assets):
+                warnings.append(f"{where} / {plan['id']} : image vide, ignorée à l'export (rien n'est généré)")
+                continue
+            idx = plan_index(plan, a)
+            cand = a["candidates"][idx]
+            if not (ROOT / cand["file"]).exists():
+                blocking.append(f"{where} / {plan['id']} : fichier d'image introuvable")
+            elif idx != a.get("validated_candidate"):
+                warnings.append(f"{where} / {plan['id']} : image « {a.get('name', plan['asset'])} » non retenue")
+    warnings += [w for w in S.validate(st, assets_data) if w not in blocking and w not in warnings]
+    return list(dict.fromkeys(blocking)), list(dict.fromkeys(warnings))
+
+
+def problems(st: dict, assets_data: dict) -> list[str]:
+    blocking, warnings = split_problems(st, assets_data)
+    return blocking + warnings
 
 
 def _speakers(st: dict) -> list[str]:
@@ -100,15 +131,16 @@ def _speakers(st: dict) -> list[str]:
     return seen
 
 
-def build_story(st: dict) -> str:
+def build_story(st: dict, assets: dict | None = None) -> str:
     out = ["# Généré par renpy_maker : ne pas éditer à la main, modifier l'histoire puis réexporter.", ""]
     for name in _speakers(st):
         out.append(f'define {char_var(name)} = Character("{rpy_text(name)}")')
     out.append("")
     s = settings(st)
     size = f"xysize=({int(s['width'])}, {int(s['height'])}), fit=\"cover\""
+    assets = assets or {}
     for sc in S.all_scenes(st):
-        for plan in sc.get("plans", []):
+        for plan in exportable_plans(sc, assets):
             name = image_name(sc, plan)
             out.append(f'image {name} = Transform("images/{name}.png", {size})')
     out += ["", "label start:", f"    jump {S.all_scenes(st)[0]['id']}", ""]
@@ -117,7 +149,7 @@ def build_story(st: dict) -> str:
     for n, sc in enumerate(scenes):
         out.append(f"label {sc['id']}:")
         out.append(f"    # {sc['title']}")
-        plans = sc.get("plans", [])
+        plans = exportable_plans(sc, assets)
         for i, line in enumerate(sc.get("dialogue", [])):
             here = [p for p in plans if p["from_line"] == i]
             for j, plan in enumerate(here):
@@ -154,9 +186,9 @@ def build_options(st: dict) -> str:
 def export(st: dict, assets_data: dict) -> dict:
     """Écrit le projet Ren'Py. Lève ValueError si l'histoire a des points bloquants."""
     assets = assets_data["assets"]
-    issues = problems(st, assets_data)
-    if issues:
-        raise ValueError("Export impossible : " + " · ".join(issues))
+    blocking, _ = split_problems(st, assets_data)
+    if blocking:
+        raise ValueError("Export impossible : " + " · ".join(blocking))
 
     game = project_dir() / "game"
     images = game / "images"
@@ -166,7 +198,7 @@ def export(st: dict, assets_data: dict) -> dict:
 
     copied = []
     for sc in S.all_scenes(st):
-        for plan in sc["plans"]:
+        for plan in exportable_plans(sc, assets):
             a = assets[plan["asset"]]
             cand = a["candidates"][plan_index(plan, a)]
             src = ROOT / cand["file"]
@@ -178,7 +210,7 @@ def export(st: dict, assets_data: dict) -> dict:
         if legacy.exists():
             legacy.unlink()
 
-    (game / "story.rpy").write_text(build_story(st), encoding="utf-8")
+    (game / "story.rpy").write_text(build_story(st, assets), encoding="utf-8")
     (game / "options.rpy").write_text(build_options(st), encoding="utf-8")
     return {"dir": str(project_dir()), "images": len(copied), "files": ["story.rpy", "options.rpy"]}
 

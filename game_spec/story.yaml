@@ -5,7 +5,7 @@ idea: Eve, jeune femme de 21 ans, blonde élancée, très belle, travaillant à 
   lait des vaches
 settings:
   language: fr
-  explicit_content: false
+  explicit_content: true
   total_scenes: 6
   providers:
     text: anthropic
@@ -293,7 +293,7 @@ chapters:
       Pierre: Chemise à carreaux aux manches retroussées, pantalon de travail beige,
         casquette en toile
     choices: []
-    ending: true
+    ending: false
     locked: false
     dialogue:
     - speaker: Narration
@@ -571,10 +571,6 @@ chapters:
         framing: extreme close-up
         angle: ''
         note: sa poitrine
-    - id: p9
-      from_line: 6
-      characters: []
-      asset: scene_s4_p9
     - id: p10
       from_line: 6
       characters: []
@@ -584,6 +580,15 @@ chapters:
       characters: []
       asset: scene_s4_p7
       candidate: 4
+    - id: p12
+      from_line: 8
+      characters: []
+      asset: scene_s4_p12_3
+      refs_extra:
+      - scene_s4_p7@4
+      refs_exclude:
+      - decor
+      - tenue:eve
   - id: s5
     title: La clôture à réparer
     summary: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
@@ -651,7 +656,55 @@ chapters:
       text: Alors reste. Et samedi soir, au lieu de réparer des clôtures qui n'existent
         pas, tu pourrais m'inviter à dîner. Pour de vrai, cette fois.
       expression: sourire tendre
-    plans: []
+    plans:
+    - id: p1
+      from_line: 0
+      characters: []
+      asset: obj_cloture_du_pre
+      candidate: 1
+    - id: p2
+      from_line: 3
+      characters: []
+      asset: scene_s5_p2
+      refs_extra:
+      - obj_cloture_du_pre@1
+      shot:
+        framing: close-up
+        angle: ''
+        note: Le contact du pelvis de Eve avec celui de Pierre
+      refs_exclude: []
+    - id: p3
+      from_line: 4
+      characters: []
+      asset: scene_s5_p3
+      refs_extra:
+      - scene_s5_p2@3
+      shot:
+        framing: close-up
+        angle: ''
+        note: eve est dos à Pierre, elle est penché donnant une vue sur son postérieur
+    - id: p5
+      from_line: 4
+      characters: []
+      asset: scene_s5_p3
+      candidate: 3
+    - id: p4
+      from_line: 6
+      characters:
+      - Eve
+      asset: scene_s5_p4_3
+    - id: p6
+      from_line: 9
+      characters:
+      - Eve
+      - Pierre
+      asset: scene_s5_p6
+      refs_extra:
+      - scene_s5_p3@1
+      shot:
+        framing: medium close-up
+        angle: ''
+        note: ''
   - id: s6
     title: Sous le grand chêne
     summary: La chaleur monte et Eve sort de son panier du pain, du fromage et de
@@ -668,7 +721,7 @@ chapters:
         dans l'herbe, bottines posées à côté
       Pierre: Jean usé, t-shirt gris, casquette posée sur le genou, bottes de travail
     choices: []
-    ending: false
+    ending: true
     locked: false
     dialogue:
     - speaker: Narration
@@ -723,4 +776,94 @@ chapters:
         yeux d''Eve, il n''y a ni hésitation ni doute : la réponse y est déjà, lumineuse,
         et il sourit à son tour.'
       expression: tendresse
-    plans: []
+    plans:
+    - id: p1
+      from_line: 0
+      characters: []
+      asset: loc_vallee_et_pres_en_contrebas
+      candidate: 0
+    - id: p2
+      from_line: 1
+      characters: []
+      asset: scene_s6_p2
+    - id: p3
+      from_line: 3
+      characters: []
+      asset: scene_s6_p3
+      refs_extra:
+      - scene_s6_p2@0
+      refs_exclude: []
+      shot:
+        framing: medium close-up
+        angle: ''
+        note: sourire
+    - id: p4
+      from_line: 4
+      characters:
+      - Pierre
+      asset: scene_s6_p4
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: il parle
+      refs_extra:
+      - scene_s6_p3@1
+      refs_exclude:
+      - decor
+      - tenue:eve
+    - id: p5
+      from_line: 5
+      characters:
+      - Eve
+      asset: scene_s6_p5
+      refs_extra:
+      - scene_s6_p3@1
+      - scene_s4_p5@0
+      refs_exclude:
+      - decor
+      - tenue:eve
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: elle parle, détendue
+    - id: p7
+      from_line: 6
+      characters: []
+      asset: scene_s6_p3
+      candidate: 1
+    - id: p6
+      from_line: 7
+      characters: []
+      asset: scene_s6_p6_2
+      refs_extra:
+      - scene_s6_p3@1
+      refs_exclude:
+      - decor
+    - id: p8
+      from_line: 8
+      characters: []
+      asset: scene_s6_p8
+      refs_extra:
+      - scene_s6_p6_2@0
+      refs_exclude:
+      - decor
+      - tenue:eve
+    - id: p9
+      from_line: 9
+      characters: []
+      asset: scene_s6_p9
+      refs_exclude:
+      - decor
+      - tenue:eve
+      refs_extra:
+      - scene_s6_p8@1
+    - id: p10
+      from_line: 10
+      characters: []
+      asset: scene_s6_p10
+      refs_extra:
+      - scene_s6_p9@11
+      - scene_s6_p6_2@0
+      refs_exclude:
+      - decor
+      - tenue:eve

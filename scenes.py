@@ -49,6 +49,11 @@ def plan_characters(sc: dict, plan: dict) -> list[str]:
     return chosen or sc.get("characters", [])
 
 
+def split_ref(ref: str):
+    from assets import split_ref as _split
+    return _split(ref)
+
+
 def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
     """Références d'un plan.
 
@@ -59,26 +64,26 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
     """
     chars = {S.norm(a["name"]): k for k, a in assets.items() if a["kind"] == "character"}
     excluded = set(plan.get("refs_exclude", []))
-    auto = []  # {id, label, ok, why}
+    auto = []  # {id, key, label, ok, why} ; key = rôle stable (décor, tenue de X, personnage X)
 
     if sc.get("location"):
         lid = PR.match_asset(assets, {"kind": "location", "name": sc["location"], "parent_name": None}, chars)
-        auto.append({"id": lid, "label": f"décor : {sc['location']}",
+        auto.append({"id": lid, "key": "decor", "label": f"décor : {sc['location']}",
                      "ok": bool(lid) and assets[lid]["status"] == "validated",
                      "why": f"décor « {sc['location']} » : image à retenir"})
     else:
-        auto.append({"id": None, "label": "", "ok": False, "why": "aucun lieu indiqué dans la scène"})
+        auto.append({"id": None, "key": None, "label": "", "ok": False, "why": "aucun lieu indiqué dans la scène"})
 
     for name in plan_characters(sc, plan):
         outfit = sc.get("outfits", {}).get(name)
         if outfit:
             oid = PR.match_asset(assets, {"kind": "outfit", "name": outfit, "parent_name": name}, chars)
-            auto.append({"id": oid, "label": f"{name} en tenue", "person": name,
+            auto.append({"id": oid, "key": f"tenue:{S.norm(name)}", "label": f"{name} en tenue", "person": name,
                          "ok": bool(oid) and assets[oid]["status"] == "validated",
                          "why": f"tenue « {outfit} » de {name} : image à retenir"})
         else:
             cid = chars.get(S.norm(name))
-            auto.append({"id": cid, "label": name, "person": name,
+            auto.append({"id": cid, "key": f"perso:{S.norm(name)}", "label": name, "person": name,
                          "ok": bool(cid) and assets[cid]["status"] == "validated",
                          "why": f"{name} : image de personnage à retenir"})
 
@@ -86,11 +91,12 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
     auto_out = []
     people = set(plan_characters(sc, plan))
     for it in auto:
-        is_excluded = it["id"] is not None and it["id"] in excluded
+        is_excluded = (it["id"] is not None and it["id"] in excluded) or (it.get("key") in excluded)
         if it["id"] is not None:
-            auto_out.append({"id": it["id"], "label": it["label"], "excluded": is_excluded})
+            auto_out.append({"id": it["id"], "key": it["key"], "label": it["label"], "excluded": is_excluded,
+                             "ok": it["ok"], "why": it["why"]})
         if is_excluded:
-            if it.get("person") in people:
+            if it.get("person") in people and not plan.get("refs_extra"):
                 missing.append(f"{it['person']} est dans l'image mais sans image de référence : "
                                "recochez sa tenue ou retirez-le de l'image")
             continue
@@ -101,24 +107,34 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
             missing.append(it["why"])
 
     extra_out = []
-    for aid in plan.get("refs_extra", []):
+    for ref in plan.get("refs_extra", []):
+        aid, k = split_ref(ref)
         a = assets.get(aid)
-        if a is None or aid in refs or aid == plan.get("asset"):
+        if a is None or aid == plan.get("asset"):
             continue
-        extra_out.append({"id": aid, "label": a.get("name", aid)})
-        if a["status"] == "validated":
-            refs.append(aid)
-            labels.append(f"{a.get('name', aid)} (ajoutée)")
+        name = a.get("name", aid) + (f" #{k}" if k is not None else "")
+        extra_out.append({"id": ref, "label": name})
+        idx = k if k is not None else a.get("validated_candidate")
+        if idx is not None and idx < len(a.get("candidates", [])) and ref not in refs:
+            refs.append(ref)
+            labels.append(f"{name} (ajoutée)")
         else:
-            missing.append(f"« {a.get('name', aid)} » ajoutée : image à retenir")
+            missing.append(f"« {name} » ajoutée : image introuvable")
 
     return {"refs": refs, "labels": labels, "missing": missing, "too_many": len(refs) > MAX_REFS,
             "auto": auto_out, "extra": extra_out}
 
 
+def is_placed(sc: dict, plan: dict, asset: dict, asset_id: str) -> bool:
+    """Image placée (existante, choisie candidat par candidat) plutôt qu'image générée pour ce plan.
+    Une image générée pour un plan a son propre nom (scene_<scène>_<plan>) et pas de candidat choisi."""
+    own_name = asset_id.startswith(f"scene_{sc['id']}_{plan['id']}")
+    return "candidate" in plan or asset.get("kind") != "scene" or not own_name
+
+
 def plan_status(assets: dict, sc: dict, k: int) -> dict:
     plan = sc["plans"][k]
-    if assets.get(plan["asset"], {}).get("kind") != "scene":
+    if is_placed(sc, plan, assets.get(plan["asset"], {}), plan["asset"]):
         # image existante placée telle quelle : seule son état de retenue compte
         a = assets.get(plan["asset"], {})
         idx = plan.get("candidate", a.get("validated_candidate"))
@@ -174,9 +190,10 @@ def _people_line(plan: dict, sc: dict, info: dict) -> str:
 def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     """Prompt d'édition pour FLUX.2 Klein.
 
-    Klein recopie la composition des références si on ne lui dit rien : le prompt commence donc
-    par le cadrage voulu, et précise que la composition est nouvelle. Les références donnent
-    seulement l'identité, la tenue et l'aspect des lieux.
+    Deux cas :
+    - continuité (une image de référence ajoutée, par exemple la précédente, sans cadrage choisi) :
+      c'est une RETOUCHE : même cadrage, même composition, seule l'action ou l'expression change ;
+    - sinon : un nouveau plan. Le cadrage est alors explicite, et la composition est nouvelle.
     """
     plan = sc["plans"][k]
     info = plan_refs(assets, sc, plan)
@@ -186,34 +203,50 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     else:
         refs_line = "There are no reference images: describe the scene only."
     style = PR.llm_style()
-    people_line = _people_line(plan, sc, info)
+    shot = plan.get("shot") or {}
+    has_shot = bool(shot.get("framing") or shot.get("angle") or shot.get("note"))
+    cont = next((i + 1 for i, lab in enumerate(info["labels"]) if lab.endswith("(ajoutée)")), None)
+    edit_only = cont is not None and not has_shot
+
+    if edit_only:
+        rules = (
+            f"This is an EDIT of image {cont}, not a new shot: keep its framing, camera angle, composition, "
+            f"lighting and every person exactly as they are in image {cont}. Change only the expression and "
+            "the action described in the dialogue below. Do not move the camera, do not zoom, do not change the place."
+        )
+    else:
+        rules = (
+            "Start with the camera: the framing, the distance, the angle, and what is in focus, as requested. "
+            "The composition is new: never reuse the framing, camera position or layout of any reference image. "
+            "References only give identity, outfit and the look of the place. "
+            "Then say what stays identical to the references, in one short clause per person "
+            "('Keep the woman from image 2 exactly as she is, with her outfit'). Do NOT re-describe their face, hair, body "
+            "or clothes: the reference already shows them. "
+            "Then state the changes: where each person stands in this framing, their pose, their expression "
+            "(for example 'with a slight smile'), their action, and anything to add or remove. "
+            "Lighting last. "
+        )
     system = (
-        "You write prompts for FLUX.2 Klein image editing, which composes a new image from reference images. "
+        "You write prompts for FLUX.2 Klein image editing, which composes or edits an image from reference images. "
         "Output ONLY the prompt, in English, one paragraph of 40 to 90 words, never more than 100. "
         f"{refs_line} "
         "Refer to every reference by its position ('the woman from image 2', 'the room from image 1'), "
         "and give each reference one role. Show only the people listed under 'People in this image', "
         "each one as the person of their numbered image: never swap two people, never add anyone else. "
-        "Start with the camera: the framing, the distance, the angle, and what is in focus, as requested. "
-        "The composition is new: never reuse the framing, camera position or layout of any reference image. "
-        "References only give identity, outfit and the look of the place. "
-        "Then say what stays unchanged: each person's face, hair and outfit, from their image. "
-        "Describe who is where in this new framing, pose, expression of each person (for example 'with a slight smile'), "
-        "action, lighting. "
+        f"{rules}"
         "Use natural sentences, not tags. No negative terms, no quality words, no text in the image. "
         f"Keep one rendering style only and finish with these words, verbatim: {style}"
     )
     lines = [f"Scene : {sc['title']} — {sc['summary']}"]
     if sc.get("location"):
         lines.append(f"Location : {sc['location']}")
-    lines.append(people_line)
-    shot = plan.get("shot") or {}
-    if shot.get("framing") or shot.get("angle") or shot.get("note"):
+    lines.append(_people_line(plan, sc, info))
+    if has_shot:
         lines.append(f"Requested shot : framing {shot.get('framing') or 'free'}, camera {shot.get('angle') or 'free'}"
                      + (f". Focus : {shot['note']}" if shot.get("note") else "") + ".")
-    else:
+    elif not edit_only:
         lines.append("Requested shot : not set. Choose a framing and camera angle different from the previous image.")
-    if k > 0:
+    if k > 0 and not edit_only:
         prev = sc["plans"][k - 1].get("shot") or {}
         if prev.get("framing") or prev.get("angle"):
             lines.append(f"Previous image shot : framing {prev.get('framing', '?')}, camera {prev.get('angle', '?')}. "
@@ -228,7 +261,13 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     if info["refs"]:
         lines.append("Reference descriptions (context only, do not copy them word for word) :")
         for rid, lab in zip(info["refs"], info["labels"]):
-            lines.append(f"- image {info['refs'].index(rid) + 1} ({lab}) : {assets[rid].get('prompt') or assets[rid].get('description', '')}")
+            aid, k = split_ref(rid)
+            if k is not None:
+                # Image précise : Klein la voit ; le prompt de l'élément ne la décrit pas forcément.
+                lines.append(f"- image {info['refs'].index(rid) + 1} ({lab})")
+                continue
+            src = assets.get(aid, {})
+            lines.append(f"- image {info['refs'].index(rid) + 1} ({lab}) : {src.get('prompt') or src.get('description', '')}")
     return system, "\n".join(lines)
 
 

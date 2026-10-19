@@ -9,7 +9,7 @@ import renpy_export as RE  # noqa: E402
 import story as S  # noqa: E402
 
 
-def asset(kind, name, validated=True, file="assets/x/cand_00.png"):
+def asset(kind, name, validated=True, file="assets/char_eve/cand_03.png"):
     return {"kind": kind, "name": name, "description": "", "prompt": "", "parent": None,
             "status": "validated" if validated else "draft",
             "validated_candidate": 0 if validated else None,
@@ -39,8 +39,8 @@ def sample():
 
 class ExportTests(unittest.TestCase):
     def test_script_structure(self):
-        st, _ = sample()
-        text = RE.build_story(st)
+        st, data = sample()
+        text = RE.build_story(st, data["assets"])
         self.assertIn('define c_eve = Character("Eve")', text)
         self.assertIn("label s1:", text)
         self.assertIn("    scene s1_p1 with dissolve", text)
@@ -51,24 +51,46 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(text.rstrip().endswith("return"))
 
     def test_images_declared_for_every_plan(self):
-        st, _ = sample()
-        text = RE.build_story(st)
+        st, data = sample()
+        text = RE.build_story(st, data["assets"])
         self.assertIn('image s1_p2 = Transform("images/s1_p2.png", xysize=(1920, 1080), fit="cover")', text)
         self.assertIn('image s2_p1 = Transform("images/s2_p1.png", xysize=(1920, 1080), fit="cover")', text)
 
-    def test_export_refused_when_image_not_retained(self):
+    def test_unretained_image_is_only_a_warning(self):
         st, data = sample()
         data["assets"]["scene_s1_p2"]["status"] = "draft"
         data["assets"]["scene_s1_p2"]["validated_candidate"] = None
-        issues = RE.problems(st, data)
-        self.assertTrue(any("non retenue" in i for i in issues))
-        with self.assertRaises(ValueError):
-            RE.export(st, data)
+        st["chapters"][0]["scenes"][0]["plans"][1]["candidate"] = 0  # un candidat est choisi, sans être retenu
+        blocking, warnings = RE.split_problems(st, data)
+        self.assertEqual(blocking, [])
+        self.assertTrue(any("non retenue" in w for w in warnings))
+
+    def test_missing_image_file_blocks_export(self):
+        st, data = sample()
+        data["assets"]["scene_s1_p2"]["candidates"] = [{"index": 0, "file": "assets/inexistant.png"}]
+        blocking, _ = RE.split_problems(st, data)
+        self.assertTrue(any("introuvable" in b for b in blocking))
+
+    def test_empty_line_blocks_export(self):
+        st, data = sample()
+        st["chapters"][0]["scenes"][1]["dialogue"][0]["text"] = " "
+        blocking, _ = RE.split_problems(st, data)
+        self.assertTrue(any("vide" in b for b in blocking))
 
     def test_first_image_must_start_the_scene(self):
         st, data = sample()
         st["chapters"][0]["scenes"][0]["plans"][0]["from_line"] = 1
         self.assertTrue(any("pas d'image au début" in i for i in RE.problems(st, data)))
+
+    def test_empty_image_is_skipped_not_blocking(self):
+        st, data = sample()
+        data["assets"]["scene_s1_p3"]["candidates"] = []
+        data["assets"]["scene_s1_p3"]["validated_candidate"] = None
+        blocking, warnings = RE.split_problems(st, data)
+        self.assertEqual(blocking, [])
+        self.assertTrue(any("image vide" in w for w in warnings))
+        text = RE.build_story(st, data["assets"])
+        self.assertNotIn("scene s1_p3 with dissolve", text)
 
     def test_no_problem_on_complete_story(self):
         st, data = sample()

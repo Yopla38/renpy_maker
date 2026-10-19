@@ -172,6 +172,76 @@ class RefChoiceTests(unittest.TestCase):
         self.assertNotIn("scene_s1_p1", info["refs"])
 
 
+class StableExclusionTests(unittest.TestCase):
+    def test_excluding_a_role_works_whatever_the_outfit_entry(self):
+        st, sc, data = make()
+        data["assets"]["outfit_robe_2"] = asset("outfit", "robe bleue", parent="char_eve")
+        sc["plans"][0]["refs_exclude"] = ["tenue:eve"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertFalse(any("en tenue" in l for l in info["labels"]))
+
+
+class CandidateRefTests(unittest.TestCase):
+    def test_reference_can_designate_a_non_retained_candidate(self):
+        st, sc, data = make()
+        data["assets"]["scene_s0_p1"] = {"kind": "scene", "name": "Image précédente", "description": "", "prompt": "",
+                                          "parent": None, "status": "validated", "validated_candidate": 5,
+                                          "candidates": [{"index": i, "file": "f.png"} for i in range(6)]}
+        sc["plans"][0]["refs_extra"] = ["scene_s0_p1@4"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertIn("scene_s0_p1@4", info["refs"])
+        self.assertTrue(any("#4" in l for l in info["labels"]))
+
+    def test_prompt_request_accepts_candidate_reference(self):
+        st, sc, data = make()
+        data["assets"]["scene_s0_p1"] = {"kind": "scene", "name": "Image précédente", "description": "deux personnes",
+                                          "prompt": "two people in a field", "parent": None, "status": "validated",
+                                          "validated_candidate": 5,
+                                          "candidates": [{"index": i, "file": "f.png"} for i in range(6)]}
+        sc["plans"][0]["refs_extra"] = ["scene_s0_p1@4"]
+        _, user = SC.build_request(st, data["assets"], sc, 0)
+        self.assertNotIn("two people in a field", user)  # l'élément ne décrit pas l'image précise
+        self.assertIn("(Image précédente #4 (ajoutée))", user)
+
+    def test_reference_to_unknown_candidate_is_reported(self):
+        st, sc, data = make()
+        data["assets"]["scene_s0_p1"] = {"kind": "scene", "name": "x", "description": "", "prompt": "",
+                                          "parent": None, "status": "validated", "validated_candidate": 0,
+                                          "candidates": [{"index": 0, "file": "f.png"}]}
+        sc["plans"][0]["refs_extra"] = ["scene_s0_p1@9"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertNotIn("scene_s0_p1@9", info["refs"])
+        self.assertTrue(info["missing"])
+
+
+class ContinuityTests(unittest.TestCase):
+    def test_added_previous_image_means_edit_not_new_shot(self):
+        st, sc, data = make()
+        data["assets"]["scene_s0_p1"] = asset("scene", "Image précédente", prompt="previous shot")
+        sc["plans"][0]["refs_extra"] = ["scene_s0_p1"]
+        system, user = SC.build_request(st, data["assets"], sc, 0)
+        self.assertIn("This is an EDIT of image", system)
+        self.assertIn("keep its framing", system)
+        self.assertNotIn("composition is new", system)
+        self.assertNotIn("Choose a framing", user)
+
+    def test_continuity_does_not_block_people_without_outfit_ref(self):
+        st, sc, data = make()
+        data["assets"]["scene_s0_p1"] = asset("scene", "Image précédente", prompt="previous shot")
+        sc["plans"][0]["refs_exclude"] = ["outfit_robe"]
+        sc["plans"][0]["refs_extra"] = ["scene_s0_p1"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertFalse(any("sans image de référence" in m for m in info["missing"]))
+
+    def test_explicit_shot_still_asks_for_new_composition(self):
+        st, sc, data = make()
+        data["assets"]["scene_s0_p1"] = asset("scene", "Image précédente", prompt="previous shot")
+        sc["plans"][0]["refs_extra"] = ["scene_s0_p1"]
+        sc["plans"][0]["shot"] = {"framing": "close-up", "angle": "", "note": ""}
+        system, _ = SC.build_request(st, data["assets"], sc, 0)
+        self.assertIn("composition is new", system)
+
+
 class ShotTests(unittest.TestCase):
     def test_requested_shot_is_in_the_request(self):
         st, sc, data = make()
@@ -190,6 +260,23 @@ class ShotTests(unittest.TestCase):
 
 
 class ReuseTests(unittest.TestCase):
+    def test_placed_scene_image_keeps_its_chosen_candidate(self):
+        st, sc, data = make()
+        data["assets"]["scene_s1_p2"] = {"kind": "scene", "name": "autre", "description": "", "prompt": "",
+                                          "parent": None, "status": "validated", "validated_candidate": 5,
+                                          "candidates": [{"index": i, "file": "f.png"} for i in range(6)]}
+        sc["plans"] = [{"id": "p1", "from_line": 0, "characters": [], "asset": "scene_s1_p2", "candidate": 4}]
+        status = SC.plan_status(data["assets"], sc, 0)
+        self.assertEqual(status["image_index"], 4)
+        self.assertFalse(status["ready"])  # le candidat 4 n'est pas celui retenu
+
+    def test_own_generated_scene_image_uses_retained_candidate(self):
+        st, sc, data = make()
+        data["assets"]["scene_s1_p1"]["validated_candidate"] = 2
+        status = SC.plan_status(data["assets"], sc, 0)
+        self.assertFalse(status["reused"])
+        self.assertEqual(status["image_index"], 2)
+
     def test_reused_retained_image_is_ready_without_refs(self):
         st, sc, data = make()
         data["assets"]["loc_velvet"]["kind"] = "location"

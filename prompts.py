@@ -52,8 +52,32 @@ def story_context(st: dict, assets: dict, aid: str) -> list[str]:
     return lines
 
 
+EDIT_SYSTEM = """You write prompts for FLUX.2 Klein, an image EDITING model. The reference image 1 is the character
+as they already look. Your prompt is an instruction to edit that image, not a description of a new person.
+Output ONLY the prompt, in English, one paragraph of 30 to 80 words, never more than 100.
+- Start with what must stay identical: 'Keep the woman from image 1 exactly as she is: her face, hair, body, pose and framing.'
+- Then state the change: the clothing to put on, and what to remove (any garment or accessory not in the outfit).
+- Do not re-describe her face, hair or body: the reference already shows them.
+- Describe the clothes concretely (garments, colours, fit, footwear, accessories). No negative terms, no quality words.
+- Finish with this rendering style, word for word: {style}"""
+
+
 def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     a = assets[aid]
+    if a["kind"] == "outfit" and a.get("parent") and assets.get(a["parent"]):
+        # Tenue : la référence est le personnage, on demande une retouche de ses vêtements.
+        parent = assets[a["parent"]]
+        system = EDIT_SYSTEM.format(style=llm_style())
+        lines = [
+            f"Outfit to put on the character : {a['name']}",
+            f"Notes (French) : {a.get('description', '')}" if a.get("description") else "",
+            f"Reference image 1 : {parent['name']}, as they look now.",
+        ]
+        ctx = story_context(st, assets, aid)
+        if ctx:
+            lines.append("Story context (French) :")
+            lines += [f"- {c}" for c in ctx]
+        return system, "\n".join(l for l in lines if l)
     style = llm_style()
     framing = FRAMING.get(a["kind"], "")
     system = SYSTEM.format(style=style, framing=framing)

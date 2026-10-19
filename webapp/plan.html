@@ -163,7 +163,7 @@
 <div id="browser" hidden></div>
 
 <script>
-const state = { data: null, job: null, dlg: {}, assets: [], status: {}, scene: null, preview: null, browse: null };
+const state = { data: null, job: null, dlg: {}, assets: [], status: {}, scene: null, preview: null, browse: null, view: "step", line: 0, sub: 0, slotTab: {} };
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -297,7 +297,22 @@ function dialogueBlock(ch, sc, sdis) {
 
 function readLines(sid) {
   // Ne lire que la page visible : la page Plan garde ses propres champs, masqués, dans le document.
-  const root = $("#sec-scene").hidden ? $("#chapters") : $("#scenePage");
+  const inScene = !$("#sec-scene").hidden;
+  const root = inScene ? $("#scenePage") : $("#chapters");
+  if (inScene && state.view === "step") {
+    // Une seule réplique est affichée : on part du brouillon complet et on met à jour la réplique courante.
+    const sc = findScene(currentScene().ch.id, sid);
+    const lines = (state.dlg[sid] || sc.dialogue).map((l) => ({ ...l }));
+    const row = root.querySelector(`[data-dlg="${sid}"] .line`);
+    if (row && lines[state.line]) {
+      lines[state.line] = {
+        speaker: row.querySelector(".dl_speaker").value,
+        expression: row.querySelector(".dl_expr").value,
+        text: row.querySelector(".dl_text").value,
+      };
+    }
+    return lines;
+  }
   return [...root.querySelectorAll(`[data-dlg="${sid}"] .line`)].map((row) => ({
     speaker: row.querySelector(".dl_speaker").value,
     expression: row.querySelector(".dl_expr").value,
@@ -305,11 +320,19 @@ function readLines(sid) {
   }));
 }
 
+// Enregistre dans le brouillon ce qui est affiché avant de changer de réplique ou de vue.
+function syncDraft() {
+  const cur = currentScene();
+  if (!cur || $("#sec-scene").hidden) return;
+  state.dlg[cur.sc.id] = readLines(cur.sc.id);
+}
+
 function addLine(cid, sid) {
   const sc = findScene(cid, sid);
   const lines = readLines(sid);
   lines.push({ speaker: speakersOf(sc)[0], expression: "neutre", text: "" });
   state.dlg[sid] = lines;
+  state.line = lines.length - 1;
   rerender();
 }
 
@@ -317,6 +340,7 @@ function removeLine(cid, sid, i) {
   const lines = readLines(sid);
   lines.splice(i, 1);
   state.dlg[sid] = lines;
+  state.line = Math.max(0, Math.min(state.line, lines.length - 1));
   rerender();
 }
 
@@ -356,14 +380,20 @@ async function genDialogue(cid, sid) {
 async function loadRenpy() {
   try {
     const r = await api("GET", "/api/renpy");
+    if (!Array.isArray(r.blocking) || !Array.isArray(r.warnings)) {
+      throw new Error("Le serveur est une ancienne version : arrêtez-le (Ctrl+C) puis relancez python3 webapp/server.py");
+    }
     $("#rp_title").value = r.settings.title;
     $("#rp_w").value = r.settings.width;
     $("#rp_h").value = r.settings.height;
     $("#rp_dir").textContent = r.project_dir + (r.sdk_found ? "" : " · SDK Ren'Py introuvable");
-    $("#rp_problems").innerHTML = r.problems.length
-      ? `<div class="errors"><b>Export impossible, à corriger (${r.problems.length})</b><ul>${r.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>`
-      : `<div class="ok">Tout est prêt : ${r.scenes} scène(s) exportables.</div>`;
-    $("#rp_export").disabled = r.problems.length > 0;
+    const block = r.blocking.length
+      ? `<div class="errors"><b>Export impossible, à corriger (${r.blocking.length})</b><ul>${r.blocking.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>` : "";
+    const warn = r.warnings.length
+      ? `<div class="muted" style="border:1px solid var(--draft);border-radius:8px;padding:10px 14px;margin-top:8px"><b>À vérifier (n'empêche pas l'export, ${r.warnings.length})</b><ul>${r.warnings.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>` : "";
+    $("#rp_problems").innerHTML = block + warn
+      + (block ? "" : `<div class="ok" style="margin-top:8px">Export possible : ${r.scenes} scène(s).</div>`);
+    $("#rp_export").disabled = block !== "";
   } catch (e) { toast(e.message, true); }
 }
 
@@ -402,6 +432,19 @@ async function renpyLaunch() {
   } catch (e) { toast(e.message, true); }
 }
 
+document.addEventListener("keydown", (e) => {
+  if ($("#sec-scene").hidden || state.view !== "step") return;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName) || !$("#browser").hidden || !$("#preview").hidden) return;
+  if (e.key === "ArrowRight") stepNext();
+  else if (e.key === "ArrowLeft") stepPrev();
+});
+
+window.goLine = goLine;
+window.stepNext = stepNext;
+window.stepPrev = stepPrev;
+window.setView = setView;
+window.setSlotTab = setSlotTab;
+window.syncDraft = syncDraft;
 window.saveRenpySettings = saveRenpySettings;
 window.renpyExport = renpyExport;
 window.renpyLint = renpyLint;
@@ -484,11 +527,15 @@ function renderScene() {
   const sdis = (ch.locked || sc.locked) ? "disabled" : "";
   const info = state.status[sc.id] || { plans: [], issues: [], ready: false };
   const cid = esc(ch.id), sid = esc(sc.id);
-  const picker = `<select onchange="state.scene=this.value; renderScene()">${allScenes().map((x) =>
+  state.line = Math.max(0, Math.min(state.line, Math.max(0, lines.length - 1)));
+  const picker = `<select onchange="syncDraft(); state.scene=this.value; state.line=0; renderScene()">${allScenes().map((x) =>
     `<option value="${esc(x.sc.id)}" ${x.sc.id === sc.id ? "selected" : ""}>${esc(x.ch.id)} · ${esc(x.sc.id)} · ${esc(x.sc.title)}</option>`).join("")}</select>`;
   const status = info.ready ? '<span class="ok">scène prête</span>'
     : `<span class="muted">à compléter : ${info.issues.map(esc).join(" · ")}</span>`;
-  let html = `<div class="card"><h2>Scène</h2>${picker}
+  const tabs = `<div class="row auto" style="gap:6px">
+    <button class="${state.view === "step" ? "primary" : ""}" onclick="setView('step')">Pas à pas</button>
+    <button class="${state.view === "overview" ? "primary" : ""}" onclick="setView('overview')">Vue d'ensemble</button></div>`;
+  let html = `<div class="card"><div class="row" style="align-items:center;justify-content:space-between">${picker}${tabs}</div>
     <p class="muted" style="margin-top:8px">${esc(sc.summary)}</p>
     <div>${status}</div>
     ${sdis ? '<p class="muted" style="margin-top:8px">Verrouillé : déverrouillez-le dans l\'onglet Plan pour modifier.</p>' : ""}
@@ -502,21 +549,19 @@ function renderScene() {
       <div class="row auto"><button ${sdis} onclick="addLine('${cid}','${sid}')">+ Réplique</button>
       <button ${sdis} onclick="genDialogue('${cid}','${sid}')">Écrire les répliques (IA)</button>
       <span class="muted" id="dg_${sid}"></span></div></div>`;
+  } else if (state.view === "step") {
+    html += renderStep(ch, sc, info, lines, sdis);
+  } else {
+    lines.forEach((l, i) => {
+      html += `<div class="beat" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0;background:#181a20">
+        <div class="row" style="align-items:center;justify-content:space-between">
+          <b>Réplique ${i + 1}</b>${inForce(info, i)}</div>
+        ${slotHtml(ch, sc, i, info, sdis)}
+        <div class="muted" style="margin:10px 0 2px">Texte de la réplique ${i + 1} :</div>
+        ${lineRow(sc, l, i, cid, sid, sdis)}
+      </div>`;
+    });
   }
-  lines.forEach((l, i) => {
-    html += `<div class="beat" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0;background:#181a20">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <b>Réplique ${i + 1}</b>${inForce(info, i)}</div>
-      ${slotHtml(ch, sc, i, info, sdis)}
-      <div class="muted" style="margin:10px 0 2px">Texte de la réplique ${i + 1} :</div>
-      <div class="line">
-        <select class="dl_speaker" ${sdis}>${speakersOf(sc).map((p) => `<option ${p === l.speaker ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
-        <input class="dl_expr" value="${esc(l.expression || "")}" placeholder="expression" ${sdis}>
-        <textarea class="dl_text" ${sdis}>${esc(l.text)}</textarea>
-        <button ${sdis} onclick="removeLine('${cid}','${sid}', ${i})">✕</button>
-      </div>
-    </div>`;
-  });
   if (lines.length) {
     html += `<div class="row auto" style="margin-top:12px">
       <button ${sdis} onclick="addLine('${cid}','${sid}')">+ Réplique</button>
@@ -526,6 +571,90 @@ function renderScene() {
   }
   html += "</div>";
   root.innerHTML = html;
+}
+
+function lineRow(sc, l, i, cid, sid, sdis) {
+  return `<div class="line">
+    <select class="dl_speaker" ${sdis}>${speakersOf(sc).map((p) => `<option ${p === l.speaker ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
+    <input class="dl_expr" value="${esc(l.expression || "")}" placeholder="expression" ${sdis}>
+    <textarea class="dl_text" ${sdis}>${esc(l.text)}</textarea>
+    <button ${sdis} onclick="removeLine('${cid}','${sid}', ${i})">✕</button>
+  </div>`;
+}
+
+// Vue pas à pas : l'écran tel qu'il sera joué, puis le panneau de la seule réplique courante.
+function renderStep(ch, sc, info, lines, sdis) {
+  const i = state.line;
+  const l = lines[i];
+  const cid = esc(ch.id), sid = esc(sc.id);
+  const here = info.plans.filter((p) => p.from_line === i);
+  const sub = here.length ? Math.min(state.sub, here.length - 1) : 0;
+  // Images de cette réplique : affichées l'une après l'autre ; le texte accompagne la dernière.
+  const showing = here.length ? here[sub] : info.plans.filter((p) => p.from_line <= i).pop();
+  const url = showing ? imageUrl(showing.asset_id, showing.image_index) : null;
+  const withText = !here.length || sub === here.length - 1;
+  const progress = here.length > 1
+    ? `<div class="muted" style="margin-bottom:6px">Image ${sub + 1} / ${here.length} à cette réplique${withText ? " : le texte accompagne cette image" : " : cliquez pour passer à l'image suivante"}</div>` : "";
+  const narrator = l.speaker === "Narration";
+  const caption = withText
+    ? `${narrator ? "" : `<b>${esc(l.speaker)}</b>`}<div style="margin-top:4px;font-size:16px">${esc(l.text) || '<span class="muted">(texte vide)</span>'}</div>`
+    : `<span class="muted">…</span>`;
+  const stage = `${progress}
+    <div style="width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center">
+      ${url ? `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover">`
+            : `<span class="muted">${showing ? "image non retenue" : "aucune image pour l'instant"}</span>`}
+      <div style="position:absolute;left:0;right:0;bottom:0;background:#0009;padding:12px 18px;min-height:70px">${caption}</div>
+    </div>`;
+  const dots = lines.map((_, k) => {
+    const ps = info.plans.filter((p) => p.from_line === k);
+    const color = !ps.length ? "#555" : ps.every((p) => p.ready) ? "var(--ok)" : "var(--draft)";
+    return `<button title="réplique ${k + 1}" onclick="goLine(${k})" style="width:16px;height:16px;padding:0;border-radius:50%;background:${color};border:${k === i ? "2px solid #fff" : "none"}"></button>`;
+  }).join("");
+  const nav = `
+    <div class="row auto" style="align-items:center;justify-content:space-between;margin:10px 0;flex-wrap:wrap;gap:8px">
+      <button onclick="stepPrev()" ${i === 0 && sub === 0 ? "disabled" : ""}>← Précédente</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${dots}</div>
+      <span class="muted">réplique ${i + 1} / ${lines.length}</span>
+      <button onclick="stepNext()" ${i >= lines.length - 1 && sub >= here.length - 1 ? "disabled" : ""}>Suivante →</button>
+    </div>
+    <p class="muted" style="margin:0 0 8px">Flèches du clavier pour naviguer. Pastilles : vert = images prêtes, orange = à compléter, gris = aucune image.</p>`;
+  const panel = `
+    <div class="beat" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:6px 0 14px;background:#181a20">
+      <div class="muted" style="margin-bottom:6px">Réplique ${i + 1} · édition</div>
+      ${slotBody(ch, sc, i, info, sdis)}
+      <div class="muted" style="margin:12px 0 2px">Texte de la réplique :</div>
+      ${lineRow(sc, l, i, cid, sid, sdis)}
+    </div>`;
+  return stage + nav + panel;
+}
+
+function goLine(k) {
+  const cur = currentScene();
+  const n = (state.dlg[cur.sc.id] || cur.sc.dialogue).length;
+  if (k < 0 || k >= n) return;
+  syncDraft();
+  state.line = k;
+  state.sub = 0;
+  rerender();
+}
+
+// Suivante : image suivante de la réplique si elle existe, sinon réplique suivante.
+function stepNext() {
+  const cur = currentScene();
+  const here = (state.status[cur.sc.id] || { plans: [] }).plans.filter((p) => p.from_line === state.line);
+  if (state.sub < here.length - 1) { state.sub++; rerender(); return; }
+  goLine(state.line + 1);
+}
+
+function stepPrev() {
+  if (state.sub > 0) { state.sub--; rerender(); return; }
+  goLine(state.line - 1);
+}
+
+function setView(v) {
+  syncDraft();
+  state.view = v;
+  rerender();
 }
 
 // Image affichée pendant la réplique i : la dernière image commencée avant ou à cette réplique.
@@ -538,20 +667,42 @@ function inForce(info, i) {
     à l'écran : ${esc(active.id)}${url ? "" : " (non retenue)"}</span>`;
 }
 
+function addRow(ch, sc, i, sdis, count) {
+  return `<div class="row auto" style="margin:6px 0;flex-wrap:wrap">
+    <button ${sdis} onclick="addImageAt('${esc(ch.id)}','${esc(sc.id)}', ${i})">+ Nouvelle image ici</button>
+    <button ${sdis} onclick="openBrowser('${esc(ch.id)}','${esc(sc.id)}', ${i})">Parcourir les images générées…</button></div>`;
+}
+
+// Images qui arrivent avec la réplique i : onglets si plusieurs, carte de l'image choisie.
+function slotBody(ch, sc, i, info, sdis) {
+  const plans = info.plans.filter((p) => p.from_line === i);
+  const key = `${sc.id}:${i}`;
+  let html = "";
+  if (plans.length) {
+    const t = Math.min(state.slotTab[key] ?? 0, plans.length - 1);
+    if (plans.length > 1) {
+      html += `<div class="row auto" style="gap:6px;flex-wrap:wrap;margin-top:6px">${plans.map((p, k) =>
+        `<button class="${k === t ? "primary" : ""}" onclick="setSlotTab('${esc(sc.id)}', ${i}, ${k})">Image ${k + 1}${p.ready ? " ✓" : ""}</button>`).join("")}</div>`;
+    }
+    html += shotCard(ch, sc, plans[t], sdis);
+  } else {
+    html += placeholderCard(ch, sc, i, sdis);
+  }
+  return html + addRow(ch, sc, i, sdis, plans.length);
+}
+
+function setSlotTab(sid, i, k) {
+  state.slotTab[`${sid}:${i}`] = k;
+  rerender();
+}
+
 function slotHtml(ch, sc, i, info, sdis) {
   const plans = info.plans.filter((p) => p.from_line === i);
   const head = plans.length === 0
     ? `Aucune image ne s'ajoute ici : l'image précédente reste à l'écran${i === 0 ? " (il n'y en a pas encore au début de la scène)" : ""}.`
     : `${plans.length} image(s) arrivent avec cette réplique${plans.length > 1 ? " : les premières passent avant le texte, la dernière accompagne la réplique" : ""}.`;
-  let html = `<div class="slot" style="margin:6px 0">
-    <div class="muted">${head}${i === 0 ? " · début de la scène" : ""}</div>`;
-  plans.forEach((p) => { html += shotCard(ch, sc, p, sdis); });
-  if (!plans.length) html += placeholderCard(ch, sc, i, sdis);
-  html += `<div class="row auto" style="margin:6px 0;flex-wrap:wrap">
-    <button ${sdis} onclick="addImageAt('${esc(ch.id)}','${esc(sc.id)}', ${i})">${plans.length ? "+ Nouvelle image ici" : "+ Nouvelle image ici"}</button>
-    <button ${sdis} onclick="openBrowser('${esc(ch.id)}','${esc(sc.id)}', ${i})">Parcourir les images générées…</button>
-</div>`;
-  return html + "</div>";
+  return `<div class="slot" style="margin:6px 0">
+    <div class="muted">${head}${i === 0 ? " · début de la scène" : ""}</div>${slotBody(ch, sc, i, info, sdis)}</div>`;
 }
 
 function shotCard(ch, sc, p, sdis) {
@@ -657,12 +808,16 @@ function refsBlock(ch, sc, p, sdis) {
   const info = state.status[sc.id];
   const idx = info.plans.findIndex((x) => x.id === p.id);
   const prev = idx > 0 ? info.plans[idx - 1] : null;
-  const prevAsset = prev ? state.assets.find((a) => a.id === prev.asset_id) : null;
-  const prevBtn = prevAsset && prevAsset.validated_candidate != null && !p.refs.includes(prevAsset.id)
-    ? `<button ${sdis} onclick="addRef('${cid}','${sid}','${pid}','${esc(prevAsset.id)}')">+ Image précédente (${esc(prev.id)})</button>` : "";
+  // L'image précédente = l'image réellement affichée à cet endroit (candidat choisi, pas seulement l'image retenue)
+  const prevRef = prev && prev.image_index != null ? `${prev.asset_id}@${prev.image_index}` : null;
+  const prevBtn = prevRef && !p.refs.includes(prevRef)
+    ? `<button ${sdis} onclick="addRef('${cid}','${sid}','${pid}','${esc(prevRef)}')">+ Image précédente (${esc(prev.id)})</button>` : "";
   const auto = p.auto.map((a) => `
-    <label><input type="checkbox" data-ref="${esc(a.id)}" ${a.excluded ? "" : "checked"} ${sdis}
-      onchange="toggleAutoRef('${cid}','${sid}','${pid}', this)">${esc(a.label)}</label>`).join("");
+    <label><input type="checkbox" data-ref="${esc(a.key || a.id)}" ${a.excluded ? "" : "checked"} ${sdis}
+      onchange="toggleAutoRef('${cid}','${sid}','${pid}', this)">${esc(a.label)}
+      ${a.excluded ? '<span class="muted">(écartée)</span>'
+        : a.ok ? '<span class="ok">✓ utilisée</span>'
+        : `<span class="issue">✗ ${esc(a.why)} : cette référence n'est pas utilisée</span>`}</label>`).join("");
   const extra = p.extra.map((e) => `
     <span class="chip" style="display:inline-flex;gap:6px;align-items:center;border:1px solid var(--accent);border-radius:14px;padding:2px 10px;margin:4px 6px 4px 0;font-size:13px">
       ${esc(e.label)} <button ${sdis} style="padding:0 6px" onclick="removeRef('${cid}','${sid}','${pid}','${esc(e.id)}')">✕</button></span>`).join("");
@@ -677,8 +832,7 @@ function refsBlock(ch, sc, p, sdis) {
       <div style="margin-top:6px">${extra}</div>
       <div class="row auto" style="margin-top:4px">
         ${prevBtn}
-        <select id="rs_${pid}" ${sdis} style="width:auto;min-width:240px"><option value="">+ ajouter une autre image retenue…</option>${options}</select>
-        <button ${sdis} onclick="addRefFromSelect('${cid}','${sid}','${pid}')">Ajouter</button>
+        <button ${sdis} onclick="openRefBrowser('${cid}','${sid}','${pid}')">+ Ajouter une référence (parcourir les images)…</button>
       </div>
     </div>`;
 }
@@ -731,7 +885,14 @@ function placeholderCard(ch, sc, i, sdis) {
 
 // ----- navigateur d'images : toutes les images générées, retenues ou non -----
 function openBrowser(cid, sid, i) {
-  state.browse = { cid, sid, i, kind: "", onlyRetained: false };
+  state.browse = { mode: "place", cid, sid, i, kind: "", onlyRetained: false };
+  renderBrowser();
+  $("#browser").hidden = false;
+}
+
+// Choisir une image de référence pour une image de scène : le clic ajoute la référence à cette image.
+function openRefBrowser(cid, sid, pid) {
+  state.browse = { mode: "ref", cid, sid, pid, kind: "", onlyRetained: false };
   renderBrowser();
   $("#browser").hidden = false;
 }
@@ -740,36 +901,75 @@ function closeBrowser() {
   $("#browser").hidden = true;
 }
 
+// Rang d'une image pour la scène active : 0 = déjà dans la scène, 1 = personnage / tenue / lieu de la scène,
+// 2 = image d'une autre scène, 3 = le reste.
+function sceneRank(a, sc, info) {
+  const names = new Set([...sc.characters, sc.location || "", ...Object.values(sc.outfits)].map(norm));
+  if (info && info.plans.some((p) => p.asset_id === a.id)) return 0;
+  if (a.kind === "scene") return 2;
+  if (names.has(norm(a.name))) return 1;
+  return 3;
+}
+
+function norm(t) { return (t || "").toLowerCase().replace(/\s+/g, " ").trim(); }
+
 function renderBrowser() {
   const b = state.browse;
+  const cur = findScene(b.cid, b.sid);
+  const info = state.status[b.sid] || { plans: [] };
   const kinds = { "": "Tous les types", character: "Personnages", outfit: "Tenues", location: "Lieux", object: "Objets", scene: "Scènes" };
-  const items = [];
+  const entries = [];
   state.assets.forEach((a) => {
     if (b.kind && a.kind !== b.kind) return;
     a.candidates.forEach((c) => {
       const kept = a.validated_candidate === c.index;
       if (b.onlyRetained && !kept) return;
-      items.push(`
-        <div class="t ${kept ? "ret" : ""}" style="cursor:pointer" onclick="placeFromBrowser('${esc(a.id)}', ${c.index})">
-          <img src="${esc(c.url)}" alt="">
-          <div>${esc(a.name || a.id)} · #${c.index}<br>
-            <span class="${kept ? "ok" : c.rejected ? "issue" : "muted"}">${kept ? "retenue" : c.rejected ? "écartée" : "non retenue"}</span></div>
-        </div>`);
+      entries.push({ a, c, kept, rank: sceneRank(a, cur, info) });
     });
   });
+  entries.sort((x, y) => x.rank - y.rank || x.a.name.localeCompare(y.a.name) || x.c.index - y.c.index);
+  const labels = ["dans la scène", "personnages et lieux de la scène", "autres scènes", "autres images"];
+  let last = -1;
+  const items = [];
+  entries.forEach(({ a, c, kept, rank }) => {
+    if (rank !== last) { items.push(`<div class="muted" style="width:100%;margin-top:8px">${labels[rank]}</div>`); last = rank; }
+    const action = b.mode === "ref" ? `pickRef('${esc(a.id)}', ${c.index})` : `placeFromBrowser('${esc(a.id)}', ${c.index})`;
+    items.push(`
+      <div class="t ${kept ? "ret" : ""}" style="cursor:pointer" onclick="${action}">
+        <img src="${esc(c.url)}" alt="">
+        <div>${esc(a.name || a.id)} · #${c.index}<br>
+          <span class="${kept ? "ok" : c.rejected ? "issue" : "muted"}">${kept ? "retenue" : c.rejected ? "écartée" : "non retenue"}</span></div>
+      </div>`);
+  });
+  const title = b.mode === "ref"
+    ? "Ajouter une image de référence à cette image de scène"
+    : `Placer une image générée à partir de la réplique ${b.i + 1}`;
+  const hint = b.mode === "ref"
+    ? "Cliquez sur une image pour l'ajouter comme référence. Les images de la scène active sont en premier. Une référence non retenue reste utilisable, mais elle est signalée."
+    : "Cliquez sur une image pour la placer. Une image non retenue s'affiche, mais elle devra être retenue avant l'export.";
   $("#browser").innerHTML = `
     <div style="position:fixed;inset:0;background:#000d;z-index:60;display:flex;flex-direction:column;padding:20px;overflow:auto">
       <div class="row auto" style="align-items:center;justify-content:space-between">
-        <b>Placer une image générée à partir de la réplique ${b.i + 1}</b>
+        <b>${title}</b>
         <div class="row auto" style="align-items:center">
           <select onchange="state.browse.kind=this.value; renderBrowser()">${Object.entries(kinds).map(([k, v]) => `<option value="${k}" ${k === b.kind ? "selected" : ""}>${v}</option>`).join("")}</select>
           <label class="check" style="margin:0"><input type="checkbox" ${b.onlyRetained ? "checked" : ""} onchange="state.browse.onlyRetained=this.checked; renderBrowser()">seulement les retenues</label>
           <button onclick="closeBrowser()">Fermer</button>
         </div>
       </div>
-      <p class="muted">Cliquez sur une image pour la placer. Une image non retenue s'affiche, mais elle devra être retenue avant l'export.</p>
+      <p class="muted">${hint}</p>
       <div class="thumbs">${items.join("") || '<span class="muted">Aucune image pour ce filtre.</span>'}</div>
     </div>`;
+}
+
+async function pickRef(aid, index) {
+  const b = state.browse;
+  const cur = planOf(b.sid, b.pid);
+  const ref = `${aid}@${index}`;
+  const refs = [...cur.extra.map((e) => e.id).filter((x) => x !== ref), ref];
+  closeBrowser();
+  await saveRefs(b.cid, b.sid, b.pid, { refs_extra: refs });
+  toast("Référence ajoutée");
 }
 
 async function placeFromBrowser(aid, index) {
@@ -1051,6 +1251,8 @@ window.detectElements = detectElements;
 window.createDetected = createDetected;
 window.addDetectedCharacter = addDetectedCharacter;
 window.openBrowser = openBrowser;
+window.openRefBrowser = openRefBrowser;
+window.pickRef = pickRef;
 window.closeBrowser = closeBrowser;
 window.placeFromBrowser = placeFromBrowser;
 window.removeLine = removeLine;

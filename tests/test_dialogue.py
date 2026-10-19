@@ -57,5 +57,14 @@ class DialogueTests(unittest.TestCase):
         self.assertEqual(lines[0]["expression"], "méfiance")
 
 
+class DialogueGuardTests(unittest.TestCase):
+    def test_saving_fewer_lines_than_images_need_is_refused(self):
+        sc = {"characters": ["Eve"], "plans": [{"id": "p9", "from_line": 9, "asset": "x"}]}
+        # la logique du garde-fou est dans le serveur : on la vérifie sur les mêmes règles
+        new = SRV._clean_dialogue([{"speaker": "Eve", "text": "a"}], {"characters": ["Eve"]})
+        orphan = [p["id"] for p in sc["plans"] if p["from_line"] >= len(new)]
+        self.assertEqual(orphan, ["p9"])
+
+
 if __name__ == "__main__":
     unittest.main()

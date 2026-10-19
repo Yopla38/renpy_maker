@@ -265,7 +265,8 @@ class Handler(BaseHTTPRequestHandler):
         data = A.load()
         self._json(200, {
             "settings": RE.settings(st),
-            "problems": RE.problems(st, data),
+            "blocking": RE.split_problems(st, data)[0],
+            "warnings": RE.split_problems(st, data)[1],
             "scenes": len(S.all_scenes(st)),
             "project_dir": str(RE.project_dir()),
             "sdk_found": RE.renpy_sh().exists(),
@@ -330,6 +331,13 @@ class Handler(BaseHTTPRequestHandler):
             candidate = int(body["candidate"]) if body.get("candidate") is not None else a.get("validated_candidate")
             if candidate is None or not 0 <= candidate < len(a.get("candidates", [])):
                 raise ValueError("Choisissez une image générée")
+            # Réutiliser exactement la même image est permis (retour à un décor, par exemple).
+            # Une autre image du même élément ne l'est pas : retenir l'une changerait l'autre.
+            other = [p for p in sc["plans"] if p["asset"] == src and p.get("candidate", a.get("validated_candidate")) != candidate]
+            if other:
+                where = ", ".join(f"{p['id']} (réplique {p['from_line'] + 1})" for p in other)
+                raise ValueError(f"Une autre image de cet élément est déjà dans la scène : {where}. "
+                                 "Retenir l'une changerait l'autre : choisissez la même image, ou un autre élément.")
             asset_id = src
         else:
             with _lock:
@@ -389,14 +397,17 @@ class Handler(BaseHTTPRequestHandler):
                 if "refs_extra" in body:
                     known = A.load()["assets"]
                     extra = []
-                    for aid in body["refs_extra"]:
-                        aid = str(aid)
+                    for ref in body["refs_extra"]:
+                        ref = str(ref)
+                        aid, k = A.split_ref(ref)
                         if aid == plan["asset"]:
                             continue
                         if aid not in known:
                             raise ValueError(f"Image de référence inconnue : {aid}")
-                        if aid not in extra:
-                            extra.append(aid)
+                        if k is not None and not 0 <= k < len(known[aid]["candidates"]):
+                            raise ValueError(f"Candidat {k} inconnu pour {aid}")
+                        if ref not in extra:
+                            extra.append(ref)
                     plan["refs_extra"] = extra
                 sc["plans"].sort(key=lambda p: p["from_line"])
             S.save(st)
@@ -534,7 +545,15 @@ class Handler(BaseHTTPRequestHandler):
             if "ending" in body:
                 sc["ending"] = bool(body["ending"])
             if "dialogue" in body:
-                sc["dialogue"] = _clean_dialogue(body["dialogue"], sc)
+                new = _clean_dialogue(body["dialogue"], sc)
+                # Garde-fou : ne jamais laisser une image pointer sur une réplique qui n'existe plus.
+                orphan = [p["id"] for p in sc.get("plans", []) if p["from_line"] >= len(new)]
+                if orphan:
+                    raise ValueError(f"Enregistrement refusé : {len(new)} réplique(s) ne suffisent pas pour les images "
+                                     f"{', '.join(orphan)}. Rien n'a été modifié. Ajoutez les répliques manquantes, "
+                                     "ou retirez ces images d'abord.")
+                _backup_story("avant enregistrement des répliques de " + sid)
+                sc["dialogue"] = new
             if "locked" in body:
                 sc["locked"] = bool(body["locked"])
             S.save(st)
@@ -610,6 +629,24 @@ def _guard(ch: dict, sc: dict | None, body: dict) -> None:
         return
     if S.is_locked(ch, sc):
         raise ValueError("Verrouillé : déverrouillez-le avant de le modifier")
+
+
+def _backup_story(reason: str) -> None:
+    """Copie de l'histoire avant une modification des répliques (work/backups/, 50 dernières)."""
+    import shutil
+    from datetime import datetime
+    src = S.STORY
+    if not src.exists():
+        return
+    dst_dir = ROOT / "work" / "backups"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    shutil.copyfile(src, dst_dir / f"story-{stamp}.yaml")
+    (dst_dir / f"story-{stamp}.txt").write_text(reason, encoding="utf-8")
+    backups = sorted(dst_dir.glob("story-*.yaml"))
+    for old in backups[:-50]:
+        old.unlink(missing_ok=True)
+        old.with_suffix(".txt").unlink(missing_ok=True)
 
 
 def _next_pid(sc: dict) -> str:

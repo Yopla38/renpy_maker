@@ -30,8 +30,8 @@ class PromptTests(unittest.TestCase):
     def test_request_contains_context_and_framing(self):
         st, data = sample()
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
-        self.assertIn("full body", system)
-        self.assertIn("Worn by : Eve", user)
+        self.assertIn("Keep the woman from image 1", system)  # une tenue est une retouche de la personne
+        self.assertIn("Reference image 1 : Eve", user)
         self.assertIn("Eve entre au Velvet.", user)
         self.assertIn("photorealistic 3D render", system)  # style de référence, lu dans config.yaml
 
@@ -60,6 +60,15 @@ class PromptTests(unittest.TestCase):
         chars = {"eve": "char_eve"}
         el = {"kind": "outfit", "name": "Robe bleue", "parent_name": "eve"}
         self.assertEqual(PR.match_asset(data["assets"], el, chars), "outfit_robe")
+
+
+class EditPromptTests(unittest.TestCase):
+    def test_outfit_prompt_is_an_edit_of_the_character(self):
+        st, data = sample()
+        system, user = PR.build_request(st, data["assets"], "outfit_robe")
+        self.assertIn("EDIT", system)
+        self.assertIn("Keep the woman from image 1", system)
+        self.assertIn("Reference image 1 : Eve", user)
 
 
 if __name__ == "__main__":

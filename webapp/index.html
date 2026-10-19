@@ -74,11 +74,12 @@
   <aside id="list"></aside>
   <section class="editor" id="editor"><div class="empty">Sélectionnez un actif, ou créez-en un.</div></section>
 </main>
+<div id="refpick" hidden></div>
 <div id="toast"></div>
 
 <script>
 const KIND_LABEL = { character: "Personnages", outfit: "Tenues", location: "Lieux", scene: "Scènes", object: "Objets" };
-const state = { assets: [], selected: null, polling: null };
+const state = { assets: [], selected: null, polling: null, refs: {} };  // refs : références cochées, par actif
 
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -254,9 +255,11 @@ function renderEditor() {
     <label>Images de référence (retenues) : aucune = génération pure</label>
     <div class="refs">
       ${validatedOthers.length ? validatedOthers.map((v) => `
-        <label><input type="checkbox" class="g_ref" value="${esc(v.id)}"> ${esc(v.name || v.id)} <span class="count">(${esc(v.kind)})</span></label>`).join("")
+        <label><input type="checkbox" class="g_ref" value="${esc(v.id)}" ${(state.refs[a.id] || []).includes(v.id) ? "checked" : ""}
+          onchange="rememberRef('${esc(a.id)}', '${esc(v.id)}', this.checked)"> ${esc(v.name || v.id)} <span class="count">(${esc(v.kind)})</span></label>`).join("")
         : '<div class="hint" style="color:var(--muted)">Aucune autre image retenue pour l\'instant.</div>'}
     </div>
+    <div class="row auto" style="margin-top:6px"><button onclick="openRefPicker()">Parcourir les images retenues…</button></div>
     <div class="row" style="margin-top:12px">
       <button class="primary" id="genBtn">Générer l'image</button>
       <span id="genState" class="count"></span>
@@ -324,8 +327,54 @@ async function setStatus(index, validate) {
   } catch (e) { toast(e.message, true); }
 }
 
+// Les références cochées sont mémorisées : elles survivent au rechargement de la page (ex. Proposer un prompt).
+function rememberRef(aid, refId, on) {
+  const cur = new Set(state.refs[aid] || []);
+  on ? cur.add(refId) : cur.delete(refId);
+  state.refs[aid] = [...cur];
+}
+
+// Navigateur de références : images retenues ; celles liées à cet élément (son personnage) en premier.
+function openRefPicker() {
+  $("#refpick").hidden = false;
+  renderRefPicker();
+}
+
+function closeRefPicker() {
+  $("#refpick").hidden = true;
+  renderEditor();
+}
+
+function renderRefPicker() {
+  const a = current();
+  const related = (v) => (a.parent && v.id === a.parent) || (v.parent && v.parent === a.id) || (a.parent && v.parent === a.parent);
+  const picks = state.assets
+    .filter((v) => v.status === "validated" && v.id !== a.id)
+    .sort((x, y) => Number(related(y)) - Number(related(x)) || (x.name || "").localeCompare(y.name || ""));
+  const checked = new Set(state.refs[a.id] || []);
+  $("#refpick").innerHTML = `
+    <div style="position:fixed;inset:0;background:#000d;z-index:60;display:flex;flex-direction:column;padding:20px;overflow:auto">
+      <div class="row auto" style="align-items:center;justify-content:space-between">
+        <b>Références pour « ${esc(a.name || a.id)} »</b>
+        <button onclick="closeRefPicker()">Terminé</button>
+      </div>
+      <p class="muted">Cliquez pour cocher ou décocher. Les images liées au personnage de cet élément sont en premier.</p>
+      <div class="thumbs">${picks.map((v) => `
+        <div class="t ${checked.has(v.id) ? "ret" : ""}" style="cursor:pointer" onclick="toggleRefPick('${esc(a.id)}','${esc(v.id)}')">
+          <img src="${esc(v.candidates[v.validated_candidate].url)}" alt="">
+          <div>${esc(v.name || v.id)}<br><span class="${checked.has(v.id) ? "ok" : "muted"}">${checked.has(v.id) ? "✓ référence" : "non cochée"}</span></div>
+        </div>`).join("") || '<span class="muted">Aucune image retenue.</span>'}</div>
+    </div>`;
+}
+
+function toggleRefPick(aid, refId) {
+  const on = !(state.refs[aid] || []).includes(refId);
+  rememberRef(aid, refId, on);
+  renderRefPicker();
+}
+
 function refsChecked() {
-  return [...document.querySelectorAll(".g_ref:checked")].map((c) => c.value);
+  return [...(state.refs[state.selected] || [])];
 }
 
 async function generate() {
