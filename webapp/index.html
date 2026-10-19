@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registre d'actifs</title>
+<style>
+  :root {
+    --bg: #15161a; --panel: #1d1f25; --line: #2c2f38; --text: #e7e9ee; --muted: #9aa0ad;
+    --ok: #3fb97a; --ko: #e06c6c; --draft: #d9a43b; --accent: #6aa7ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 53px); }
+  aside { border-right: 1px solid var(--line); overflow-y: auto; padding: 10px; }
+  aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 6px 6px; }
+  .item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+  .item:hover { background: var(--panel); }
+  .item.sel { background: #26334a; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--draft); }
+  .dot.validated { background: var(--ok); }
+  .dot.rejected { background: var(--ko); }
+  .item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .count { color: var(--muted); font-size: 12px; }
+  section.editor { overflow-y: auto; padding: 18px 22px 60px; }
+  .empty { color: var(--muted); margin-top: 40px; text-align: center; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input, textarea, select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; }
+  textarea { min-height: 64px; resize: vertical; }
+  .hint { font-size: 12px; margin-top: 4px; min-height: 16px; }
+  .hint.bad { color: var(--ko); }
+  .hint.good { color: var(--ok); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button { background: #2a2e38; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; font: inherit; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); color: #0b1220; border-color: var(--accent); font-weight: 600; }
+  button.ok { border-color: var(--ok); color: var(--ok); }
+  button.ko { border-color: var(--ko); color: var(--ko); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+  .cand { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .cand.validated { border-color: var(--ok); }
+  .cand.rejected { opacity: .45; }
+  .cand img { width: 100%; display: block; aspect-ratio: 2/3; object-fit: cover; cursor: zoom-in; }
+  .cand .meta { padding: 8px; font-size: 12px; color: var(--muted); }
+  .cand .meta b { color: var(--text); font-weight: 600; }
+  .cand .acts { display: flex; gap: 6px; padding: 0 8px 8px; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 1px solid currentColor; }
+  .badge.validated { color: var(--ok); } .badge.rejected { color: var(--ko); } .badge.draft { color: var(--draft); }
+  .refs label { display: flex; align-items: center; gap: 8px; color: var(--text); margin: 4px 0; font-size: 13px; }
+  .refs input { width: auto; }
+  .preview { font-size: 12px; background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 8px; white-space: pre-wrap; color: var(--muted); margin-top: 8px; }
+  #toast { position: fixed; right: 18px; bottom: 18px; background: #2a2e38; border: 1px solid var(--line); padding: 10px 14px; border-radius: 8px; display: none; max-width: 420px; }
+  #toast.show { display: block; }
+  #toast.err { border-color: var(--ko); }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; height: auto; } aside { max-height: 35vh; border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Registre d'actifs</h1>
+  <span id="counts" class="count" style="color:var(--muted)"></span>
+  <span class="count" style="color:var(--muted);flex-basis:100%;order:3">Éléments de l'histoire (à gauche) → image de référence (retenue) → images des scènes. Un élément n'est utilisable dans une scène qu'avec une image retenue.</span>
+  <span class="spacer"></span>
+  <nav style="display:flex;gap:6px"><a href="/histoire" style="color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:6px">Histoire →</a></nav>
+  <button id="newBtn">+ Élément libre</button>
+</header>
+<main>
+  <aside id="list"></aside>
+  <section class="editor" id="editor"><div class="empty">Sélectionnez un actif, ou créez-en un.</div></section>
+</main>
+<div id="toast"></div>
+
+<script>
+const KIND_LABEL = { character: "Personnages", outfit: "Tenues", location: "Lieux", scene: "Scènes", object: "Objets" };
+const state = { assets: [], selected: null, polling: null };
+
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function toast(msg, isErr = false) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toast._h);
+  toast._h = setTimeout(() => (t.className = ""), 4500);
+}
+
+async function api(method, url, body) {
+  const r = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+// Même règle que le serveur : pas de français dans les prompts envoyés aux modèles.
+const FR_CHARS = /[éèêëàâçùûôîïœ]/i;
+const FR_WORDS = /\b(le|la|les|une|un|des|du|et|avec|dans|femme|homme|cheveux|yeux|robe|cuisine|sur|qui|pour)\b/i;
+function englishWarnings(text) {
+  if (!text) return [];
+  return FR_CHARS.test(text) || FR_WORDS.test(text)
+    ? ["Ce texte semble contenir du français : Flux répond mieux en anglais (avertissement, l'envoi reste possible)."]
+    : [];
+}
+
+async function load() {
+  const data = await api("GET", "/api/assets");
+  state.assets = data.assets;
+  state.elements = (await api("GET", "/api/story/elements")).elements;
+  renderList();
+  if (state.selected) renderEditor();
+  const v = state.assets.filter((a) => a.status === "validated").length;
+  $("#counts").textContent = `${state.assets.length} éléments · ${v} images retenues`;
+}
+
+const EL_KIND = { character: "personnage", outfit: "tenue", location: "lieu" };
+
+function elementStatus(el) {
+  if (!el.asset_id) return { label: "à créer", cls: "todo" };
+  if (el.asset_status === "validated") return { label: "image retenue", cls: "validated" };
+  return { label: `brouillon · ${el.candidates} image(s)`, cls: "draft" };
+}
+
+function elementsHtml() {
+  if (!state.elements || !state.elements.length) {
+    return `<h2>Dans l'histoire</h2><div class="empty" style="margin:6px;text-align:left">Aucun élément. Écrivez d'abord un chapitre dans la page Histoire.</div>`;
+  }
+  const rows = state.elements.map((el, i) => {
+    const st = elementStatus(el);
+    const sub = el.kind === "outfit" ? ` (${esc(el.parent_name)})` : "";
+    return `<div class="item" data-el="${i}" title="${esc(el.description || "")}">
+      <span class="dot ${st.cls === "todo" ? "" : st.cls}" style="${st.cls === "todo" ? "background:var(--muted)" : ""}"></span>
+      <span class="name">${esc(el.name)}${sub}<br><span class="count">${EL_KIND[el.kind]} · ${st.label}</span></span></div>`;
+  }).join("");
+  return `<h2>Dans l'histoire</h2>${rows}`;
+}
+
+async function openElement(i) {
+  const el = state.elements[i];
+  if (el.asset_id) return select(el.asset_id);
+  try {
+    const r = await api("POST", "/api/story/elements/create", {
+      kind: el.kind, name: el.name, description: el.description, parent_name: el.parent_name,
+    });
+    if (r.warning) toast(r.warning, true);
+    else toast(`« ${el.name} » créé avec un prompt proposé : relisez-le avant de générer`);
+    await load();
+    select(r.asset_id);
+  } catch (e) { toast(e.message, true); }
+}
+
+function renderList() {
+  const groups = ["character", "outfit", "location", "object", "scene"];
+  let html = elementsHtml();
+  for (const k of groups) {
+    const items = state.assets.filter((a) => a.kind === k);
+    html += `<h2>${KIND_LABEL[k]} (${items.length})</h2>`;
+    for (const a of items) {
+      const sel = state.selected === a.id ? " sel" : "";
+      html += `<div class="item${sel}" data-id="${esc(a.id)}">
+        <span class="dot ${esc(a.status)}"></span>
+        <span class="name">${esc(a.name || a.id)}</span>
+        <span class="count">${a.candidates.length}</span></div>`;
+    }
+  }
+  $("#list").innerHTML = html || '<div class="empty">Aucun actif.</div>';
+  document.querySelectorAll(".item[data-id]").forEach((el) =>
+    el.addEventListener("click", () => select(el.dataset.id)));
+  document.querySelectorAll(".item[data-el]").forEach((el) =>
+    el.addEventListener("click", () => openElement(Number(el.dataset.el))));
+}
+
+function select(id) {
+  state.selected = id;
+  renderList();
+  renderEditor();
+}
+
+function current() { return state.assets.find((a) => a.id === state.selected); }
+
+function renderEditor() {
+  const a = current();
+  if (!a) { $("#editor").innerHTML = '<div class="empty">Sélectionnez un actif, ou créez-en un.</div>'; return; }
+  const parents = state.assets.filter((p) => p.kind === "character" && p.id !== a.id);
+  const validatedOthers = state.assets.filter((v) => v.status === "validated" && v.id !== a.id);
+
+  $("#editor").innerHTML = `
+  <div class="card">
+    <h3>Identité · ${esc(a.id)} · ${esc(KIND_LABEL[a.kind].slice(0, -1) || a.kind)}</h3>
+    <label>Nom</label>
+    <input id="f_name" value="${esc(a.name)}">
+    <label>Description (note française, pour vous)</label>
+    <textarea id="f_description">${esc(a.description)}</textarea>
+    <label>Prompt pour le modèle (anglais)</label>
+    <textarea id="f_prompt">${esc(a.prompt)}</textarea>
+    <div id="f_prompt_hint" class="hint"></div>
+    <div class="row" style="margin-top:6px"><button id="suggestBtn">Proposer un prompt (IA)</button>
+      <span class="count" style="color:var(--muted)">Le modèle rédige le prompt à partir de la description et de l'histoire. Vous le relisez avant de générer.</span></div>
+    ${a.kind === "outfit" ? `
+    <label>Porté par</label>
+    <select id="f_parent"><option value="">— aucun —</option>
+      ${parents.map((p) => `<option value="${esc(p.id)}" ${p.id === a.parent ? "selected" : ""}>${esc(p.name || p.id)}</option>`).join("")}
+    </select>` : ""}
+    <div class="row" style="margin-top:12px"><button class="primary" id="saveBtn">Enregistrer</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Images générées (${a.candidates.length})</h3>
+    <div class="grid">
+      ${a.candidates.length ? a.candidates.map((c) => `
+        <div class="cand ${esc(c.rejected ? "rejected" : (a.validated_candidate === c.index ? "validated" : ""))}">
+          <img src="${esc(c.url)}" alt="image ${c.index}" onclick="window.open(this.src)">
+          <div class="meta">
+            <span class="badge ${esc(a.validated_candidate === c.index ? "validated" : c.rejected ? "rejected" : "draft")}">
+              ${a.validated_candidate === c.index ? "retenue" : c.rejected ? "écartée" : "à examiner"}</span>
+            <b>#${c.index}</b> · ${esc(c.model || "")}<br>seed ${esc(c.seed ?? "—")}
+          </div>
+          <div class="acts">
+            ${a.validated_candidate === c.index
+              ? `<button onclick="setStatus(${c.index}, false)">Ne plus retenir</button>`
+              : `<button class="ok" onclick="setStatus(${c.index}, true)">Retenir</button>
+                 <button class="ko" onclick="setStatus(${c.index}, false)" ${c.rejected ? "disabled" : ""}>Écarter</button>`}
+          </div>
+        </div>`).join("") : '<div class="empty">Aucune image pour l\'instant. Générez-en une ci-dessous.</div>'}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Générer une image</h3>
+    <p class="hint" style="color:var(--muted);margin-top:-4px">Le prompt est envoyé tel quel (en anglais). Sans image de référence, on utilise flux-dev ; avec des références retenues, on utilise Klein pour garder le même personnage.</p>
+    <label>Prompt exact envoyé au modèle (pré-rempli avec le prompt de l'actif, rien n'est ajouté)</label>
+    <textarea id="g_prompt" style="min-height:140px">${esc(a.prompt)}</textarea>
+    <div id="g_prompt_hint" class="hint"></div>
+    <div class="row"><button id="styleBtn">Ajouter le style de référence</button></div>
+    <div class="row" style="margin-top:6px">
+      <div style="flex:1"><label>Format</label>
+        <select id="g_aspect">
+          <option value="2:3" ${a.kind !== "location" ? "selected" : ""}>Portrait 2:3 (personnage, tenue)</option>
+          <option value="16:9" ${a.kind === "location" ? "selected" : ""}>Paysage 16:9 (lieu)</option>
+          <option value="1:1">Carré 1:1</option>
+          <option value="9:16">Vertical 9:16</option>
+        </select></div>
+      <div style="flex:1"><label>Graine (optionnel)</label><input id="g_seed" type="number" placeholder="aléatoire si vide"></div>
+    </div>
+    <label>Images de référence (retenues) : aucune = génération pure</label>
+    <div class="refs">
+      ${validatedOthers.length ? validatedOthers.map((v) => `
+        <label><input type="checkbox" class="g_ref" value="${esc(v.id)}"> ${esc(v.name || v.id)} <span class="count">(${esc(v.kind)})</span></label>`).join("")
+        : '<div class="hint" style="color:var(--muted)">Aucune autre image retenue pour l\'instant.</div>'}
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="genBtn">Générer l'image</button>
+      <span id="genState" class="count"></span>
+    </div>
+  </div>`;
+
+  $("#f_prompt").addEventListener("input", (e) => {
+    const w = englishWarnings(e.target.value);
+    const h = $("#f_prompt_hint");
+    h.textContent = w.join(" ") || "OK : aucun mot français détecté.";
+    h.className = "hint " + (w.length ? "bad" : "good");
+  });
+  $("#f_prompt").dispatchEvent(new Event("input"));
+  $("#g_prompt").addEventListener("input", (e) => {
+    const w = englishWarnings(e.target.value);
+    $("#g_prompt_hint").textContent = w.join(" ");
+    $("#g_prompt_hint").className = "hint bad";
+  });
+  $("#g_prompt").dispatchEvent(new Event("input"));
+  $("#styleBtn").addEventListener("click", async () => {
+    const st = await api("GET", "/api/style");
+    const ta = $("#g_prompt");
+    ta.value = ta.value.trim() ? ta.value.trimEnd() + ". " + st.positive_suffix : st.positive_suffix;
+    ta.dispatchEvent(new Event("input"));
+  });
+  $("#saveBtn").addEventListener("click", saveAsset);
+  $("#suggestBtn").addEventListener("click", suggestPrompt);
+  $("#genBtn").addEventListener("click", generate);
+}
+
+async function suggestPrompt() {
+  const btn = $("#suggestBtn");
+  btn.disabled = true;
+  const old = btn.textContent;
+  btn.textContent = "rédaction en cours…";
+  try {
+    const r = await api("POST", `/api/asset/${state.selected}/suggest-prompt`, {});
+    $("#f_prompt").value = r.prompt;
+    $("#f_prompt").dispatchEvent(new Event("input"));
+    toast(r.warnings.length ? r.warnings.join(" ") : "Prompt proposé : relisez-le puis enregistrez");
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+async function saveAsset() {
+  const a = current();
+  const body = {
+    name: $("#f_name").value,
+    description: $("#f_description").value,
+    prompt: $("#f_prompt").value,
+  };
+  if ($("#f_parent")) body.parent = $("#f_parent").value || null;
+  try {
+    await api("POST", `/api/asset/${a.id}`, body);
+    toast("Enregistré");
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function setStatus(index, validate) {
+  try {
+    await api("POST", `/api/asset/${state.selected}/candidate/${index}`, { validate });
+    toast(validate ? "Image retenue" : "Image écartée ou non retenue");
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+function refsChecked() {
+  return [...document.querySelectorAll(".g_ref:checked")].map((c) => c.value);
+}
+
+async function generate() {
+  const body = {
+    id: state.selected,
+    prompt: $("#g_prompt").value,
+    seed: $("#g_seed").value ? Number($("#g_seed").value) : null,
+    aspect: $("#g_aspect").value,
+    refs: refsChecked(),
+  };
+  $("#genBtn").disabled = true;
+  $("#genState").textContent = "génération en cours (30 s à 1 min)…";
+  try {
+    const { job } = await api("POST", "/api/generate", body);
+    pollJob(job);
+  } catch (e) {
+    $("#genBtn").disabled = false;
+    $("#genState").textContent = "";
+    toast(e.message, true);
+  }
+}
+
+function pollJob(job) {
+  clearInterval(state.polling);
+  state.polling = setInterval(async () => {
+    try {
+      const j = await api("GET", `/api/jobs/${job}`);
+      if (j.state === "running") return;
+      clearInterval(state.polling);
+      $("#genBtn") && ($("#genBtn").disabled = false);
+      $("#genState") && ($("#genState").textContent = "");
+      if (j.state === "done") toast("Image générée");
+      else toast(j.message, true);
+      await load();
+    } catch (e) {
+      clearInterval(state.polling);
+      toast(e.message, true);
+    }
+  }, 2000);
+}
+
+$("#newBtn").addEventListener("click", async () => {
+  const id = prompt("Identifiant (lettres, chiffres, _ ou -) ex. char_lea, outfit_robe_nuit, loc_chambre");
+  if (!id) return;
+  const kind = prompt("Type : character, outfit ou location", "character");
+  if (!kind) return;
+  try {
+    await api("POST", "/api/asset", { id, kind, name: id, description: "", prompt: "" });
+    state.selected = id;
+    await load();
+  } catch (e) { toast(e.message, true); }
+});
+
+load().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>

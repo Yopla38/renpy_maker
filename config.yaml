@@ -1,0 +1,76 @@
+# Configuration générale de renpy_maker.
+# Chemins absolus pour rester valables quel que soit le répertoire de lancement.
+
+project:
+  name: "premier_chapitre"
+  language: "fr"
+  game_dir: "/home/yopla/PycharmProjects/renpy_maker/game_project"   # contient game/
+  spec_dir: "/home/yopla/PycharmProjects/renpy_maker/game_spec"      # spec YAML = source de vérité
+  work_dir: "/home/yopla/PycharmProjects/renpy_maker/work"           # brouillons, logs, sorties intermédiaires
+
+renpy:
+  sdk_dir: "/home/yopla/PycharmProjects/renpy_maker/tools/renpy-8.3.7-sdk"
+
+# Écrivain : fournisseur interchangeable. Un seul "active" à la fois.
+llm:
+  active: anthropic
+  providers:
+    anthropic:
+      model: "claude-sonnet-5-5"
+      api_key_env: "ANTHROPIC_API_KEY"     # clé lue dans l'environnement, jamais écrite ici
+      max_tokens: 8000
+      temperature: 1.0
+    openai:
+      model: "gpt-5"                       # à confirmer
+      api_key_env: "OPENAI_API_KEY"
+      max_tokens: 8000
+      temperature: 1.0
+    ollama:                                # modèle local, ouvert
+      model: "qwen3:14b"                   # à choisir selon la machine
+      base_url: "http://localhost:11434"
+      max_tokens: 8000
+      temperature: 0.9
+
+# Contenu du chapitre (ce qui est demandé à l'écrivain).
+story:
+  chapter_title: "Chapitre 1"
+  scenes_target: 6
+  content_rating: "adult"                  # indication transmise au prompt de l'écrivain
+  # Le fournisseur doit autoriser ce type de contenu (voir la politique d'usage du fournisseur).
+
+# Style visuel : à fixer au début de chaque projet.
+visual_style:
+  name: "3D réaliste"                      # rendu CGI réaliste, style des jeux Ren'Py adultes
+  positive_suffix: "photorealistic 3D render, realistic CGI character, soft cinematic lighting, detailed skin texture"
+  negative_prompt: "low quality, blurry, deformed, watermark, text, cartoon, anime, flat shading"
+  seed: 42                                 # graine de référence pour les ancres
+
+# ComfyUI : images et vidéos.
+comfy:
+  url: "http://127.0.0.1:8188"             # à confirmer (port par défaut ComfyUI)
+  models_dir: "/home/yopla/Applications/SD/comfyui/Comfyui/models"
+  image:
+    # Modèle image à valider sur cette machine (voir unet/ : zImageTurbo, qwen_image, flux...).
+    unet: "zImageTurbo_turbo.safetensors"
+    text_encoder: "qwen_3_4b.safetensors"  # dossier clip/ — à confirmer pour ce modèle
+    vae: "ae.safetensors"                  # dossier vae/ — à confirmer pour ce modèle
+    width: 832
+    height: 1216
+    steps: 8
+    cfg: 1.0
+  video:
+    # Wan 2.2 image->vidéo, deux passes (high noise puis low noise), avec image de départ et de fin.
+    # Nœud ComfyUI : WanFirstLastFrameToVideo (comfy_extras/nodes_wan.py).
+    unet_high: "wan2.2_i2v_high_noise_14B_Q4_K_S.gguf"     # dossier diffusion_models/
+    unet_low: "wan2.2_i2v_low_noise_14B_Q4_K_S.gguf"       # dossier diffusion_models/
+    text_encoder: "umt5_xxl_fp8_e4m3fn_scaled.safetensors" # dossier text_encoders/
+    vae: "wan_2.1_vae.safetensors"                          # dossier vae/
+    width: 640
+    height: 640
+    length_frames: 81
+    fps: 16
+    steps_high: 10
+    steps_low: 10
+    cfg: 3.5
+    # Limite connue : les modèles i2v Wan 2.2 présents ne sont pas des modèles "first-last-frame"
+    # entraînés ; la qualité de la fin de plan est à valider par un test.

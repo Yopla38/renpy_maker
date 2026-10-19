@@ -1,0 +1,13 @@
+# Données générées ou lourdes (images, SDK, export du jeu)
+assets/
+tools/
+game_project/game/images/
+game_project/game/cache/
+game_project/game/saves/
+game_project/game/*.rpyc
+game_project/game/script.rpy
+work/
+__pycache__/
+*.pyc
+game_project/log.txt
+game_project/traceback.txt

@@ -1,0 +1,726 @@
+version: 1
+title: la rencontre
+idea: Eve, jeune femme de 21 ans, blonde élancée, très belle, travaillant à la ferme
+  de ses parents, rencontre Pierre, son voisin, qui vient régulierement chercher le
+  lait des vaches
+settings:
+  language: fr
+  explicit_content: false
+  total_scenes: 6
+  providers:
+    text: anthropic
+    image_base: replicate
+    image_edit: replicate
+  renpy:
+    title: Farmer fact
+    width: 1920
+    height: 1080
+synopsis: ''
+chapters:
+- id: ch1
+  title: La rencontre
+  summary: Un matin d'été, Eve termine la traite dans l'étable de la ferme familiale
+    lorsque Pierre, le voisin venu chercher le lait comme chaque semaine, arrive plus
+    tôt que prévu. Ce qui n'était qu'une routine se transforme en une conversation
+    pleine de petites maladresses et de rires complices. À la fin de la matinée, tous
+    deux sentent que ces visites ne seront plus tout à fait comme avant.
+  scene_count: 3
+  locked: true
+  scenes:
+  - id: s1
+    title: Une traite matinale
+    summary: Aux premières lueurs du jour, Eve s'occupe seule des vaches dans l'étable
+      en fredonnant. Elle est fatiguée mais fière de son travail, et prend le temps
+      de parler à chacune de ses bêtes. Elle remarque qu'elle est en avance sur sa
+      tâche et que les bidons de lait sont presque prêts.
+    characters:
+    - Eve
+    location: L'étable de la ferme
+    outfits:
+      Eve: Salopette en jean sur un t-shirt blanc, bottes en caoutchouc vertes, cheveux
+        blonds attachés en une longue tresse
+    choices: []
+    ending: false
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: Les premières lueurs du jour glissent entre les planches de l'étable et
+        dorent la poussière en suspension. Une odeur de foin tiède et de lait frais
+        flotte dans l'air.
+      expression: calme
+    - speaker: Eve
+      text: (elle fredonne, le front appuyé contre le flanc d'une vache) Mmh mm mmh...
+        Voilà, ma belle, doucement...
+      expression: sourire paisible
+    - speaker: Eve
+      text: Toi, Marguerite, tu es toujours la plus généreuse. Si toutes tes copines
+        avaient ton courage, je serais déjà au lit !
+      expression: sourire taquin
+    - speaker: Narration
+      text: Eve s'étire en grimaçant, une main dans le creux des reins. Ses yeux sont
+        cernés, mais un petit sourire fier ne la quitte pas.
+      expression: fatigue
+    - speaker: Eve
+      text: Ne fais pas cette tête, Noiraude. Je sais que tu aimes les caresses avant
+        la traite. Tiens... là, derrière l'oreille. Voilà, tu ronronnerais presque
+        !
+      expression: tendresse
+    - speaker: Narration
+      text: Un meuglement satisfait lui répond. Eve éclate de rire et sa voix résonne
+        sous la charpente.
+      expression: rire
+    - speaker: Eve
+      text: (elle jette un coup d'œil vers le fond de l'étable) Attends... Les bidons
+        sont déjà presque pleins ? Et il n'est même pas encore sept heures !
+      expression: surprise
+    - speaker: Eve
+      text: Eh bien, mesdames, on a cinq minutes d'avance. Je crois que ça mérite
+        un petit morceau de pain sec pour tout le monde.
+      expression: fierté
+    - speaker: Narration
+      text: Elle essuie ses mains sur son tablier et rejette en arrière une mèche
+        blonde échappée de sa tresse. Dehors, le soleil monte doucement sur la cour
+        de la ferme.
+      expression: sérénité
+    - speaker: Eve
+      text: Ce sera une belle journée, je le sens. Allez, on termine tranquillement,
+        et ensuite... un bon café, enfin.
+      expression: sourire rêveur
+    plans:
+    - id: p8
+      from_line: 0
+      characters: []
+      asset: scene_s1_p8
+      refs_extra:
+      - scene_s1_p1
+      refs_exclude:
+      - loc_l_etable_de_la_ferme
+      - outfit_salopette_en_jean_sur_un_t_shirt_blanc_b
+    - id: p1
+      from_line: 1
+      characters: []
+      asset: scene_s1_p1
+    - id: p2
+      from_line: 2
+      characters: []
+      asset: scene_s1_p2
+      refs_extra:
+      - scene_s1_p1
+      refs_exclude: []
+      shot:
+        framing: close-up
+        angle: side profile
+        note: elle regarde la vache
+    - id: p3
+      from_line: 3
+      characters: []
+      asset: scene_s1_p3_2
+      refs_extra:
+      - scene_s1_p2
+    - id: p4
+      from_line: 4
+      characters: []
+      asset: scene_s1_p4
+      refs_extra:
+      - scene_s1_p3_2
+      shot:
+        framing: medium close-up
+        angle: eye level
+        note: la beauté de la femme
+    - id: p5
+      from_line: 5
+      characters: []
+      asset: scene_s1_p5
+      refs_extra:
+      - scene_s1_p4
+      shot:
+        framing: ''
+        angle: ''
+        note: la vache meugle
+    - id: p6
+      from_line: 7
+      characters: []
+      asset: scene_s1_p6
+    - id: p7
+      from_line: 9
+      characters: []
+      asset: loc_l_etable_de_la_ferme
+  - id: s2
+    title: Le voisin en avance
+    summary: Pierre pousse la grande porte de l'étable, surpris de trouver Eve seule
+      au lieu de ses parents. Elle l'avait déjà croisé de loin, mais ils ne s'étaient
+      jamais vraiment parlé. Gêné, il trébuche presque sur un seau, ce qui les fait
+      rire tous les deux et brise la glace.
+    characters:
+    - Eve
+    - Pierre
+    location: L'étable de la ferme, près de l'entrée
+    outfits:
+      Eve: Salopette en jean sur un t-shirt blanc, bottes en caoutchouc vertes, cheveux
+        blonds attachés en une longue tresse
+      Pierre: Chemise à carreaux aux manches retroussées, pantalon de travail beige,
+        casquette en toile
+    choices: []
+    ending: false
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: 'Un grincement retentit : la grande porte de l''étable s''ouvre sur une
+        silhouette à contre-jour. Pierre s''avance, une caisse de bidons vides sous
+        le bras, et s''arrête net en apercevant Eve.'
+      expression: surprise
+    - speaker: Pierre
+      text: Oh... Bonjour. Je pensais trouver tes parents. Je suis venu pour le lait,
+        comme d'habitude.
+      expression: surpris
+    - speaker: Eve
+      text: Tu es en avance, voisin. Mes parents sont partis au marché, tu vas devoir
+        te contenter de moi.
+      expression: sourire taquin
+    - speaker: Pierre
+      text: Ce n'est pas un problème, au contraire, je voulais dire... enfin, je ne
+        voulais pas te déranger pendant que tu...
+      expression: gêné
+    - speaker: Narration
+      text: Pierre recule d'un pas pour s'excuser et son talon heurte un seau. Il
+        vacille, agite les bras et rattrape de justesse la caisse avant de retrouver
+        l'équilibre.
+      expression: maladroit
+    - speaker: Eve
+      text: Attention, le seau est de leur côté, pas du tien ! Il ne t'a rien fait,
+        pourtant.
+      expression: rire
+    - speaker: Pierre
+      text: Il m'a tendu une embuscade. Je suis un homme courageux, mais je n'avais
+        pas prévu d'affronter un seau dès le matin.
+      expression: sourire amusé
+    - speaker: Eve
+      text: Eh bien, tu t'en sors avec les honneurs. Je m'appelle Eve, au fait. On
+        se croise depuis des mois, mais on ne s'est jamais vraiment parlé.
+      expression: sourire
+    - speaker: Pierre
+      text: Pierre. Enchanté, Eve. Et pardon pour cette entrée en scène, je n'ai pas
+        l'habitude de faire un tel numéro.
+      expression: sourire timide
+    - speaker: Eve
+      text: Ne t'excuse pas, c'était la meilleure chose qui me soit arrivée ce matin.
+        Viens, le lait est presque prêt. Et il reste du café, si tu veux.
+      expression: sourire chaleureux
+    plans:
+    - id: p1
+      from_line: 0
+      characters: []
+      asset: scene_s2_p1
+      shot:
+        framing: cowboy shot
+        angle: ''
+        note: ''
+      refs_exclude: []
+    - id: p2
+      from_line: 1
+      characters: []
+      asset: scene_s2_p2
+      refs_exclude:
+      - loc_l_etable_de_la_ferme_pres_de_l_entree
+      - outfit_chemise_a_carreaux_aux_manches_retrousse
+      refs_extra:
+      - scene_s2_p1
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: ''
+    - id: p3
+      from_line: 2
+      characters: []
+      asset: scene_s2_p3
+      refs_extra: []
+      refs_exclude:
+      - loc_l_etable_de_la_ferme_pres_de_l_entree
+      - outfit_chemise_a_carreaux_aux_manches_retrousse
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: la beauté de la femme
+    - id: p4
+      from_line: 3
+      characters: []
+      asset: scene_s2_p4
+      refs_exclude:
+      - loc_l_etable_de_la_ferme_pres_de_l_entree
+      - outfit_salopette_en_jean_sur_un_t_shirt_blanc_b
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: intimidé
+    - id: p5
+      from_line: 4
+      characters: []
+      asset: scene_s2_p5
+      shot:
+        framing: wide shot
+        angle: ''
+        note: l'homme tombe en arriere
+      refs_exclude:
+      - loc_l_etable_de_la_ferme_pres_de_l_entree
+      refs_extra:
+      - scene_s2_p4
+    - id: p6
+      from_line: 7
+      characters: []
+      asset: scene_s2_p3
+    - id: p8
+      from_line: 8
+      characters: []
+      asset: scene_s2_p4
+    - id: p7
+      from_line: 9
+      characters: []
+      asset: scene_s2_p2
+  - id: s3
+    title: Les bidons de lait
+    summary: Eve aide Pierre à charger les bidons dans sa camionnette tout en lui
+      posant des questions sur sa propre exploitation. Ils découvrent qu'ils partagent
+      les mêmes soucis et les mêmes rêves de campagne. Au moment de se quitter, Pierre
+      propose de revenir plus tôt la prochaine fois, et Eve accepte avec un sourire
+      qu'elle ne cherche pas à cacher.
+    characters:
+    - Eve
+    - Pierre
+    location: Cour de la ferme, devant l'étable
+    outfits:
+      Eve: Salopette en jean sur un t-shirt blanc, bottes en caoutchouc vertes, cheveux
+        blonds en tresse légèrement défaite
+      Pierre: Chemise à carreaux aux manches retroussées, pantalon de travail beige,
+        casquette en toile
+    choices: []
+    ending: true
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: Dans la cour, le soleil du matin chauffe déjà les pavés. Eve fait rouler
+        un premier bidon de lait jusqu'à la camionnette de Pierre, garée devant l'étable.
+      expression: neutre
+    - speaker: Eve
+      text: Attention, celui-là est plein à ras bord. Tu le prends par l'anse, sinon
+        tu vas encore en mettre partout.
+      expression: sourire moqueur
+    - speaker: Pierre
+      text: Je vais essayer de ne pas battre mon record de maladresse du jour. Dis-moi,
+        tu fais tout ça toute seule, d'habitude ?
+      expression: amusé
+    - speaker: Eve
+      text: Avec mes parents, oui. Mais ce matin, ils sont au marché. Et toi, ta ferme,
+        ça donne quoi ? Je ne sais même pas combien de bêtes tu as.
+      expression: curiosité
+    - speaker: Pierre
+      text: Une vingtaine de vaches et quelques hectares de prairie. Le plus dur,
+        c'est de tenir avec les prix du lait. Chaque mois, je refais mes comptes en
+        croisant les doigts.
+      expression: soucieux
+    - speaker: Eve
+      text: Ah, ça, je connais. Mon père passe ses soirées sur ses factures en soupirant.
+        Moi, je rêve d'un jour où on pourrait vendre notre fromage directement, sans
+        intermédiaire.
+      expression: rêveuse
+    - speaker: Pierre
+      text: Sérieusement ? J'y pense depuis des années ! Une petite fromagerie, un
+        panneau au bord de la route... Je n'en ai jamais parlé à personne.
+      expression: surpris
+    - speaker: Eve
+      text: Alors nous voilà deux fous. C'est étrange, on vit à deux pas l'un de l'autre
+        et on découvre ça seulement aujourd'hui.
+      expression: sourire sincère
+    - speaker: Narration
+      text: Pierre referme les portes de la camionnette. Il hésite un instant, la
+        main sur la poignée, comme s'il n'osait pas partir.
+      expression: hésitation
+    - speaker: Pierre
+      text: La semaine prochaine, je pourrais passer un peu plus tôt. Pour t'aider
+        avec la traite, et pour qu'on continue de parler de nos projets.
+      expression: timide
+    - speaker: Eve
+      text: Avec plaisir. Viens dès l'aube si tu veux, je mettrai le café à chauffer.
+      expression: grand sourire
+    plans:
+    - id: p1
+      from_line: 0
+      characters: []
+      asset: scene_s3_p1
+      refs_exclude: []
+      refs_extra:
+      - obj_camionnette_de_pierre
+    - id: p2
+      from_line: 1
+      characters: []
+      asset: scene_s3_p2
+      refs_extra:
+      - scene_s3_p1
+      refs_exclude:
+      - loc_cour_de_la_ferme_devant_l_etable
+      - outfit_salopette_en_jean_sur_un_t_shirt_blanc_b_2
+      - outfit_chemise_a_carreaux_aux_manches_retrousse
+    - id: p3
+      from_line: 3
+      characters: []
+      asset: scene_s3_p3
+      refs_extra:
+      - scene_s3_p2
+      shot:
+        framing: close-up
+        angle: side profile
+        note: dialogue, proximité
+    - id: p4
+      from_line: 4
+      characters: []
+      asset: scene_s3_p4
+      shot:
+        framing: extreme close-up
+        angle: ''
+        note: breasts
+      refs_extra:
+      - scene_s3_p3
+      refs_exclude:
+      - loc_cour_de_la_ferme_devant_l_etable
+      - outfit_salopette_en_jean_sur_un_t_shirt_blanc_b_2
+      - outfit_chemise_a_carreaux_aux_manches_retrousse
+    - id: p5
+      from_line: 5
+      characters: []
+      asset: scene_s3_p5
+      refs_extra:
+      - scene_s3_p4
+      - scene_s3_p2
+      refs_exclude:
+      - loc_cour_de_la_ferme_devant_l_etable
+      - outfit_salopette_en_jean_sur_un_t_shirt_blanc_b_2
+      - outfit_chemise_a_carreaux_aux_manches_retrousse
+      shot:
+        framing: extreme close-up
+        angle: side profile
+        note: ''
+    - id: p6
+      from_line: 6
+      characters: []
+      asset: scene_s3_p3
+    - id: p7
+      from_line: 8
+      characters: []
+      asset: scene_s3_p7
+      refs_exclude:
+      - loc_cour_de_la_ferme_devant_l_etable
+      - outfit_salopette_en_jean_sur_un_t_shirt_blanc_b_2
+      refs_extra:
+      - scene_s3_p1
+- id: ch2
+  title: Dans les champs
+  summary: 'Quelques jours après leur première vraie conversation, Pierre revient
+    plus tôt, comme promis. Eve a décidé de lui faire comprendre qu''il ne lui est
+    pas indifférent : elle s''est habillée d''une jupe légère et l''attend dans les
+    prés. Entre taquineries, maladresses et pause à l''ombre d''un chêne, le jeu de
+    séduction s''installe doucement et débouche sur un premier rendez-vous.'
+  scene_count: 3
+  locked: false
+  scenes:
+  - id: s4
+    title: Une tenue inhabituelle
+    summary: Pierre arrive à la ferme, mais Eve n'est pas à l'étable. Son père lui
+      indique qu'elle travaille dans les champs. En la découvrant au bout du sentier,
+      vêtue d'une jupe légère au milieu des herbes hautes, il en perd ses mots. Eve,
+      qui l'a vu venir de loin, feint de n'avoir rien prévu et lui lance un « Tu es
+      en avance, encore ».
+    characters:
+    - Eve
+    - Pierre
+    - Le père d'Eve
+    location: Sentier du grand pré
+    outfits:
+      Eve: Jupe d'été légère à fleurs, chemisier blanc noué à la taille, bottines
+        de cuir, cheveux blonds lâchés
+      Pierre: Jean usé, t-shirt gris, casquette de toile, bottes de travail
+    choices: []
+    ending: false
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: 'Le soleil de fin de matinée écrase le grand pré. Pierre s''est garé devant
+        la ferme plus tôt que jamais, mais l''étable est vide. Le père d''Eve, en
+        train de réparer une clôture, lève le menton vers le fond du sentier : « Elle
+        est dans les champs, va donc la voir. »'
+      expression: neutre
+    - speaker: Narration
+      text: 'Pierre s''engage sur le sentier bordé d''herbes hautes. Au bout du chemin,
+        une silhouette se découpe dans la lumière : Eve, les cheveux blonds dénoués,
+        une jupe légère qui danse autour de ses genoux au gré de la brise.'
+      expression: émerveillé
+    - speaker: Pierre
+      text: Eve... je... enfin, bonjour. Tu... c'est... Il y a du vent aujourd'hui,
+        non ?
+      expression: gêné, bafouillant
+    - speaker: Narration
+      text: Eve l'a vu arriver de loin, mais elle se redresse lentement, une main
+        sur la hanche, comme si de rien n'était. Un sourire en coin lui échappe malgré
+        elle.
+      expression: sourire en coin
+    - speaker: Eve
+      text: Tu es en avance, encore. Tu fais exprès, ou tu ne sais simplement pas
+        lire l'heure ?
+      expression: taquine
+    - speaker: Pierre
+      text: Je t'avais dit que je viendrais plus tôt. Je ne pensais pas... te trouver
+        dans un endroit aussi... enfin, aussi joli. Le pré, je veux dire. Le pré est
+        très joli.
+      expression: rougissant
+    - speaker: Eve
+      text: Le pré, bien sûr. Il a de la chance de te plaire autant. Moi, j'ai simplement
+        pensé que les vaches méritaient un peu d'élégance, aujourd'hui.
+      expression: amusée
+    - speaker: Pierre
+      text: Les vaches ont bon goût, alors. Et moi aussi, apparemment, puisque je
+        suis encore là à raconter n'importe quoi.
+      expression: rire gêné
+    - speaker: Narration
+      text: Eve éclate de rire, d'un rire clair qui envole quelques oiseaux des herbes.
+        Elle désigne du menton le grand chêne, un peu plus loin, dont l'ombre s'étend
+        sur le pré.
+      expression: rieuse
+    - speaker: Eve
+      text: Viens, ramasse ton courage et suis-moi. Il y a de l'ombre là-bas, et j'ai
+        apporté de l'eau fraîche. Tu me raconteras tes projets... et peut-être pourquoi
+        tu perds tes mots.
+      expression: complice
+    plans:
+    - id: p1
+      from_line: 0
+      characters:
+      - Pierre
+      - Le père d'Eve
+      asset: scene_s4_p1_2
+    - id: p2
+      from_line: 1
+      characters:
+      - Eve
+      - Pierre
+      asset: scene_s4_p2
+      shot:
+        framing: wide shot
+        angle: ''
+        note: ''
+    - id: p3
+      from_line: 2
+      characters:
+      - Eve
+      - Pierre
+      asset: scene_s4_p3
+      refs_extra:
+      - scene_s4_p2
+      refs_exclude:
+      - char_le_pere_d_eve
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: dialogue, pierre uniquement
+    - id: p4
+      from_line: 3
+      characters:
+      - Eve
+      asset: scene_s4_p4
+      shot:
+        framing: medium shot
+        angle: ''
+        note: sensuelle
+    - id: p5
+      from_line: 4
+      characters:
+      - Eve
+      asset: scene_s4_p5
+      refs_extra:
+      - scene_s4_p4
+      shot:
+        framing: extreme close-up
+        angle: eye level
+        note: ''
+    - id: p6
+      from_line: 5
+      characters:
+      - Eve
+      - Pierre
+      asset: scene_s4_p6
+      refs_extra:
+      - scene_s4_p4
+    - id: p7
+      from_line: 5
+      characters:
+      - Eve
+      asset: scene_s4_p7
+      refs_extra:
+      - scene_s4_p6
+      refs_exclude:
+      - loc_sentier_du_grand_pre
+    - id: p8
+      from_line: 5
+      characters: []
+      asset: scene_s4_p8
+      refs_extra:
+      - scene_s4_p7
+      refs_exclude:
+      - loc_sentier_du_grand_pre
+      - outfit_jupe_d_ete_legere_a_fleurs_chemisier_bla
+      - outfit_jean_use_t_shirt_gris_casquette_de_toile
+      - char_le_pere_d_eve
+      shot:
+        framing: extreme close-up
+        angle: ''
+        note: sa poitrine
+    - id: p9
+      from_line: 6
+      characters: []
+      asset: scene_s4_p9
+    - id: p10
+      from_line: 6
+      characters: []
+      asset: scene_s4_p7
+    - id: p11
+      from_line: 7
+      characters: []
+      asset: scene_s4_p7
+      candidate: 4
+  - id: s5
+    title: La clôture à réparer
+    summary: 'Eve prétexte une clôture endommagée pour demander l''aide de Pierre.
+      Pendant qu''ils tendent le fil, elle multiplie les petites provocations : un
+      regard appuyé, une remarque espiègle sur sa maladresse, la jupe que le vent
+      fait danser. Pierre, tout rouge, tente de rester concentré, et le jeu les fait
+      éclater de rire. Ils comprennent tous deux que l''autre n''est pas dupe.'
+    characters:
+    - Eve
+    - Pierre
+    location: Pré en bordure de la ferme
+    outfits:
+      Eve: Jupe d'été légère à fleurs, chemisier blanc noué à la taille, gants de
+        travail, bottines de cuir
+      Pierre: Jean usé, t-shirt gris légèrement humide de sueur, gants de travail,
+        casquette de toile
+    choices: []
+    ending: false
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: Ils n'ont pas fait dix pas vers le chêne qu'Eve s'arrête net devant la
+        clôture, où un fil pend mollement entre deux piquets. Elle porte la main à
+        sa bouche, l'air faussement catastrophé.
+      expression: surprise feinte
+    - speaker: Eve
+      text: Oh non, regarde ça ! Le fil a lâché. Si les vaches passent par là, mon
+        père va me faire une scène. Tu pourrais m'aider cinq minutes, Pierre ? Ça
+        tombe bien, tu as l'air d'avoir de bons bras.
+      expression: espiègle
+    - speaker: Pierre
+      text: Cinq minutes... oui, bien sûr. Enfin, je ne suis pas un expert en clôtures,
+        mais je peux tenir un fil. Je crois.
+      expression: gêné
+    - speaker: Narration
+      text: Il attrape le fil et tire de toutes ses forces. Eve se place tout près
+        de lui pour tenir l'autre extrémité. Son regard s'attarde sur lui un peu trop
+        longtemps, et le vent soulève sa jupe légère, qui danse autour de ses genoux.
+      expression: malicieuse
+    - speaker: Eve
+      text: Tu tires dans le mauvais sens, tu sais. À moins que tu veuilles aussi
+        réparer la clôture du voisin ?
+      expression: sourire en coin
+    - speaker: Pierre
+      text: Ah ! Non, pardon, c'est que... le vent, la jupe... je veux dire, la clôture
+        ! Le vent dans la clôture, c'est pénible, ça m'a distrait.
+      expression: rouge de confusion
+    - speaker: Narration
+      text: Il lâche le fil, qui lui claque contre la main. Il pousse un petit cri,
+        secoue ses doigts, et Eve éclate de rire, pliée en deux contre un piquet.
+      expression: hilare
+    - speaker: Eve
+      text: Tu es adorable quand tu rougis. Et tu es un très mauvais menteur, Pierre.
+        Tu sais que cette clôture n'a jamais été cassée, n'est-ce pas ?
+      expression: regard franc
+    - speaker: Pierre
+      text: Je m'en doutais, oui. Elle est plus solide que moi. Mais je n'ai rien
+        dit, parce que... je n'avais pas envie de partir.
+      expression: sourire timide
+    - speaker: Narration
+      text: Leurs rires se mêlent un instant dans le vent. Aucun des deux ne cherche
+        plus à faire semblant, et le silence qui suit n'a rien de gênant.
+      expression: complices
+    - speaker: Eve
+      text: Alors reste. Et samedi soir, au lieu de réparer des clôtures qui n'existent
+        pas, tu pourrais m'inviter à dîner. Pour de vrai, cette fois.
+      expression: sourire tendre
+    plans: []
+  - id: s6
+    title: Sous le grand chêne
+    summary: La chaleur monte et Eve sort de son panier du pain, du fromage et de
+      la limonade. Ils s'installent à l'ombre du grand chêne et parlent de leurs rêves
+      et de ce que la campagne a de beau. Après un silence chargé, Pierre prend son
+      courage à deux mains et l'invite à la fête du village samedi soir. Eve répond
+      avec un sourire malicieux qu'elle y réfléchira, mais ses yeux disent déjà oui.
+    characters:
+    - Eve
+    - Pierre
+    location: Sous le grand chêne, au sommet de la colline
+    outfits:
+      Eve: Jupe d'été légère à fleurs, chemisier blanc noué à la taille, pieds nus
+        dans l'herbe, bottines posées à côté
+      Pierre: Jean usé, t-shirt gris, casquette posée sur le genou, bottes de travail
+    choices: []
+    ending: false
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: La chaleur monte sur la colline. Sous le grand chêne, l'ombre est fraîche
+        et les feuilles bruissent doucement. Eve pose son panier dans l'herbe et en
+        sort du pain, un morceau de fromage et une bouteille de limonade encore humide.
+      expression: calme
+    - speaker: Eve
+      text: Voilà, mon grand stratagème pour te garder ici. Du pain de ce matin, du
+        fromage de la ferme, et de la limonade de ma mère. Personne n'a jamais résisté
+        à sa limonade.
+      expression: sourire taquin
+    - speaker: Pierre
+      text: Alors je suis fichu. Je n'avais déjà pas beaucoup de volonté, et là, tu
+        sors l'artillerie lourde.
+      expression: sourire gêné
+    - speaker: Narration
+      text: Ils s'installent dos au tronc, épaule contre épaule sans vraiment l'avoir
+        décidé. En contrebas, les vaches ne sont plus que des taches pâles dans les
+        prés.
+      expression: douceur
+    - speaker: Pierre
+      text: Quand j'étais petit, je voulais partir loin, voir la mer, les grandes
+        villes. Et maintenant, je regarde cette vallée et je me dis que je ne voudrais
+        être nulle part ailleurs.
+      expression: rêveur
+    - speaker: Eve
+      text: Moi, je rêve d'agrandir le troupeau, de faire mon propre fromage, peut-être
+        d'ouvrir un petit stand au marché. Rien de grandiose. Mais ici, le matin,
+        quand la brume se lève sur les champs, j'ai l'impression que le monde m'appartient
+        un peu.
+      expression: yeux brillants
+    - speaker: Narration
+      text: Un silence s'installe. Le vent joue dans l'herbe haute. Pierre tourne
+        la bouteille entre ses doigts, comme s'il y cherchait ses mots.
+      expression: tension douce
+    - speaker: Pierre
+      text: 'Eve... tout à l''heure, tu parlais d''un dîner, et moi, j''ai fait celui
+        qui n''avait pas compris. Alors voilà, je me lance : il y a la fête du village,
+        samedi soir. Est-ce que tu voudrais y aller avec moi ?'
+      expression: nerveux, sincère
+    - speaker: Eve
+      text: Hmm... La fête du village. Avec la musique, les lampions, et tout le monde
+        qui nous regardera arriver ensemble ?
+      expression: sourire malicieux
+    - speaker: Eve
+      text: 'Je vais y réfléchir, Pierre. Il faut que je consulte mon emploi du temps,
+        très chargé, tu comprends : les vaches, le fromage, la limonade...'
+      expression: air faussement sérieux
+    - speaker: Narration
+      text: 'Pierre baisse les yeux, un peu déçu, puis croise son regard. Dans les
+        yeux d''Eve, il n''y a ni hésitation ni doute : la réponse y est déjà, lumineuse,
+        et il sourit à son tour.'
+      expression: tendresse
+    plans: []

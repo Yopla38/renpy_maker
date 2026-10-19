@@ -1,0 +1,200 @@
+"""Export de l'histoire vers un projet Ren'Py (game_project/).
+
+Produit :
+  game/story.rpy     : une étiquette par scène, répliques, images (généré, ne pas éditer)
+  game/options.rpy   : titre et résolution
+  game/images/       : une image par plan, copiée depuis le registre (image retenue)
+
+Le lint (renpy.sh <projet> lint) vérifie le résultat. L'export refuse si l'histoire a des points
+bloquants : mieux vaut un message clair que un script cassé.
+"""
+
+from __future__ import annotations
+
+import re
+import shutil
+import subprocess
+import unicodedata
+from pathlib import Path
+
+import yaml
+
+import assets as A
+import story as S
+
+ROOT = Path(__file__).resolve().parent
+CONFIG = ROOT / "config.yaml"
+DEFAULTS = {"title": "Mon histoire", "width": 1920, "height": 1080}
+
+
+def _config() -> dict:
+    return yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
+
+
+def project_dir() -> Path:
+    return Path(_config()["project"]["game_dir"])
+
+
+def renpy_sh() -> Path:
+    return Path(_config()["renpy"]["sdk_dir"]) / "renpy.sh"
+
+
+def settings(st: dict) -> dict:
+    return {**DEFAULTS, **st.get("settings", {}).get("renpy", {})}
+
+
+def slug(text: str) -> str:
+    plain = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "_", plain).strip("_") or "x"
+
+
+def char_var(name: str) -> str:
+    return "c_" + slug(name)
+
+
+def image_name(sc: dict, plan: dict) -> str:
+    return f"{slug(sc['id'])}_{slug(plan['id'])}"
+
+
+def rpy_text(text: str) -> str:
+    """Texte d'une réplique : guillemets et accolades échappés, pas de retour ligne."""
+    t = " ".join(str(text).split())
+    t = t.replace("\\", "\\\\").replace('"', '\\"')
+    return t.replace("{", "{{").replace("[", "[[")
+
+
+def problems(st: dict, assets_data: dict) -> list[str]:
+    """Points bloquants pour l'export (vide = on peut exporter). Reçoit le registre complet."""
+    assets = assets_data["assets"]
+    out = list(S.validate(st, assets_data))
+    scenes = S.all_scenes(st)
+    if not scenes:
+        return ["aucune scène"]
+    for sc in scenes:
+        where = sc["id"]
+        if not sc.get("dialogue"):
+            out.append(f"{where} : pas de répliques")
+            continue
+        if not sc.get("plans") or sc["plans"][0]["from_line"] != 0:
+            out.append(f"{where} : pas d'image au début de la scène")
+        for plan in sc.get("plans", []):
+            a = assets.get(plan["asset"])
+            if a is None:
+                out.append(f"{where} / {plan['id']} : image absente du registre")
+            elif plan_index(plan, a) is None or plan_index(plan, a) != a.get("validated_candidate"):
+                out.append(f"{where} / {plan['id']} : image « {a.get('name', plan['asset'])} » non retenue")
+    return list(dict.fromkeys(out))
+
+
+def plan_index(plan: dict, asset: dict):
+    """Candidat affiché pour un plan : celui choisi, sinon l'image retenue de l'élément."""
+    return plan.get("candidate", asset.get("validated_candidate"))
+
+
+def _speakers(st: dict) -> list[str]:
+    seen = []
+    for sc in S.all_scenes(st):
+        for line in sc.get("dialogue", []):
+            if line["speaker"] != S.NARRATOR and line["speaker"] not in seen:
+                seen.append(line["speaker"])
+    return seen
+
+
+def build_story(st: dict) -> str:
+    out = ["# Généré par renpy_maker : ne pas éditer à la main, modifier l'histoire puis réexporter.", ""]
+    for name in _speakers(st):
+        out.append(f'define {char_var(name)} = Character("{rpy_text(name)}")')
+    out.append("")
+    s = settings(st)
+    size = f"xysize=({int(s['width'])}, {int(s['height'])}), fit=\"cover\""
+    for sc in S.all_scenes(st):
+        for plan in sc.get("plans", []):
+            name = image_name(sc, plan)
+            out.append(f'image {name} = Transform("images/{name}.png", {size})')
+    out += ["", "label start:", f"    jump {S.all_scenes(st)[0]['id']}", ""]
+
+    scenes = S.all_scenes(st)
+    for n, sc in enumerate(scenes):
+        out.append(f"label {sc['id']}:")
+        out.append(f"    # {sc['title']}")
+        plans = sc.get("plans", [])
+        for i, line in enumerate(sc.get("dialogue", [])):
+            here = [p for p in plans if p["from_line"] == i]
+            for j, plan in enumerate(here):
+                img = image_name(sc, plan)
+                out.append(f"    scene {img} with dissolve")
+                if j < len(here) - 1:
+                    out.append("    with Pause(1.0)")
+            text = rpy_text(line["text"])
+            expr = line.get("expression")
+            note = f"  # expression : {expr}" if expr else ""
+            if line["speaker"] == S.NARRATOR:
+                out.append(f'    "{text}"{note}')
+            else:
+                out.append(f'    {char_var(line["speaker"])} "{text}"{note}')
+        last = n == len(scenes) - 1
+        if last:
+            out.append("    return")
+        out.append("")
+    return "\n".join(out) + "\n"
+
+
+def build_options(st: dict) -> str:
+    s = settings(st)
+    return "\n".join([
+        "# Généré par renpy_maker.",
+        f'define config.name = _("{rpy_text(s["title"])}")',
+        'define config.version = "0.1"',
+        f"define config.screen_width = {int(s['width'])}",
+        f"define config.screen_height = {int(s['height'])}",
+        "",
+    ])
+
+
+def export(st: dict, assets_data: dict) -> dict:
+    """Écrit le projet Ren'Py. Lève ValueError si l'histoire a des points bloquants."""
+    assets = assets_data["assets"]
+    issues = problems(st, assets_data)
+    if issues:
+        raise ValueError("Export impossible : " + " · ".join(issues))
+
+    game = project_dir() / "game"
+    images = game / "images"
+    images.mkdir(parents=True, exist_ok=True)
+    for old in images.glob("*.png"):
+        old.unlink()
+
+    copied = []
+    for sc in S.all_scenes(st):
+        for plan in sc["plans"]:
+            a = assets[plan["asset"]]
+            cand = a["candidates"][plan_index(plan, a)]
+            src = ROOT / cand["file"]
+            dst = images / f"{image_name(sc, plan)}.png"
+            shutil.copyfile(src, dst)
+            copied.append(dst.name)
+
+    for legacy in (game / "script.rpy", game / "script.rpyc"):  # fichier de test initial : conflit avec story.rpy
+        if legacy.exists():
+            legacy.unlink()
+
+    (game / "story.rpy").write_text(build_story(st), encoding="utf-8")
+    (game / "options.rpy").write_text(build_options(st), encoding="utf-8")
+    return {"dir": str(project_dir()), "images": len(copied), "files": ["story.rpy", "options.rpy"]}
+
+
+def lint() -> dict:
+    """Lance renpy lint sur le projet. Renvoie le statut et les lignes d'erreur."""
+    proc = subprocess.run([str(renpy_sh()), str(project_dir()), "lint"],
+                          capture_output=True, text=True, timeout=600)
+    text = (proc.stdout or "") + (proc.stderr or "")
+    errors = [l for l in text.splitlines() if re.search(r"\berror\b|Error|Traceback", l)]
+    return {"ok": proc.returncode == 0 and not errors, "returncode": proc.returncode,
+            "errors": errors[:40], "tail": text.strip().splitlines()[-12:]}
+
+
+def launch() -> dict:
+    """Ouvre le jeu dans la fenêtre Ren'Py (processus détaché)."""
+    subprocess.Popen([str(renpy_sh()), str(project_dir())], start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"launched": True}

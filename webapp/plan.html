@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Histoire</title>
+<style>
+  :root { --bg:#15161a; --panel:#1d1f25; --line:#2c2f38; --text:#e7e9ee; --muted:#9aa0ad;
+          --ok:#3fb97a; --ko:#e06c6c; --draft:#d9a43b; --accent:#6aa7ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; gap:16px; padding:12px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:6px; }
+  nav a.cur, nav a:hover { color:var(--text); background:var(--panel); }
+  .wrap { max-width:960px; margin:0 auto; padding:18px 22px 80px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 12px; font-weight:600; }
+  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; }
+  input, textarea, select { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font:inherit; }
+  textarea { min-height:60px; resize:vertical; }
+  .check { display:flex; align-items:flex-start; gap:10px; margin-top:12px; color:var(--text); }
+  .check input { width:auto; margin-top:3px; }
+  .check small { color:var(--muted); display:block; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .row > * { flex:1; min-width:160px; }
+  .row > .auto { flex:none; min-width:0; }
+  button { background:#2a2e38; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:7px 12px; font:inherit; cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.primary { background:var(--accent); color:#0b1220; border-color:var(--accent); font-weight:600; }
+  button.danger:hover:not(:disabled) { border-color:var(--ko); color:var(--ko); }
+  .muted { color:var(--muted); font-size:12px; }
+  .errors { border:1px solid var(--ko); border-radius:8px; padding:10px 14px; margin-bottom:16px; color:var(--ko); }
+  .errors li { margin:3px 0; }
+  .ok { color:var(--ok); }
+  .chapter { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; background:#181a20; }
+  .chapter.locked { border-color:var(--draft); }
+  .scene { border-left:3px solid var(--accent); padding:8px 12px; margin:10px 0; background:var(--panel); border-radius:0 6px 6px 0; }
+  .scene h4 { margin:0 0 6px; font-size:13px; }
+  .tags { font-size:12px; color:var(--muted); }
+  .plan { border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin:10px 0; background:var(--bg); }
+  .plan .issue { color:var(--ko); font-size:12px; margin:2px 0; }
+  .plan .ok { color:var(--ok); font-size:12px; }
+  .chips label { display:inline-flex; align-items:center; gap:6px; margin:4px 10px 4px 0; color:var(--text); font-size:13px; }
+  .chips input { width:auto; }
+  .thumbs { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .thumbs .t { width:180px; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .thumbs .t.ret { border-color:var(--ok); }
+  .thumbs img { width:100%; display:block; aspect-ratio:16/9; object-fit:cover; cursor:zoom-in; }
+  .thumbs .t div { padding:6px; font-size:12px; color:var(--muted); }
+  .line { display:grid; grid-template-columns: 150px 130px 1fr auto; gap:8px; align-items:start; margin-bottom:6px; }
+  .line textarea { min-height:38px; }
+  @media (max-width:640px) { .line { grid-template-columns: 1fr; } }
+  #toast { position:fixed; right:18px; bottom:18px; background:#2a2e38; border:1px solid var(--line); padding:10px 14px; border-radius:8px; display:none; max-width:440px; }
+  #toast.show { display:block; } #toast.err { border-color:var(--ko); }
+  @media (max-width:640px) { .wrap { padding:14px 14px 80px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Éditeur d'histoire</h1>
+  <nav>
+    <a href="#projet" data-tab="projet">Projet</a>
+    <a href="#plan" data-tab="plan">Plan</a>
+    <a href="#scene" data-tab="scene">Scène</a>
+    <a href="#renpy" data-tab="renpy">Ren'Py</a>
+    <a href="/" data-tab="actifs">Actifs</a>
+  </nav>
+</header>
+<div class="wrap">
+  <div id="errors"></div>
+
+  <section id="sec-projet">
+    <div class="card">
+      <h2>Idée</h2>
+      <label>Titre</label>
+      <input id="m_title">
+      <label>Idée (quelques lignes, libres)</label>
+      <textarea id="m_idea" style="min-height:90px"></textarea>
+      <label>Synopsis (facultatif)</label>
+      <textarea id="m_synopsis"></textarea>
+      <div class="row auto" style="margin-top:12px"><button class="primary" id="saveMeta">Enregistrer l'idée</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Réglages</h2>
+      <div class="row">
+        <div><label>Nombre total de scènes visé</label><input id="s_total" type="number" min="1" max="60"></div>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="s_explicit">
+        <span>Contenu explicite autorisé
+          <small>Transmis au modèle d'écriture. Le fournisseur peut refuser : le refus s'affiche tel quel.</small></span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h2>Modèles</h2>
+      <div class="row">
+        <div><label>Écriture (LLM)</label><select id="p_text"></select></div>
+        <div><label>Image de base</label><select id="p_image_base"></select></div>
+        <div><label>Édition d'image (cohérence)</label><select id="p_image_edit"></select></div>
+      </div>
+      <p class="muted">ComfyUI (local) n'est pas encore branché : les rendus se font pour l'instant sur Replicate. Le choix est enregistré pour la bascule.</p>
+      <div class="row auto" style="margin-top:8px"><button class="primary" id="saveSettings">Enregistrer les réglages</button></div>
+    </div>
+  </section>
+
+  <section id="sec-plan" hidden>
+    <div class="card">
+      <h2>Avancement</h2>
+      <div id="progress" class="muted"></div>
+      <p class="muted" style="margin:10px 0 0"><b>Verrouiller</b> rend un chapitre ou une scène en lecture seule : on ne peut plus la modifier ni la supprimer, tant qu'on ne la déverrouille pas. Verrouiller un chapitre verrouille aussi ses scènes.</p>
+    </div>
+    <div id="chapters"></div>
+
+    <div class="card">
+      <h2>Ajouter un chapitre</h2>
+      <div class="row">
+        <div class="auto" style="min-width:140px"><label>Scènes dans ce chapitre</label><input id="c_count" type="number" min="1" max="12" value="3"></div>
+        <div><label>Modèle d'écriture</label><select id="c_provider"></select></div>
+      </div>
+      <label>Consigne pour ce chapitre (facultatif)</label>
+      <textarea id="c_guidance" placeholder="ex. plus de tension, la rencontre se passe dans un café"></textarea>
+      <div class="row auto" style="margin-top:12px">
+        <button class="primary" id="genChapter">Générer le chapitre</button>
+        <span id="genState" class="muted"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-scene" hidden>
+    <div id="scenePage"></div>
+  </section>
+
+  <section id="sec-renpy" hidden>
+    <div class="card">
+      <h2>Réglages du jeu</h2>
+      <div class="row">
+        <div><label>Titre du jeu</label><input id="rp_title"></div>
+        <div class="auto" style="min-width:140px"><label>Largeur</label><input id="rp_w" type="number"></div>
+        <div class="auto" style="min-width:140px"><label>Hauteur</label><input id="rp_h" type="number"></div>
+      </div>
+      <div class="row auto" style="margin-top:10px"><button class="primary" onclick="saveRenpySettings()">Enregistrer les réglages</button></div>
+      <p class="muted" style="margin-top:10px">Projet : <span id="rp_dir"></span></p>
+    </div>
+
+    <div class="card">
+      <h2>Export</h2>
+      <div id="rp_problems"></div>
+      <div class="row auto" style="margin-top:10px">
+        <button class="primary" id="rp_export" onclick="renpyExport()">Exporter vers Ren'Py</button>
+        <button onclick="renpyLint()">Vérifier (lint)</button>
+        <button onclick="renpyLaunch()">Lancer le test</button>
+      </div>
+      <pre id="rp_out" class="muted" style="white-space:pre-wrap;margin-top:12px"></pre>
+    </div>
+  </section>
+</div>
+<div id="toast"></div>
+<div id="preview" hidden></div>
+<div id="browser" hidden></div>
+
+<script>
+const state = { data: null, job: null, dlg: {}, assets: [], status: {}, scene: null, preview: null, browse: null };
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function toast(msg, isErr = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toast._h); toast._h = setTimeout(() => (t.className = ""), 4500);
+}
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+// ----- navigation par onglets (hash) -----
+function showTab() {
+  const tab = location.hash.replace("#", "") || "projet";
+  document.querySelectorAll("nav a[data-tab]").forEach((a) => a.classList.toggle("cur", a.dataset.tab === tab));
+  $("#sec-projet").hidden = tab !== "projet";
+  $("#sec-plan").hidden = tab !== "plan";
+  $("#sec-scene").hidden = tab !== "scene";
+  $("#sec-renpy").hidden = tab !== "renpy";
+  if (tab === "renpy") loadRenpy();
+}
+window.addEventListener("hashchange", showTab);
+
+// ----- chargement -----
+async function load() {
+  state.data = await api("GET", "/api/story");
+  state.assets = (await api("GET", "/api/assets")).assets;
+  state.status = Object.fromEntries((await api("GET", "/api/story/scene-status")).scenes.map((x) => [x.scene, x]));
+  renderProjet();
+  rerender();
+}
+
+function renderErrors() {
+  const errs = state.data.errors;
+  $("#errors").innerHTML = errs.length
+    ? `<div class="errors"><b>Points à corriger (${errs.length})</b><ul>${errs.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>`
+    : "";
+}
+
+function fillSelect(sel, options, value) {
+  sel.innerHTML = options.map((o) => `<option value="${esc(o)}" ${o === value ? "selected" : ""}>${esc(o)}</option>`).join("");
+}
+
+function renderProjet() {
+  const st = state.data.story, se = st.settings;
+  $("#m_title").value = st.title || "";
+  $("#m_idea").value = st.idea || "";
+  $("#m_synopsis").value = st.synopsis || "";
+  $("#s_total").value = se.total_scenes ?? "";
+  $("#s_explicit").checked = !!se.explicit_content;
+  fillSelect($("#p_text"), state.data.providers.text, se.providers.text);
+  fillSelect($("#p_image_base"), state.data.providers.image_base, se.providers.image_base);
+  fillSelect($("#p_image_edit"), state.data.providers.image_edit, se.providers.image_edit);
+  fillSelect($("#c_provider"), state.data.providers.text, se.providers.text);
+  renderErrors();
+}
+
+function rerender() { renderPlan(); renderScene(); }
+
+function renderPlan() {
+  const st = state.data.story;
+  const total = st.settings.total_scenes;
+  const done = st.chapters.reduce((n, ch) => n + ch.scenes.length, 0);
+  $("#progress").textContent = `${st.chapters.length} chapitre(s), ${done} scène(s)` + (total ? ` sur ${total} visée(s)` : "") +
+    (state.data.errors.length ? " · des points restent à corriger" : " · trame cohérente");
+
+  const last = st.chapters[st.chapters.length - 1];
+  $("#chapters").innerHTML = st.chapters.length ? st.chapters.map((ch) => {
+    const dis = ch.locked ? "disabled" : "";
+    return `
+    <div class="chapter ${ch.locked ? "locked" : ""}" data-ch="${esc(ch.id)}">
+      <h2 style="font-size:15px;text-transform:none;color:var(--text);letter-spacing:0">${esc(ch.id)} · ${esc(ch.title)}
+        <span class="muted">(${ch.scenes.length} scène(s))</span> ${ch.locked ? '<span class="badge draft">verrouillé</span>' : ""}</h2>
+      <label>Titre</label><input class="ch_title" value="${esc(ch.title)}" ${dis}>
+      <label>Résumé</label><textarea class="ch_summary" ${dis}>${esc(ch.summary)}</textarea>
+      ${ch.scenes.map((sc) => {
+        const sdis = (ch.locked || sc.locked) ? "disabled" : "";
+        return `
+        <div class="scene" data-sc="${esc(sc.id)}">
+          <h4>${esc(sc.id)} · <input class="sc_title" value="${esc(sc.title)}" ${sdis} style="display:inline-block;width:auto;min-width:240px"></h4>
+          <label>Ce qui se passe</label><textarea class="sc_summary" ${sdis}>${esc(sc.summary)}</textarea>
+          <div class="row">
+            <div><label>Personnages (séparés par des virgules)</label><input class="sc_chars" value="${esc(sc.characters.join(", "))}" ${sdis}></div>
+            <div><label>Lieu</label><input class="sc_loc" value="${esc(sc.location || "")}" ${sdis}></div>
+          </div>
+          <label>Tenues (une par ligne : Personnage: tenue)</label>
+          <textarea class="sc_outfits" ${sdis}>${esc(Object.entries(sc.outfits).map(([k, v]) => `${k}: ${v}`).join("\n"))}</textarea>
+          <label class="check"><input type="checkbox" class="sc_end" ${sc.ending ? "checked" : ""} ${sdis}><span>Fin de l'histoire</span></label>
+          ${dialogueBlock(ch, sc, sdis)}
+          <div class="row auto" style="margin-top:8px">
+            ${ch.locked ? '<span class="muted">Verrouillée avec le chapitre</span>' : ""}
+            ${ch.locked ? "" : `<button onclick="saveScene('${esc(ch.id)}','${esc(sc.id)}')" ${sdis}>Enregistrer la scène</button>`}
+            <button onclick="toggleScene('${esc(ch.id)}','${esc(sc.id)}', ${!sc.locked})" ${ch.locked ? "disabled" : ""}>${sc.locked ? "Déverrouiller la scène" : "Verrouiller la scène"}</button>
+          </div>
+        </div>`; }).join("")}
+      <div class="row auto" style="margin-top:10px">
+        ${ch.locked ? "" : `<button class="primary" onclick="saveChapter('${esc(ch.id)}')">Enregistrer le chapitre</button>`}
+        <button onclick="toggleChapter('${esc(ch.id)}', ${!ch.locked})">${ch.locked ? "Déverrouiller le chapitre" : "Verrouiller le chapitre"}</button>
+        ${last && last.id === ch.id && !ch.locked ? `<button class="danger" onclick="deleteChapter('${esc(ch.id)}')">Supprimer ce chapitre</button>` : ""}
+      </div>
+    </div>`; }).join("") : '<p class="muted">Aucun chapitre. Générez le premier ci-dessous.</p>';
+}
+
+// ----- dialogues -----
+function speakersOf(sc) { return [...sc.characters, "Narration"]; }
+
+function dialogueBlock(ch, sc, sdis) {
+  const lines = state.dlg[sc.id] || sc.dialogue || [];
+  const speakers = speakersOf(sc);
+  return `
+    <div class="dlg" data-dlg="${esc(sc.id)}" style="margin-top:8px">
+      <label>Répliques (${lines.length}) ${sc.dialogue && sc.dialogue.length ? "" : '<span class="muted">· aucune pour l\'instant</span>'}</label>
+      ${lines.map((l, i) => `
+        <div class="line">
+          <select class="dl_speaker" ${sdis}>${speakers.map((p) => `<option ${p === l.speaker ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
+          <input class="dl_expr" value="${esc(l.expression || "")}" placeholder="expression" ${sdis}>
+          <textarea class="dl_text" ${sdis}>${esc(l.text)}</textarea>
+          <button ${sdis} onclick="removeLine('${esc(ch.id)}','${esc(sc.id)}', ${i})">✕</button>
+        </div>`).join("")}
+      <div class="row auto" style="margin-top:6px">
+        <button ${sdis} onclick="addLine('${esc(ch.id)}','${esc(sc.id)}')">+ Réplique</button>
+        <button ${sdis} onclick="saveDialogue('${esc(ch.id)}','${esc(sc.id)}')">Enregistrer les répliques</button>
+        <button ${sdis} onclick="genDialogue('${esc(ch.id)}','${esc(sc.id)}')">Écrire les répliques (IA)</button>
+        <span class="muted" id="dg_${esc(sc.id)}"></span>
+      </div>
+    </div>`;
+}
+
+function readLines(sid) {
+  // Ne lire que la page visible : la page Plan garde ses propres champs, masqués, dans le document.
+  const root = $("#sec-scene").hidden ? $("#chapters") : $("#scenePage");
+  return [...root.querySelectorAll(`[data-dlg="${sid}"] .line`)].map((row) => ({
+    speaker: row.querySelector(".dl_speaker").value,
+    expression: row.querySelector(".dl_expr").value,
+    text: row.querySelector(".dl_text").value,
+  }));
+}
+
+function addLine(cid, sid) {
+  const sc = findScene(cid, sid);
+  const lines = readLines(sid);
+  lines.push({ speaker: speakersOf(sc)[0], expression: "neutre", text: "" });
+  state.dlg[sid] = lines;
+  rerender();
+}
+
+function removeLine(cid, sid, i) {
+  const lines = readLines(sid);
+  lines.splice(i, 1);
+  state.dlg[sid] = lines;
+  rerender();
+}
+
+function findScene(cid, sid) {
+  const ch = state.data.story.chapters.find((c) => c.id === cid);
+  return ch.scenes.find((s) => s.id === sid);
+}
+
+async function saveDialogue(cid, sid) {
+  try {
+    state.data = await api("POST", `/api/story/chapter/${cid}/scene/${sid}`, { dialogue: readLines(sid) });
+    delete state.dlg[sid];
+    toast("Répliques enregistrées"); renderErrors(); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function genDialogue(cid, sid) {
+  const note = document.getElementById(`dg_${sid}`);
+  note.textContent = "le modèle écrit (30 s à 2 min)…";
+  try {
+    const { job } = await api("POST", `/api/story/chapter/${cid}/scene/${sid}/dialogue`, {});
+    clearInterval(state.job);
+    state.job = setInterval(async () => {
+      try {
+        const j = await api("GET", `/api/jobs/${job}`);
+        if (j.state === "running") return;
+        clearInterval(state.job);
+        delete state.dlg[sid];
+        if (j.state === "done") { toast(j.message); await load(); }
+        else { toast(j.message, true); rerender(); }
+      } catch (e) { clearInterval(state.job); toast(e.message, true); }
+    }, 2000);
+  } catch (e) { note.textContent = ""; toast(e.message, true); }
+}
+
+// ----- onglet Ren'Py -----
+async function loadRenpy() {
+  try {
+    const r = await api("GET", "/api/renpy");
+    $("#rp_title").value = r.settings.title;
+    $("#rp_w").value = r.settings.width;
+    $("#rp_h").value = r.settings.height;
+    $("#rp_dir").textContent = r.project_dir + (r.sdk_found ? "" : " · SDK Ren'Py introuvable");
+    $("#rp_problems").innerHTML = r.problems.length
+      ? `<div class="errors"><b>Export impossible, à corriger (${r.problems.length})</b><ul>${r.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>`
+      : `<div class="ok">Tout est prêt : ${r.scenes} scène(s) exportables.</div>`;
+    $("#rp_export").disabled = r.problems.length > 0;
+  } catch (e) { toast(e.message, true); }
+}
+
+async function saveRenpySettings() {
+  try {
+    await api("POST", "/api/renpy/settings", {
+      title: $("#rp_title").value, width: Number($("#rp_w").value), height: Number($("#rp_h").value),
+    });
+    toast("Réglages enregistrés"); loadRenpy();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function renpyExport() {
+  $("#rp_out").textContent = "export en cours…";
+  try {
+    const r = await api("POST", "/api/renpy/export", {});
+    $("#rp_out").textContent = `Export écrit dans ${r.dir} : ${r.images} image(s), fichiers ${r.files.join(", ")}.`;
+    toast("Export terminé : lancez la vérification");
+  } catch (e) { $("#rp_out").textContent = e.message; toast(e.message, true); }
+}
+
+async function renpyLint() {
+  $("#rp_out").textContent = "vérification en cours (quelques secondes)…";
+  try {
+    const r = await api("POST", "/api/renpy/lint", {});
+    $("#rp_out").textContent = (r.ok ? "Lint sans erreur.\n\n" : "Lint : erreurs.\n\n")
+      + (r.errors.length ? r.errors.join("\n") + "\n\n" : "") + r.tail.join("\n");
+    toast(r.ok ? "Lint sans erreur" : "Lint : des erreurs, voir ci-dessous", !r.ok);
+  } catch (e) { $("#rp_out").textContent = e.message; toast(e.message, true); }
+}
+
+async function renpyLaunch() {
+  try {
+    await api("POST", "/api/renpy/launch", {});
+    toast("Ren'Py lancé dans une fenêtre à part");
+  } catch (e) { toast(e.message, true); }
+}
+
+window.saveRenpySettings = saveRenpySettings;
+window.renpyExport = renpyExport;
+window.renpyLint = renpyLint;
+window.renpyLaunch = renpyLaunch;
+
+// ----- page Scène : répliques et images intercalées -----
+function allScenes() { return state.data.story.chapters.flatMap((ch) => ch.scenes.map((sc) => ({ ch, sc }))); }
+
+function currentScene() {
+  const all = allScenes();
+  return all.find((x) => x.sc.id === state.scene) || all[0];
+}
+
+async function detectElements(cid, sid) {
+  const box = document.getElementById(`detect_${sid}`);
+  box.innerHTML = '<span class="muted">Le modèle relève les lieux et objets de la scène…</span>';
+  try {
+    const r = await api("POST", `/api/story/chapter/${cid}/scene/${sid}/detect-elements`, {});
+    if (!r.elements.length) { box.innerHTML = '<span class="muted">Aucun lieu ni objet à créer.</span>'; return; }
+    const kindLabel = { location: "lieu", object: "objet", character: "personnage" };
+    box.innerHTML = `<div class="muted">Éléments visibles ou mentionnés de la scène :</div>` + r.elements.map((el, i) => {
+      let action = "";
+      if (el.kind === "character") {
+        if (el.in_scene) action = '<span class="ok">déjà dans la scène</span>';
+        else action = `<button onclick="addDetectedCharacter('${esc(cid)}','${esc(sid)}', ${i})">${el.exists ? "Ajouter à la scène" : "Créer et ajouter à la scène"}</button>`;
+      } else if (!el.exists) {
+        action = `<button onclick="createDetected('${esc(cid)}','${esc(sid)}', ${i})">Créer</button>`;
+      }
+      return `
+      <div class="row auto" style="align-items:center;margin:4px 0">
+        <span style="min-width:300px">${esc(el.name)} <span class="muted">(${kindLabel[el.kind]})</span>
+          ${el.exists ? `<span class="ok">· déjà dans le registre : « ${esc(el.match)} »</span>` : '<span class="issue">· absent du registre</span>'}</span>
+        ${action}
+      </div>`;
+    }).join("");
+    window._detected = window._detected || {};
+    window._detected[sid] = r.elements;
+  } catch (e) { box.innerHTML = ""; toast(e.message, true); }
+}
+
+async function addDetectedCharacter(cid, sid, i) {
+  const el = window._detected[sid][i];
+  try {
+    if (!el.exists) {
+      await api("POST", "/api/story/elements/create", { kind: "character", name: el.name, description: el.description });
+    }
+    const sc = findScene(cid, sid);
+    await api("POST", `/api/story/chapter/${cid}/scene/${sid}`, { characters: [...sc.characters, el.name] });
+    toast(`« ${el.name} » ajouté à la scène : vous pouvez maintenant écrire ses répliques`);
+    await load();
+    detectElements(cid, sid);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function createDetected(cid, sid, i) {
+  const el = window._detected[sid][i];
+  try {
+    await api("POST", "/api/story/elements/create", { kind: el.kind, name: el.name, description: el.description });
+    toast(`« ${el.name} » créé : vérifiez son prompt dans Actifs`);
+    await load();
+    detectElements(cid, sid);
+  } catch (e) { toast(e.message, true); }
+}
+
+function imageUrl(assetId, index) {
+  const a = state.assets.find((x) => x.id === assetId);
+  if (!a) return null;
+  const want = index == null ? a.validated_candidate : index;
+  const c = a.candidates.find((x) => x.index === want);
+  return c ? c.url : null;
+}
+
+function renderScene() {
+  const root = $("#scenePage");
+  const cur = currentScene();
+  if (!cur) { root.innerHTML = '<p class="muted">Aucune scène. Créez un chapitre dans l\'onglet Plan.</p>'; return; }
+  state.scene = cur.sc.id;
+  const { ch, sc } = cur;
+  const lines = state.dlg[sc.id] || sc.dialogue;
+  const sdis = (ch.locked || sc.locked) ? "disabled" : "";
+  const info = state.status[sc.id] || { plans: [], issues: [], ready: false };
+  const cid = esc(ch.id), sid = esc(sc.id);
+  const picker = `<select onchange="state.scene=this.value; renderScene()">${allScenes().map((x) =>
+    `<option value="${esc(x.sc.id)}" ${x.sc.id === sc.id ? "selected" : ""}>${esc(x.ch.id)} · ${esc(x.sc.id)} · ${esc(x.sc.title)}</option>`).join("")}</select>`;
+  const status = info.ready ? '<span class="ok">scène prête</span>'
+    : `<span class="muted">à compléter : ${info.issues.map(esc).join(" · ")}</span>`;
+  let html = `<div class="card"><h2>Scène</h2>${picker}
+    <p class="muted" style="margin-top:8px">${esc(sc.summary)}</p>
+    <div>${status}</div>
+    ${sdis ? '<p class="muted" style="margin-top:8px">Verrouillé : déverrouillez-le dans l\'onglet Plan pour modifier.</p>' : ""}
+    <div class="row auto" style="margin-top:10px"><button onclick="previewScene()" ${lines.length ? "" : "disabled"}>Aperçu pas à pas</button>
+      <button ${sdis} onclick="detectElements('${cid}','${sid}')">Vérifier les éléments visibles</button></div>
+    <div id="detect_${sid}" style="margin-top:8px"></div></div>`;
+
+  html += `<div data-dlg="${sid}">`;
+  if (!lines.length) {
+    html += `<div class="card"><p class="muted">Pas encore de répliques.</p>
+      <div class="row auto"><button ${sdis} onclick="addLine('${cid}','${sid}')">+ Réplique</button>
+      <button ${sdis} onclick="genDialogue('${cid}','${sid}')">Écrire les répliques (IA)</button>
+      <span class="muted" id="dg_${sid}"></span></div></div>`;
+  }
+  lines.forEach((l, i) => {
+    html += `<div class="beat" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0;background:#181a20">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <b>Réplique ${i + 1}</b>${inForce(info, i)}</div>
+      ${slotHtml(ch, sc, i, info, sdis)}
+      <div class="muted" style="margin:10px 0 2px">Texte de la réplique ${i + 1} :</div>
+      <div class="line">
+        <select class="dl_speaker" ${sdis}>${speakersOf(sc).map((p) => `<option ${p === l.speaker ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
+        <input class="dl_expr" value="${esc(l.expression || "")}" placeholder="expression" ${sdis}>
+        <textarea class="dl_text" ${sdis}>${esc(l.text)}</textarea>
+        <button ${sdis} onclick="removeLine('${cid}','${sid}', ${i})">✕</button>
+      </div>
+    </div>`;
+  });
+  if (lines.length) {
+    html += `<div class="row auto" style="margin-top:12px">
+      <button ${sdis} onclick="addLine('${cid}','${sid}')">+ Réplique</button>
+      <button ${sdis} onclick="saveDialogue('${cid}','${sid}')">Enregistrer les répliques</button>
+      <button ${sdis} onclick="genDialogue('${cid}','${sid}')">Réécrire les répliques (IA)</button>
+      <span class="muted" id="dg_${sid}"></span></div>`;
+  }
+  html += "</div>";
+  root.innerHTML = html;
+}
+
+// Image affichée pendant la réplique i : la dernière image commencée avant ou à cette réplique.
+function inForce(info, i) {
+  const active = info.plans.filter((p) => p.from_line <= i).pop();
+  if (!active) return '<span class="muted">aucune image pour l\'instant</span>';
+  const url = imageUrl(active.asset_id, active.image_index);
+  return `<span class="muted" style="display:inline-flex;align-items:center;gap:8px">
+    ${url ? `<img src="${esc(url)}" style="width:72px;aspect-ratio:16/9;object-fit:cover;border-radius:4px;border:1px solid var(--line)">` : ""}
+    à l'écran : ${esc(active.id)}${url ? "" : " (non retenue)"}</span>`;
+}
+
+function slotHtml(ch, sc, i, info, sdis) {
+  const plans = info.plans.filter((p) => p.from_line === i);
+  const head = plans.length === 0
+    ? `Aucune image ne s'ajoute ici : l'image précédente reste à l'écran${i === 0 ? " (il n'y en a pas encore au début de la scène)" : ""}.`
+    : `${plans.length} image(s) arrivent avec cette réplique${plans.length > 1 ? " : les premières passent avant le texte, la dernière accompagne la réplique" : ""}.`;
+  let html = `<div class="slot" style="margin:6px 0">
+    <div class="muted">${head}${i === 0 ? " · début de la scène" : ""}</div>`;
+  plans.forEach((p) => { html += shotCard(ch, sc, p, sdis); });
+  if (!plans.length) html += placeholderCard(ch, sc, i, sdis);
+  html += `<div class="row auto" style="margin:6px 0;flex-wrap:wrap">
+    <button ${sdis} onclick="addImageAt('${esc(ch.id)}','${esc(sc.id)}', ${i})">${plans.length ? "+ Nouvelle image ici" : "+ Nouvelle image ici"}</button>
+    <button ${sdis} onclick="openBrowser('${esc(ch.id)}','${esc(sc.id)}', ${i})">Parcourir les images générées…</button>
+</div>`;
+  return html + "</div>";
+}
+
+function shotCard(ch, sc, p, sdis) {
+  const asset = state.assets.find((a) => a.id === p.asset_id) || { candidates: [], prompt: "", validated_candidate: null };
+  const cid = esc(ch.id), sid = esc(sc.id), pid = esc(p.id);
+  if (p.reused) {
+    const url = imageUrl(p.asset_id, p.image_index);
+    const retain = p.ready ? "" : `<button class="ok" onclick="candStatus('${esc(p.asset_id)}', ${p.image_index}, true)" ${p.image_index == null ? "disabled" : ""}>Retenir cette image</button>`;
+    return `
+    <div class="plan">
+      <div class="row" style="align-items:center">
+        ${url ? `<img src="${esc(url)}" style="width:150px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;cursor:zoom-in" onclick="window.open(this.src)">` : ""}
+        <div class="auto" style="min-width:220px"><b>Image existante</b><div class="muted">${esc(asset.name || p.asset_id)} (${esc(asset.kind || "")}) · image #${p.image_index ?? "—"}</div>
+          <span class="muted">${p.ready ? '<span class="ok">retenue</span>' : esc(p.issues.join(" · "))}</span></div>
+        <div class="auto">${retain} <button ${sdis} onclick="deletePlan('${cid}','${sid}','${pid}')">Retirer de la scène</button></div>
+      </div>
+    </div>`;
+  }
+  const thumbs = asset.candidates.map((c) => `
+    <div class="t ${asset.validated_candidate === c.index ? "ret" : ""}">
+      <img src="${esc(c.url)}" onclick="window.open(this.src)" alt="image ${c.index}">
+      <div>${asset.validated_candidate === c.index ? "<b>retenue</b>" : c.rejected ? "écartée" : "à examiner"} · seed ${esc(c.seed ?? "—")}
+        <div class="row auto" style="margin-top:4px">
+          ${asset.validated_candidate === c.index
+            ? `<button onclick="candStatus('${esc(asset.id)}', ${c.index}, false)">Ne plus retenir</button>`
+            : `<button class="ok" onclick="candStatus('${esc(asset.id)}', ${c.index}, true)">Retenir</button>`}
+        </div></div>
+    </div>`).join("");
+  const tooMany = p.refs.length > 5;
+  return `
+    <div class="plan">
+      <div class="row" style="align-items:center"><b>Image ${pid}</b>
+        <span class="muted">${p.ready ? '<span class="ok">prête</span>' : p.issues.map(esc).join(" · ")}</span>
+        <div class="auto"><button ${sdis} onclick="deletePlan('${cid}','${sid}','${pid}')">Supprimer</button></div></div>
+      ${charsBlock(ch, sc, p, sdis)}
+      ${shotBlock(ch, sc, p, sdis)}
+      ${refsBlock(ch, sc, p, sdis)}
+      ${tooMany ? '<div class="issue">Plus de 5 références : décochez une référence ou retirez un personnage de cette image.</div>' : ""}
+      <textarea id="pp_${pid}" ${sdis} style="margin-top:6px" placeholder="Prompt (anglais)">${esc(asset.prompt || "")}</textarea>
+      <div class="row auto" style="margin-top:6px">
+        <button ${sdis} onclick="suggestPlan('${cid}','${sid}','${pid}')">Générer prompt IA</button>
+        <button ${sdis} onclick="savePlanPrompt('${esc(asset.id)}','${pid}')">Enregistrer le prompt</button>
+        <input type="number" id="ps_${pid}" placeholder="graine" style="width:110px">
+        <button class="primary" ${sdis} ${(p.refs.length === 0 || tooMany) ? "disabled" : ""} onclick="generatePlan('${cid}','${sid}','${pid}')">Générer image</button>
+        <span class="muted" id="pg_${pid}"></span>
+      </div>
+      <div class="thumbs">${thumbs || '<span class="muted">Aucune image générée.</span>'}</div>
+    </div>`;
+}
+
+const FRAMING_LABELS = { "extreme close-up": "très gros plan", "close-up": "gros plan", "medium close-up": "plan rapproché",
+  "medium shot": "plan moyen", "cowboy shot": "plan américain", "wide shot": "plan large", "establishing shot": "plan d'ensemble" };
+const ANGLE_LABELS = { "eye level": "à hauteur des yeux", "low angle": "contre-plongée", "high angle": "plongée",
+  "from behind": "de dos", "over the shoulder": "par-dessus l'épaule", "side profile": "de profil", "bird's eye view": "vue du dessus" };
+
+function charsBlock(ch, sc, p, sdis) {
+  const cid = esc(ch.id), sid = esc(sc.id), pid = esc(p.id);
+  const boxes = sc.characters.map((c) => {
+    const on = p.characters.includes(c);
+    return `<label><input type="checkbox" class="pc_${pid}" value="${esc(c)}" ${on ? "checked" : ""} ${sdis}
+      onchange="saveCharacters('${cid}','${sid}','${pid}')">${esc(c)}</label>`;
+  }).join("");
+  return `<div style="margin-top:8px"><div class="muted">Personnages dans cette image :</div><div class="chips">${boxes || '<span class="muted">aucun personnage dans la scène</span>'}</div></div>`;
+}
+
+async function saveCharacters(cid, sid, pid) {
+  const chosen = [...document.querySelectorAll(`.pc_${pid}:checked`)].map((c) => c.value);
+  const sc = findScene(cid, sid);
+  try {
+    await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans/${pid}`, { characters: chosen });
+    await load();
+  } catch (e) { toast(e.message, true); await load(); }
+}
+
+function shotBlock(ch, sc, p, sdis) {
+  const cid = esc(ch.id), sid = esc(sc.id), pid = esc(p.id);
+  const shot = p.shot || {};
+  const opt = (map, cur) => `<option value="">— libre —</option>` + Object.entries(map).map(([k, v]) =>
+    `<option value="${esc(k)}" ${k === cur ? "selected" : ""}>${esc(v)}</option>`).join("");
+  return `
+    <div class="row auto" style="margin-top:8px;align-items:flex-end">
+      <div><label>Cadrage</label><select id="sf_${pid}" ${sdis}>${opt(FRAMING_LABELS, shot.framing)}</select></div>
+      <div><label>Angle de caméra</label><select id="sa_${pid}" ${sdis}>${opt(ANGLE_LABELS, shot.angle)}</select></div>
+      <div style="flex:2"><label>Ce qui doit ressortir</label><input id="sn_${pid}" ${sdis} value="${esc(shot.note || "")}" placeholder="ex. ses mains sur la rambarde, le visage de profil"></div>
+      <div class="auto"><button ${sdis} onclick="saveShot('${cid}','${sid}','${pid}')">Enregistrer le cadrage</button></div>
+    </div>`;
+}
+
+async function saveShot(cid, sid, pid) {
+  const shot = {
+    framing: document.getElementById(`sf_${pid}`).value,
+    angle: document.getElementById(`sa_${pid}`).value,
+    note: document.getElementById(`sn_${pid}`).value,
+  };
+  try {
+    await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans/${pid}`, { shot });
+    toast("Cadrage enregistré : générez le prompt IA pour qu'il en tienne compte"); await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+function refsBlock(ch, sc, p, sdis) {
+  const cid = esc(ch.id), sid = esc(sc.id), pid = esc(p.id);
+  const info = state.status[sc.id];
+  const idx = info.plans.findIndex((x) => x.id === p.id);
+  const prev = idx > 0 ? info.plans[idx - 1] : null;
+  const prevAsset = prev ? state.assets.find((a) => a.id === prev.asset_id) : null;
+  const prevBtn = prevAsset && prevAsset.validated_candidate != null && !p.refs.includes(prevAsset.id)
+    ? `<button ${sdis} onclick="addRef('${cid}','${sid}','${pid}','${esc(prevAsset.id)}')">+ Image précédente (${esc(prev.id)})</button>` : "";
+  const auto = p.auto.map((a) => `
+    <label><input type="checkbox" data-ref="${esc(a.id)}" ${a.excluded ? "" : "checked"} ${sdis}
+      onchange="toggleAutoRef('${cid}','${sid}','${pid}', this)">${esc(a.label)}</label>`).join("");
+  const extra = p.extra.map((e) => `
+    <span class="chip" style="display:inline-flex;gap:6px;align-items:center;border:1px solid var(--accent);border-radius:14px;padding:2px 10px;margin:4px 6px 4px 0;font-size:13px">
+      ${esc(e.label)} <button ${sdis} style="padding:0 6px" onclick="removeRef('${cid}','${sid}','${pid}','${esc(e.id)}')">✕</button></span>`).join("");
+  const taken = new Set(p.refs);
+  const options = state.assets
+    .filter((a) => a.validated_candidate != null && a.id !== p.asset_id && !taken.has(a.id))
+    .map((a) => `<option value="${esc(a.id)}">${esc(a.name || a.id)} (${esc(a.kind)})</option>`).join("");
+  return `
+    <div class="refs" style="margin-top:8px">
+      <div class="muted">Références de cette image (${p.refs.length}/5) — cochées par défaut, décochez celles à écarter :</div>
+      <div class="chips">${auto || '<span class="muted">aucune</span>'}</div>
+      <div style="margin-top:6px">${extra}</div>
+      <div class="row auto" style="margin-top:4px">
+        ${prevBtn}
+        <select id="rs_${pid}" ${sdis} style="width:auto;min-width:240px"><option value="">+ ajouter une autre image retenue…</option>${options}</select>
+        <button ${sdis} onclick="addRefFromSelect('${cid}','${sid}','${pid}')">Ajouter</button>
+      </div>
+    </div>`;
+}
+
+function planOf(sid, pid) { return state.status[sid].plans.find((x) => x.id === pid); }
+
+async function saveRefs(cid, sid, pid, body) {
+  try {
+    await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans/${pid}`, body);
+    await load();
+  } catch (e) { toast(e.message, true); await load(); }
+}
+
+function toggleAutoRef(cid, sid, pid, el) {
+  const card = el.closest(".plan");
+  const excluded = [...card.querySelectorAll("input[data-ref]")].filter((c) => !c.checked).map((c) => c.dataset.ref);
+  saveRefs(cid, sid, pid, { refs_exclude: excluded });
+}
+
+function addRef(cid, sid, pid, aid) {
+  const extra = planOf(sid, pid).extra.map((e) => e.id);
+  saveRefs(cid, sid, pid, { refs_extra: [...extra, aid] });
+}
+
+function addRefFromSelect(cid, sid, pid) {
+  const v = document.getElementById(`rs_${pid}`).value;
+  if (!v) return toast("Choisissez une image dans la liste", true);
+  addRef(cid, sid, pid, v);
+}
+
+function removeRef(cid, sid, pid, aid) {
+  const extra = planOf(sid, pid).extra.map((e) => e.id).filter((x) => x !== aid);
+  saveRefs(cid, sid, pid, { refs_extra: extra });
+}
+
+function placeholderCard(ch, sc, i, sdis) {
+  const cid = esc(ch.id), sid = esc(sc.id);
+  return `
+    <div class="plan" style="border-style:dashed">
+      <div class="muted">Image vide : rien ne change tant qu'elle n'est pas générée. Le cadrage et les références apparaîtront après le premier clic.</div>
+      <textarea id="pn_${sid}_${i}" ${sdis} style="margin-top:6px" placeholder="Prompt (anglais), ou laissez vide et cliquez « Générer prompt IA »"></textarea>
+      <div class="row auto" style="margin-top:6px">
+        <button ${sdis} onclick="placeholderSuggest('${cid}','${sid}', ${i})">Générer prompt IA</button>
+        <input type="number" id="pns_${sid}_${i}" placeholder="graine" style="width:110px">
+        <button class="primary" ${sdis} onclick="placeholderGenerate('${cid}','${sid}', ${i})">Générer image</button>
+        <span class="muted" id="pnn_${sid}_${i}"></span>
+      </div>
+    </div>`;
+}
+
+// ----- navigateur d'images : toutes les images générées, retenues ou non -----
+function openBrowser(cid, sid, i) {
+  state.browse = { cid, sid, i, kind: "", onlyRetained: false };
+  renderBrowser();
+  $("#browser").hidden = false;
+}
+
+function closeBrowser() {
+  $("#browser").hidden = true;
+}
+
+function renderBrowser() {
+  const b = state.browse;
+  const kinds = { "": "Tous les types", character: "Personnages", outfit: "Tenues", location: "Lieux", object: "Objets", scene: "Scènes" };
+  const items = [];
+  state.assets.forEach((a) => {
+    if (b.kind && a.kind !== b.kind) return;
+    a.candidates.forEach((c) => {
+      const kept = a.validated_candidate === c.index;
+      if (b.onlyRetained && !kept) return;
+      items.push(`
+        <div class="t ${kept ? "ret" : ""}" style="cursor:pointer" onclick="placeFromBrowser('${esc(a.id)}', ${c.index})">
+          <img src="${esc(c.url)}" alt="">
+          <div>${esc(a.name || a.id)} · #${c.index}<br>
+            <span class="${kept ? "ok" : c.rejected ? "issue" : "muted"}">${kept ? "retenue" : c.rejected ? "écartée" : "non retenue"}</span></div>
+        </div>`);
+    });
+  });
+  $("#browser").innerHTML = `
+    <div style="position:fixed;inset:0;background:#000d;z-index:60;display:flex;flex-direction:column;padding:20px;overflow:auto">
+      <div class="row auto" style="align-items:center;justify-content:space-between">
+        <b>Placer une image générée à partir de la réplique ${b.i + 1}</b>
+        <div class="row auto" style="align-items:center">
+          <select onchange="state.browse.kind=this.value; renderBrowser()">${Object.entries(kinds).map(([k, v]) => `<option value="${k}" ${k === b.kind ? "selected" : ""}>${v}</option>`).join("")}</select>
+          <label class="check" style="margin:0"><input type="checkbox" ${b.onlyRetained ? "checked" : ""} onchange="state.browse.onlyRetained=this.checked; renderBrowser()">seulement les retenues</label>
+          <button onclick="closeBrowser()">Fermer</button>
+        </div>
+      </div>
+      <p class="muted">Cliquez sur une image pour la placer. Une image non retenue s'affiche, mais elle devra être retenue avant l'export.</p>
+      <div class="thumbs">${items.join("") || '<span class="muted">Aucune image pour ce filtre.</span>'}</div>
+    </div>`;
+}
+
+async function placeFromBrowser(aid, index) {
+  const b = state.browse;
+  try {
+    await api("POST", `/api/story/chapter/${b.cid}/scene/${b.sid}/plans`, { from_line: b.i, asset: aid, candidate: index });
+    closeBrowser();
+    toast("Image placée"); await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function addImageAt(cid, sid, i) {
+  try {
+    await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans`, { from_line: i });
+    toast("Image ajoutée à cet endroit"); await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function placeholderSuggest(cid, sid, i) {
+  try {
+    const r = await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans`, { from_line: i });
+    await load();
+    await suggestPlan(cid, sid, r.plan);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function placeholderGenerate(cid, sid, i) {
+  const text = document.getElementById(`pn_${sid}_${i}`).value.trim();
+  try {
+    const r = await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans`, { from_line: i });
+    if (text) await api("POST", `/api/asset/${r.asset_id}`, { prompt: text });
+    await load();
+    await generatePlan(cid, sid, r.plan);
+  } catch (e) { toast(e.message, true); }
+}
+
+// ----- aperçu pas à pas : une étape par image et par réplique -----
+function previewScene() {
+  const { sc } = currentScene();
+  const info = state.status[sc.id] || { plans: [] };
+  const lines = state.dlg[sc.id] || sc.dialogue;
+  const beats = [];
+  lines.forEach((l, i) => {
+    info.plans.filter((p) => p.from_line === i).forEach((p) => beats.push({ img: p.asset_id, idx: p.image_index, label: `image ${p.id}` }));
+    beats.push({ line: i });
+  });
+  state.preview = { beats, pos: 0, lines, speakers: sc.characters };
+  renderPreview();
+  $("#preview").hidden = false;
+  document.addEventListener("keydown", previewKeys);
+}
+
+function renderPreview() {
+  const pv = state.preview;
+  let img = null, line = null, lastImg = null;
+  for (let k = 0; k <= pv.pos; k++) {
+    const b = pv.beats[k];
+    if (b.img) lastImg = b;
+    if (b.line !== undefined) line = b.line;
+    if (k === pv.pos && b.img) img = b;
+  }
+  const shown = img || (lastImg || pv.beats[pv.pos]);
+  const url = shown && shown.img ? imageUrl(shown.img, shown.idx) : null;
+  const curLine = pv.beats[pv.pos].line !== undefined ? pv.lines[pv.beats[pv.pos].line] : null;
+  const textBox = curLine
+    ? `<b>${esc(curLine.speaker)}</b><div style="margin-top:6px;font-size:17px">${esc(curLine.text)}</div>`
+    : `<span class="muted">image · cliquez pour continuer</span>`;
+  $("#preview").innerHTML = `
+    <div style="position:fixed;inset:0;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;padding:20px">
+      <div style="width:min(1000px,100%);aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center">
+        ${url ? `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover">`
+              : `<span class="muted">${shown && shown.img ? "image non retenue" : "aucune image à cet endroit"}</span>`}
+        <div style="position:absolute;left:0;right:0;bottom:0;background:#0009;padding:16px 22px;min-height:90px">${textBox}</div>
+      </div>
+      <div class="row auto" style="margin-top:14px;width:min(1000px,100%);justify-content:space-between">
+        <button onclick="previewStep(-1)" ${pv.pos === 0 ? "disabled" : ""}>← Précédent</button>
+        <span class="muted">étape ${pv.pos + 1} / ${pv.beats.length}</span>
+        <button class="primary" onclick="previewStep(1)" ${pv.pos >= pv.beats.length - 1 ? "disabled" : ""}>Suivant →</button>
+        <button onclick="closePreview()">Fermer</button>
+      </div>
+    </div>`;
+}
+
+function previewStep(d) {
+  const pv = state.preview;
+  pv.pos = Math.max(0, Math.min(pv.beats.length - 1, pv.pos + d));
+  renderPreview();
+}
+
+function closePreview() {
+  $("#preview").hidden = true;
+  document.removeEventListener("keydown", previewKeys);
+}
+
+function previewKeys(e) {
+  if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); previewStep(1); }
+  else if (e.key === "ArrowLeft") previewStep(-1);
+  else if (e.key === "Escape") closePreview();
+}
+
+async function deletePlan(cid, sid, pid) {
+  if (!confirm("Supprimer cette image de la scène ? L'image générée reste dans Actifs.")) return;
+  try {
+    await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans/${pid}`, { delete: true });
+    toast("Image retirée de la scène"); await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function suggestPlan(cid, sid, pid) {
+  try {
+    const r = await api("POST", `/api/story/chapter/${cid}/scene/${sid}/plans/${pid}/suggest-prompt`, {});
+    document.getElementById(`pp_${pid}`).value = r.prompt;
+    toast(r.warnings.length ? r.warnings.join(" ") : "Prompt proposé : relisez-le puis enregistrez");
+  } catch (e) { toast(e.message, true); }
+}
+
+async function savePlanPrompt(aid, pid) {
+  try {
+    await api("POST", `/api/asset/${aid}`, { prompt: document.getElementById(`pp_${pid}`).value });
+    toast("Prompt enregistré"); await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function generatePlan(cid, sid, pid) {
+  const info = state.status[sid].plans.find((p) => p.id === pid);
+  const asset = state.assets.find((a) => a.id === info.asset_id);
+  const note = document.getElementById(`pg_${pid}`);
+  const seed = document.getElementById(`ps_${pid}`).value;
+  note.textContent = "génération en cours (1 à 2 min)…";
+  try {
+    const prompt = document.getElementById(`pp_${pid}`).value;
+    await api("POST", `/api/asset/${asset.id}`, { prompt }); // le prompt généré est enregistré avant le rendu
+    const { job } = await api("POST", "/api/generate", {
+      id: asset.id, prompt,
+      seed: seed ? Number(seed) : null, aspect: "16:9", refs: info.refs,
+    });
+    pollThen(job, (j) => { note.textContent = ""; toast(j.state === "done" ? "Image générée : retenez-la si elle convient" : j.message, j.state !== "done"); });
+  } catch (e) { note.textContent = ""; toast(e.message, true); }
+}
+
+function pollThen(job, done) {
+  clearInterval(state.job);
+  state.job = setInterval(async () => {
+    try {
+      const j = await api("GET", `/api/jobs/${job}`);
+      if (j.state === "running") return;
+      clearInterval(state.job);
+      await load();
+      done(j);
+    } catch (e) { clearInterval(state.job); toast(e.message, true); }
+  }, 2000);
+}
+
+async function candStatus(aid, index, validate) {
+  try {
+    await api("POST", `/api/asset/${aid}/candidate/${index}`, { validate });
+    toast(validate ? "Image retenue" : "Image écartée ou non retenue"); await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function toggleChapter(cid, locked) {
+  try {
+    state.data = await api("POST", `/api/story/chapter/${cid}`, { locked });
+    toast(locked ? `${cid} verrouillé` : `${cid} déverrouillé`); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function toggleScene(cid, sid, locked) {
+  try {
+    state.data = await api("POST", `/api/story/chapter/${cid}/scene/${sid}`, { locked });
+    toast(locked ? `${sid} verrouillée` : `${sid} déverrouillée`); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
+// ----- actions projet -----
+$("#saveMeta").addEventListener("click", async () => {
+  try {
+    state.data = await api("POST", "/api/story/meta", { title: $("#m_title").value, idea: $("#m_idea").value, synopsis: $("#m_synopsis").value });
+    toast("Idée enregistrée"); renderProjet(); rerender();
+  } catch (e) { toast(e.message, true); }
+});
+$("#saveSettings").addEventListener("click", async () => {
+  try {
+    state.data = await api("POST", "/api/story/settings", {
+      total_scenes: Number($("#s_total").value) || null,
+      explicit_content: $("#s_explicit").checked,
+      providers: { text: $("#p_text").value, image_base: $("#p_image_base").value, image_edit: $("#p_image_edit").value },
+    });
+    toast("Réglages enregistrés"); renderProjet(); rerender();
+  } catch (e) { toast(e.message, true); }
+});
+
+// ----- actions plan -----
+async function saveChapter(cid, btn) {
+  const card = document.querySelector(`[data-ch="${cid}"]`);
+  try {
+    state.data = await api("POST", `/api/story/chapter/${cid}`, {
+      title: card.querySelector(".ch_title").value,
+      summary: card.querySelector(".ch_summary").value,
+    });
+    toast(`${cid} enregistré`); renderErrors(); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function saveScene(cid, sid) {
+  const sc = document.querySelector(`[data-ch="${cid}"] [data-sc="${sid}"]`);
+  const outfits = {};
+  sc.querySelector(".sc_outfits").value.split("\n").forEach((line) => {
+    const i = line.indexOf(":");
+    if (i > 0) outfits[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+  });
+  try {
+    state.data = await api("POST", `/api/story/chapter/${cid}/scene/${sid}`, {
+      title: sc.querySelector(".sc_title").value,
+      summary: sc.querySelector(".sc_summary").value,
+      characters: sc.querySelector(".sc_chars").value.split(",").map((s) => s.trim()).filter(Boolean),
+      location: sc.querySelector(".sc_loc").value,
+      outfits,
+      ending: sc.querySelector(".sc_end").checked,
+    });
+    toast(`${sid} enregistrée`); renderErrors(); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function deleteChapter(cid) {
+  if (!confirm(`Supprimer ${cid} et toutes ses scènes ?`)) return;
+  try {
+    state.data = await api("POST", `/api/story/chapter/${cid}/delete`, {});
+    toast(`${cid} supprimé`); renderProjet(); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
+$("#genChapter").addEventListener("click", async () => {
+  const body = {
+    scene_count: Number($("#c_count").value) || 3,
+    provider: $("#c_provider").value,
+    guidance: $("#c_guidance").value,
+  };
+  $("#genChapter").disabled = true;
+  $("#genState").textContent = "le modèle écrit le chapitre (1 à 3 min)…";
+  try {
+    const { job } = await api("POST", "/api/story/chapter", body);
+    pollJob(job);
+  } catch (e) {
+    $("#genChapter").disabled = false; $("#genState").textContent = "";
+    toast(e.message, true);
+  }
+});
+
+function pollJob(job) {
+  clearInterval(state.job);
+  state.job = setInterval(async () => {
+    try {
+      const j = await api("GET", `/api/jobs/${job}`);
+      if (j.state === "running") return;
+      clearInterval(state.job);
+      $("#genChapter").disabled = false; $("#genState").textContent = "";
+      if (j.state === "done") { toast(j.message); await load(); }
+      else toast(j.message, true);
+    } catch (e) { clearInterval(state.job); toast(e.message, true); }
+  }, 2000);
+}
+
+window.saveChapter = saveChapter;
+window.toggleChapter = toggleChapter;
+window.addLine = addLine;
+window.deletePlan = deletePlan;
+window.suggestPlan = suggestPlan;
+window.savePlanPrompt = savePlanPrompt;
+window.generatePlan = generatePlan;
+window.candStatus = candStatus;
+window.toggleAutoRef = toggleAutoRef;
+window.addRef = addRef;
+window.addRefFromSelect = addRefFromSelect;
+window.removeRef = removeRef;
+window.saveShot = saveShot;
+window.saveCharacters = saveCharacters;
+window.detectElements = detectElements;
+window.createDetected = createDetected;
+window.addDetectedCharacter = addDetectedCharacter;
+window.openBrowser = openBrowser;
+window.closeBrowser = closeBrowser;
+window.placeFromBrowser = placeFromBrowser;
+window.removeLine = removeLine;
+window.saveDialogue = saveDialogue;
+window.genDialogue = genDialogue;
+window.toggleScene = toggleScene;
+window.saveScene = saveScene;
+window.deleteChapter = deleteChapter;
+showTab();
+load().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>
