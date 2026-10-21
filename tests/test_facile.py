@@ -359,6 +359,21 @@ class Plans(Setup, unittest.TestCase):
         with self.assertRaises(ValueError):
             FA.save_refs("s1", plan["id"], [], ["scene_inconnue"])
 
+    def test_continuity_uses_previous_plan_and_can_be_switched_off(self):
+        sc = {"characters": ["Léa", "Noé"], "outfits": {"Léa": "Jean"},
+              "plans": [{"id": "p1", "from_line": 0, "asset": "a1", "characters": ["Léa", "Noé"], "shot": {}},
+                        {"id": "p2", "from_line": 1, "asset": "a2", "characters": ["Léa"], "shot": {}}]}
+        assets = {"a1": {"validated_candidate": 0}, "a2": {"validated_candidate": 0}}
+        self.assertTrue(FA.apply_continuity(sc, assets))
+        p1, p2 = sc["plans"]
+        self.assertEqual(p1.get("refs_extra", []), [])            # le premier plan garde la tenue de la scène
+        self.assertEqual(p2["refs_extra"], ["a1"])                 # le second s'appuie sur le premier
+        self.assertIn("tenue:léa", p2["refs_exclude"])             # sa tenue de référence est mise de côté
+        p2["continuity"] = False                                   # « tenue d'origine »
+        FA.apply_continuity(sc, assets)
+        self.assertEqual(p2["refs_extra"], [])
+        self.assertNotIn("tenue:léa", p2["refs_exclude"])
+
     def test_text_edit_keeps_existing_image(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))

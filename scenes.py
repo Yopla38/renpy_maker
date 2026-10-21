@@ -179,10 +179,12 @@ def scene_status(st: dict, assets: dict) -> list[dict]:
 def _people_line(plan: dict, sc: dict, info: dict, assets: dict) -> str:
     """Qui est dans l'image (genre et âge, jamais le prénom), et de quelle image de référence on le tire."""
     labels = info["labels"]
+    # Image de continuité : l'image du plan précédent (étiquette « · plan N »), qui montre les personnages.
+    cont = next((i + 1 for i, lab in enumerate(labels) if lab.endswith("(ajoutée)") and " · plan " in lab), None)
     parts = []
     for name in plan_characters(sc, plan):
         plain = [lab.replace(" (ajoutée)", "") for lab in labels]
-        idx = next((i + 1 for i, lab in enumerate(plain) if lab in (name, f"{name} en tenue")), None)
+        idx = next((i + 1 for i, lab in enumerate(plain) if lab in (name, f"{name} en tenue")), None) or cont
         word = PR.person_word(assets, name)
         parts.append(f"{word} (image {idx})" if idx else f"{word} (no reference image)")
     return "People in this image : " + (", ".join(parts) if parts else "nobody") + "."

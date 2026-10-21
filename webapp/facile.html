@@ -840,6 +840,8 @@ function planHtml(s, r, k, busy) {
       ${fineHtml(s, vp, busy)}
       <div class="prompt-actions">
         ${vp ? `<button class="ghost small" onclick="planImage('${s.id}', '${vp.id}', '${vp.aid}')" ${busy ? "disabled" : ""}>${vp.image ? "Refaire l'image" : "Créer l'image"}</button>` : ""}
+        ${vp && k > 0 ? `<button class="ghost small" onclick="setContinuity('${s.id}', '${vp.id}', ${!vp.continuity})" ${busy ? "disabled" : ""}
+          title="${vp.continuity ? "Le dessin part de l'image du plan précédent (la veste retirée reste retirée)" : "Le dessin part de la tenue de la scène"}">${vp.continuity ? "Tenue d'origine" : "Reprendre la continuité"}</button>` : ""}
         <button class="link" onclick="removePlanRow('${s.id}', ${k})" ${busy || rows.length < 2 ? "disabled" : ""}>Supprimer ce plan</button>
       </div>
       ${vp ? promptBox(vp.aid, vp.prompt, "plan", `planImage('${s.id}', '${vp.id}', '${vp.aid}', true)`) : ""}
@@ -876,6 +878,17 @@ async function changeRefs(sid, pid, change) {
     const extra = p.refs.extra.slice();
     change(exclude, extra);
     await api("POST", "/api/facile/plan/refs", { scene: sid, plan: pid, exclude, extra });
+    await load();
+  } catch (e) { err = e.message; }
+  render();
+}
+
+// Continuité : l'image du plan précédent sert de référence (ou la tenue d'origine de la scène).
+async function setContinuity(sid, pid, on) {
+  err = "";
+  try {
+    await saveDraftIfAny(sid);
+    await api("POST", "/api/facile/plan/continuity", { scene: sid, plan: pid, on });
     await load();
   } catch (e) { err = e.message; }
   render();

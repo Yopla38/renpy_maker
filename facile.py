@@ -133,6 +133,37 @@ def _element_card(assets: dict, kind: str, name: str, parent: str | None = None)
             "prompt": a.get("prompt", "") if a else "", "blocked": blocked, "parent": parent or ""}
 
 
+def apply_continuity(sc: dict, assets: dict) -> bool:
+    """Continuité : à partir du deuxième plan, l'image du plan précédent est la référence principale.
+    Elle montre l'état réel des personnages (veste retirée, cheveux défaits). Les tenues des personnages
+    présents dans les deux plans sont alors mises de côté. Renvoie True si le découpage a changé."""
+    changed = False
+    prev = None
+    for plan in sc.get("plans", []):
+        prev_ok = prev is not None and assets.get(prev["asset"], {}).get("validated_candidate") is not None
+        use = bool(plan.get("continuity", True)) and prev_ok
+        want_ref = prev["asset"] if use else None
+        if plan.get("continuity_ref") != want_ref:
+            extra = [r for r in plan.get("refs_extra", []) if r != plan.get("continuity_ref")]
+            if want_ref and want_ref not in extra:
+                extra.append(want_ref)
+            plan["refs_extra"] = extra
+            plan["continuity_ref"] = want_ref
+            changed = True
+        want_excl = []
+        if use:
+            shared = set(SC.plan_characters(sc, prev)) & set(SC.plan_characters(sc, plan))
+            want_excl = [f"tenue:{S.norm(n)}" for n in sorted(shared) if n in sc.get("outfits", {})]
+        old_excl = plan.get("continuity_excluded", [])
+        if sorted(old_excl) != sorted(want_excl):
+            excl = [k for k in plan.get("refs_exclude", []) if k not in old_excl]
+            plan["refs_exclude"] = excl + [k for k in want_excl if k not in excl]
+            plan["continuity_excluded"] = want_excl
+            changed = True
+        prev = plan
+    return changed
+
+
 def _refs_view(sc: dict, plan: dict, assets: dict) -> dict:
     """Images de référence d'un plan : celles du moteur (décor, personnages, tenues) et celles ajoutées."""
     info = SC.plan_refs(assets, sc, plan)
@@ -149,6 +180,7 @@ def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
     return {"id": plan["id"], "aid": plan["asset"], "from_line": plan["from_line"],
             "candidate": RE.plan_index(plan, a) if a else None,
             "refs": _refs_view(sc, plan, assets),
+            "continuity": bool(plan.get("continuity", True)),
             "characters": SC.plan_characters(sc, plan),
             "text": (plan.get("shot") or {}).get("note", ""),
             "image": _url(a, RE.plan_index(plan, a)) if a else None,
@@ -480,6 +512,8 @@ Rules:
 - Then, when the speaker changes or an emotion matters, add a close-up on the character who speaks
   (text: 'Gros plan sur Léa, qui ...').
 - Add a detail shot when an object or a place from the story deserves it (text: 'Détail : la carte aux bords jaunis').
+- If a character takes off or puts on a clothing item, or changes their look, say it in the text
+  (for example 'Léa sans sa veste', 'Tom ébouriffé, la chemise ouverte').
 - Use at most {max} shots. Keep them in order of dialogue lines. Never more than one shot per line."""
 
 
@@ -557,7 +591,9 @@ def _replace_plans(sid: str, items: list[dict]) -> None:
         A.save(data)
     with S.LOCK:
         st = S.load()
-        _find_scene(st, sid)["plans"] = plans
+        target = _find_scene(st, sid)
+        target["plans"] = plans
+        apply_continuity(target, A.load()["assets"])
         S.save(st)
 
 
@@ -621,7 +657,9 @@ def save_plans(sid: str, items: list[dict]) -> dict:
         A.save(data)
     with S.LOCK:
         st = S.load()
-        _find_scene(st, sid)["plans"] = plans
+        target = _find_scene(st, sid)
+        target["plans"] = plans
+        apply_continuity(target, A.load()["assets"])
         S.save(st)
     return {"ok": True, "plans": len(plans)}
 
@@ -661,6 +699,11 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
     k, plan = _find_plan(sc, pid)
     with A.LOCK:
         data = A.load()
+    if apply_continuity(sc, data["assets"]):
+        with S.LOCK:
+            cur = S.load()
+            _find_scene(cur, sid)["plans"] = sc["plans"]
+            S.save(cur)
     info = SC.plan_refs(data["assets"], sc, plan)
     if info["missing"]:
         raise ValueError("Il manque encore une image pour : " + ", ".join(info["missing"]))
@@ -679,6 +722,21 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
         data["assets"][plan["asset"]]["prompt"] = prompt
         A.set_status(data, plan["asset"], idx, True)
         A.save(data)
+
+
+def set_continuity(sid: str, pid: str, on: bool) -> dict:
+    """Active ou désactive la continuité d'un plan (« tenue d'origine » quand elle est désactivée)."""
+    with S.LOCK:
+        st = S.load()
+        sc = _find_scene(st, sid)
+        _, plan = _find_plan(sc, pid)
+        plan["continuity"] = bool(on)
+    with A.LOCK:
+        assets = A.load()["assets"]
+    apply_continuity(sc, assets)
+    with S.LOCK:
+        S.save(st)
+    return {"ok": True}
 
 
 def save_refs(sid: str, pid: str, exclude: list, extra: list) -> dict:
@@ -823,6 +881,7 @@ def route(method: str, path: str, body: dict) -> dict:
             "/api/facile/scene/plans": lambda: save_plans(body["scene"], body.get("plans", [])),
             "/api/facile/plan/image": lambda: make_plan_image(body["scene"], body["plan"], body.get("prompt")),
             "/api/facile/plan/images": make_all_plans,
+            "/api/facile/plan/continuity": lambda: set_continuity(body["scene"], body["plan"], bool(body["on"])),
             "/api/facile/plan/refs": lambda: save_refs(body["scene"], body["plan"], body.get("exclude", []),
                                                        body.get("extra", [])),
             "/api/facile/plan/copy-image": lambda: copy_plan_image(body["scene"], body["plan"], body["source"],
