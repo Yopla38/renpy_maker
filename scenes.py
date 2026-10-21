@@ -241,6 +241,8 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     if sc.get("location"):
         lines.append(f"Location : {sc['location']}")
     lines.append(_people_line(plan, sc, info))
+    if sc.get("decor"):
+        lines.append("Background details, scenery only (never a named person): " + ", ".join(sc["decor"]) + ".")
     if has_shot:
         lines.append(f"Requested shot : framing {shot.get('framing') or 'free'}, camera {shot.get('angle') or 'free'}"
                      + (f". Focus : {shot['note']}" if shot.get("note") else "") + ".")
@@ -277,13 +279,16 @@ def suggest(st: dict, assets_data: dict, sc: dict, k: int, provider: str | None 
     return PR.clean(llm.complete(provider, system, user))
 
 
-DETECT_SYSTEM = """You list the visual elements that a scene needs to be drawn: places, objects and vehicles.
-Output ONLY a JSON object: {"elements": [{"name": "...", "kind": "location" | "object" | "character", "description": "..."}]}.
+DETECT_SYSTEM = """You list the visual elements that a scene needs to be drawn.
+Output ONLY a JSON object: {"elements": [{"name": "...", "kind": "location" | "object" | "character" | "decor", "description": "..."}]}.
 - Write names and descriptions in French, as they appear in the story. Keep names short and specific.
-- kind "location": a place or part of a place (the yard, the barn, the road). kind "object": a prop or a vehicle.
-- kind "character": a person who speaks or is seen in the scene but is NOT in the declared characters list
-  (for example "le père d'Eve"). Name them as the story does.
-- Do not list clothes. Do not list things that are only mentioned abstractly.
+- kind "location": a place or part of a place (the yard, the barn, the road).
+- kind "object": a prop or a vehicle that matters visually and is named in the story.
+- kind "character": a NAMED individual of the story, or a person with a role who speaks or acts in the scene and is
+  NOT in the declared characters list (for example "le père d'Eve"). Name them as the story does.
+- kind "decor": background of the scene, not story people: a crowd, dancing couples, villagers in the background,
+  ambient details (lanterns, fireworks, cows in a field). These are part of the image, never characters.
+- Do not list clothes. Do not list small consumables (food, drinks) or things only mentioned abstractly.
 - At most 8 elements."""
 
 
@@ -337,6 +342,6 @@ def detect_elements(st: dict, sc: dict, assets: dict, provider: str | None = Non
     for el in raw.get("elements", []):
         name = str(el.get("name", "")).strip()
         kind = str(el.get("kind", "")).strip()
-        if name and kind in ("location", "object", "character"):
+        if name and kind in ("location", "object", "character", "decor"):
             out.append({"name": name, "kind": kind, "description": str(el.get("description", "")).strip()})
     return out

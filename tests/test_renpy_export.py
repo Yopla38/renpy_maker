@@ -9,7 +9,17 @@ import renpy_export as RE  # noqa: E402
 import story as S  # noqa: E402
 
 
-def asset(kind, name, validated=True, file="assets/char_eve/cand_03.png"):
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "image_test.png"
+# PNG 1x1 minimal : les tests ne dépendent pas des images générées du projet
+_PNG = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+                     "0000000d49444154789c6360f8ffff3f0005fe02fea7d9e1d30000000049454e44ae426082")
+FIXTURE.parent.mkdir(exist_ok=True)
+if not FIXTURE.exists():
+    FIXTURE.write_bytes(_PNG)
+
+
+def asset(kind, name, validated=True, file=None):
+    file = file or str(FIXTURE.relative_to(Path(__file__).resolve().parent.parent))
     return {"kind": kind, "name": name, "description": "", "prompt": "", "parent": None,
             "status": "validated" if validated else "draft",
             "validated_candidate": 0 if validated else None,

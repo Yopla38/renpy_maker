@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automatique</title>
+<style>
+  :root { --bg:#15161a; --panel:#1d1f25; --line:#2c2f38; --text:#e7e9ee; --muted:#9aa0ad;
+          --ok:#3fb97a; --ko:#e06c6c; --draft:#d9a43b; --accent:#6aa7ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; gap:16px; padding:12px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:6px; }
+  nav a.cur, nav a:hover { color:var(--text); background:var(--panel); }
+  .wrap { max-width:1000px; margin:0 auto; padding:18px 22px 80px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 12px; font-weight:600; }
+  input { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font:inherit; }
+  button { background:#2a2e38; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:7px 12px; font:inherit; cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.primary { background:var(--accent); color:#0b1220; border-color:var(--accent); font-weight:600; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .muted { color:var(--muted); font-size:12px; }
+  .ok { color:var(--ok); } .ko { color:var(--ko); }
+  pre.log { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; max-height:260px; overflow:auto; white-space:pre-wrap; font-size:12px; margin:10px 0 0; }
+  .anchor { border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:12px; background:#181a20; }
+  .anchor.ready { border-color:var(--ok); }
+  .thumbs { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .t { width:190px; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .t.ret { border-color:var(--ok); }
+  .t img { width:100%; display:block; aspect-ratio:1/1; object-fit:cover; cursor:zoom-in; }
+  .t div { padding:6px; font-size:12px; color:var(--muted); }
+  #toast { position:fixed; right:18px; bottom:18px; background:#2a2e38; border:1px solid var(--line); padding:10px 14px; border-radius:8px; display:none; max-width:440px; }
+  #toast.show { display:block; } #toast.err { border-color:var(--ko); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Automatique</h1>
+  <nav>
+    <a href="/histoire#plan">Plan</a>
+    <a href="/histoire#scene">Scène</a>
+    <a href="/automatique" class="cur">Automatique</a>
+    <a href="/">Actifs</a>
+  </nav>
+</header>
+<div class="wrap">
+  <section class="card">
+    <h2>1 · Fabriquer l'histoire jusqu'aux ancres</h2>
+    <p class="muted" style="margin-top:0">Enchaîne : plan des chapitres, répliques, éléments manquants (personnages, lieux, objets, tenues), puis génération des ancres. Les étapes déjà faites ne sont pas refaites. Aucune image n'est retenue automatiquement.</p>
+    <div class="row">
+      <label>Scènes de chaque chapitre <input id="sizes" value="3,3" style="width:120px"
+        title="Un nombre par chapitre, séparés par une virgule : 3,3 = deux chapitres de 3 scènes"></label>
+      <span id="total" class="muted"></span>
+    </div>
+    <label class="muted" style="display:block;margin-top:12px">Consigne pour les chapitres générés pendant ce lancement (facultatif)</label>
+    <textarea id="guidance" style="width:100%;min-height:70px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px" placeholder="ex. le chapitre 3 : Pierre invite Eve à la fête du village, tension romantique, sans rien précipiter"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="primary" id="run">Lancer</button>
+      <span id="state" class="muted"></span>
+    </div>
+    <pre class="log" id="log"></pre>
+  </section>
+
+  <section class="card">
+    <h2>2 · Valider les ancres</h2>
+    <p class="muted" style="margin-top:0">Retenez une image par élément. Vous pouvez régénérer une ancre si elle ne convient pas. Les tenues s'appuient sur l'ancre retenue de leur personnage.</p>
+    <div class="row" style="margin-bottom:12px">
+      <button id="missing">Générer les ancres manquantes (tenues en attente)</button>
+      <button class="primary" id="continue" disabled>Continuer : construire les scènes</button>
+      <span id="cont_note" class="muted"></span>
+    </div>
+    <div id="anchors"><span class="muted">Chargement…</span></div>
+  </section>
+</div>
+<div id="toast"></div>
+
+<script>
+const state = { polling: null, anchors: null, drafts: {}, lastSig: "" };
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const KIND = { character: "Personnage", outfit: "Tenue", location: "Lieu", object: "Objet" };
+
+function toast(msg, isErr = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toast._h); toast._h = setTimeout(() => (t.className = ""), 4500);
+}
+
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+async function refreshStatus() {
+  const s = await api("GET", "/api/pipeline");
+  $("#state").textContent = { idle: "prêt", running: `en cours : ${s.stage || "démarrage"}`, done: "terminé", error: "erreur" }[s.state] || s.state;
+  $("#state").className = s.state === "error" ? "ko" : s.state === "done" ? "ok muted" : "muted";
+  $("#log").textContent = s.log.join("\n") + (s.error ? `\n\n${s.error}` : "");
+  $("#log").scrollTop = $("#log").scrollHeight;
+  $("#run").disabled = s.state === "running";
+  $("#missing").disabled = s.state === "running";
+  return s;
+}
+
+async function refreshAnchors(force = false) {
+  const r = await api("GET", "/api/anchors");
+  const sig = JSON.stringify(r);
+  // Ne pas reconstruire la page si rien n'a changé, ni pendant qu'un prompt est en cours d'écriture.
+  const typing = document.activeElement && document.activeElement.tagName === "TEXTAREA" && $("#anchors").contains(document.activeElement);
+  if (!force && (sig === state.lastSig || typing)) { state.anchors = r; updateCont(r); return; }
+  state.lastSig = sig;
+  state.anchors = r;
+  const groups = ["character", "outfit", "location", "object"];
+  $("#anchors").innerHTML = r.anchors.length ? groups.map((k) => {
+    const rows = r.anchors.filter((a) => a.kind === k);
+    if (!rows.length) return "";
+    return `<h3 style="font-size:13px;color:var(--muted);margin:14px 0 6px">${KIND[k]}s</h3>` + rows.map(anchorCard).join("");
+  }).join("") : '<span class="muted">Aucune ancre pour l\'instant : lancez l\'étape 1.</span>';
+  updateCont(r);
+}
+
+function updateCont(r) {
+  $("#continue").disabled = !r.all_ready;
+  const missing = r.anchors.filter((a) => !a.ready).length;
+  $("#cont_note").textContent = r.all_ready ? "Toutes les ancres sont retenues."
+    : `${missing} ancre(s) à retenir avant de continuer.`;
+}
+
+function peopleWarn(kind, text) {
+  // Les interdictions (« No people », « without hands ») ne désignent pas une personne présente.
+  const neg = /\b(no|without|nobody|never any)\s+(\w+\s+)?(people|person|persons|hands?|body parts?|characters?|figures?|humans?|men|women|someone|anybody|anyone|faces?)\b/gi;
+  const re = /\b(man|woman|men|women|person|people|farmer|girl|boy|he|she|his|her|hands?|character|figure|someone|pierre|eve|marguerite)\b/i;
+  return (kind === "object" || kind === "location") && re.test(text.replace(neg, " "))
+    ? "⚠ Ce prompt mentionne une personne alors que c'est un " + (kind === "object" ? "objet" : "lieu") + " : corrigez-le ou reproposez-le." : "";
+}
+
+function peopleCheck(aid, kind) {
+  $("#aw_" + aid).textContent = peopleWarn(kind, $("#ap_" + aid).value);
+}
+
+async function suggestAgain(aid) {
+  try {
+    const r = await api("POST", `/api/asset/${aid}/suggest-prompt`, {});
+    state.drafts[aid] = r.prompt;
+    $("#ap_" + aid).value = r.prompt;
+    peopleCheck(aid, (state.anchors.anchors.find((x) => x.id === aid) || {}).kind || "");
+    toast("Prompt proposé : relisez-le puis enregistrez");
+  } catch (e) { toast(e.message, true); }
+}
+
+function anchorCard(a) {
+  const prompt = state.drafts[a.id] ?? a.prompt ?? "";
+  const thumbs = a.candidates.map((c) => `
+    <div class="t ${c.retained ? "ret" : ""}">
+      <img src="/files/${esc(c.file)}" alt="" onclick="window.open(this.src)">
+      <div>#${c.index} · ${c.retained ? '<b class="ok">retenue</b>' : "non retenue"}
+        <div class="row" style="margin-top:4px;gap:6px">
+          ${c.retained ? "" : `<button class="primary" style="padding:3px 8px" onclick="retain('${esc(a.id)}', ${c.index})">Retenir</button>`}
+        </div></div>
+    </div>`).join("");
+  return `
+    <div class="anchor ${a.ready ? "ready" : ""}">
+      <div class="row" style="justify-content:space-between">
+        <div><b>${esc(a.name)}</b> <span class="muted">${KIND[a.kind]}${a.parent ? " · " + esc(a.parent) : ""}</span></div>
+        <div class="row">
+          <span class="${a.ready ? "ok" : "ko"}">${a.ready ? "✓ ancre retenue" : "à retenir"}</span>
+          <button onclick="regenerate('${esc(a.id)}')">Générer une autre image</button>
+        </div>
+      </div>
+      <label class="muted" style="display:block;margin-top:10px">Prompt (anglais) ${a.kind === "outfit" ? "· retouche de l'image de son personnage" : ""}</label>
+      <div id="aw_${esc(a.id)}" class="ko" style="font-size:12px">${peopleWarn(a.kind, prompt)}</div>
+      <textarea id="ap_${esc(a.id)}" oninput="state.drafts['${esc(a.id)}'] = this.value; peopleCheck('${esc(a.id)}','${esc(a.kind)}')" style="width:100%;min-height:70px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px">${esc(prompt)}</textarea>
+      <div class="row" style="margin-top:6px">
+        <button onclick="savePrompt('${esc(a.id)}')">Enregistrer le prompt</button>
+        <button onclick="suggestAgain('${esc(a.id)}')">Reproposer un prompt (IA)</button>
+        <button onclick="regenerate('${esc(a.id)}')">Générer une autre image avec ce prompt</button>
+      </div>
+      <div class="thumbs">${thumbs || '<span class="muted">Aucune image encore : lancez l\'étape 1, ou générez-la.</span>'}</div>
+    </div>`;
+}
+
+async function savePrompt(aid) {
+  const text = $("#ap_" + aid).value;
+  try {
+    await api("POST", `/api/asset/${aid}`, { prompt: text });
+    delete state.drafts[aid];
+    toast("Prompt enregistré"); await refreshAnchors(true);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function retain(aid, index) {
+  try {
+    await api("POST", `/api/asset/${aid}/candidate/${index}`, { validate: true });
+    toast("Ancre retenue"); await refreshAnchors();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function regenerate(aid) {
+  try {
+    // Le prompt affiché est enregistré avant le rendu : ce qui part vers Replicate est ce qu'on voit.
+    const text = $("#ap_" + aid).value;
+    await api("POST", `/api/asset/${aid}`, { prompt: text });
+    delete state.drafts[aid];
+    const { job } = await api("POST", `/api/anchors/${aid}/regenerate`, {});
+    toast("Génération en cours (30 s à 1 min)…");
+    const timer = setInterval(async () => {
+      const j = await api("GET", `/api/jobs/${job}`);
+      if (j.state === "running") return;
+      clearInterval(timer);
+      toast(j.state === "done" ? "Nouvelle image disponible : retenez-la si elle convient" : j.message, j.state !== "done");
+      await refreshAnchors(true);
+    }, 2000);
+  } catch (e) { toast(e.message, true); }
+}
+
+function sizesValue() {
+  return $("#sizes").value.split(",").map((x) => Number(x.trim())).filter(Boolean);
+}
+
+function showTotal() {
+  const z = sizesValue();
+  $("#total").textContent = z.length ? `${z.length} chapitre(s), ${z.reduce((a, b) => a + b, 0)} scène(s) au total (ex. 3,3 = deux chapitres de 3 scènes)` : "saisissez un nombre par chapitre";
+}
+$("#sizes").addEventListener("input", showTotal);
+showTotal();
+
+$("#run").addEventListener("click", async () => {
+  const sizes = sizesValue();
+  try {
+    await api("POST", "/api/pipeline/run", { sizes, guidance: $("#guidance").value });
+    poll();
+  } catch (e) { toast(e.message, true); }
+});
+
+$("#missing").addEventListener("click", async () => {
+  try { await api("POST", "/api/anchors/generate-missing", {}); poll(); }
+  catch (e) { toast(e.message, true); }
+});
+
+function poll() {
+  clearInterval(state.polling);
+  state.polling = setInterval(async () => {
+    const s = await refreshStatus();
+    await refreshAnchors();  // les ancres apparaissent au fur et à mesure
+    if (s.state !== "running") clearInterval(state.polling);
+  }, 2000);
+}
+
+$("#continue").addEventListener("click", () => toast("La construction des scènes est la prochaine étape : elle n'est pas encore faite."));
+
+window.retain = retain;
+window.regenerate = regenerate;
+window.savePrompt = savePrompt;
+window.suggestAgain = suggestAgain;
+window.peopleCheck = peopleCheck;
+
+refreshStatus().then((s) => { if (s.state === "running") poll(); });
+refreshAnchors().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>

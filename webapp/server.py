@@ -29,16 +29,18 @@ import plan as P  # noqa: E402
 import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
 import renpy_export as RE  # noqa: E402
+import pipeline as PL  # noqa: E402
 from prompts import match_asset as _match_asset  # noqa: E402
 import story as S  # noqa: E402
 
-HOST, PORT = "127.0.0.1", 8765
+HOST = "127.0.0.1"
+PORT = int(os.environ.get("RENPY_MAKER_PORT", "8765"))  # 8765 est souvent pris : RENPY_MAKER_PORT=8766 pour changer
 KEYFILE = Path.home() / ".config/slapsci/llm_api_keys.txt"
 INDEX = Path(__file__).with_name("index.html")
 PLAN_PAGE = Path(__file__).with_name("plan.html")
 
-_lock = threading.Lock()          # protège game_spec/assets.yaml
-_slock = threading.Lock()         # protège game_spec/story.yaml
+_lock = A.LOCK                    # protège game_spec/assets.yaml (partagé avec le pipeline)
+_slock = S.LOCK                   # protège game_spec/story.yaml (partagé avec le pipeline)
 _jobs: dict[str, dict] = {}       # job_id -> {state, message, candidate}
 
 
@@ -113,6 +115,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, _story_view())
         if path == "/api/renpy":
             return self._renpy_view()
+        if path == "/api/pipeline":
+            return self._json(200, {k: PL.STATE[k] for k in ("state", "stage", "error", "log")})
+        if path == "/api/anchors":
+            return self._json(200, PL.anchors_view())
+        if path in ("/automatique", "/automatique/"):
+            return self._send(200, (Path(__file__).with_name("pipeline.html")).read_bytes(), "text/html; charset=utf-8")
         if path == "/api/story/elements":
             return self._elements()
         if path == "/api/story/scene-status":
@@ -145,6 +153,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self._create_asset(body)
             if path == "/api/generate":
                 return self._generate(body)
+            if path == "/api/pipeline/run":
+                sizes = [int(x) for x in body.get("sizes", [3, 3])]
+                if not sizes or any(not 1 <= n <= 12 for n in sizes):
+                    raise ValueError("Tailles de chapitre entre 1 et 12")
+                if PL.STATE["state"] == "running":
+                    raise ValueError("Une exécution est déjà en cours")
+                PL.start(sizes, str(body.get("guidance", "")).strip())
+                return self._json(202, {"started": True})
+            if path == "/api/anchors/generate-missing":
+                if PL.STATE["state"] == "running":
+                    raise ValueError("Une exécution est déjà en cours")
+                threading.Thread(target=PL.anchors_only, daemon=True).start()
+                return self._json(202, {"started": True})
+            m = re.fullmatch(r"/api/anchors/([\w-]+)/regenerate", path)
+            if m:
+                return self._anchor_regenerate(m.group(1))
             if path == "/api/renpy/settings":
                 return self._renpy_settings(body)
             if path == "/api/renpy/export":
@@ -257,6 +281,47 @@ class Handler(BaseHTTPRequestHandler):
             raise KeyError(f"Actif inconnu : {aid}")
         text = PR.suggest(st, data, aid, body.get("provider") or None)
         self._json(200, {"prompt": text, "warnings": A.english_warnings(text)})
+
+    # ----- ancres : régénération d'une ancre -----
+    def _anchor_regenerate(self, aid: str) -> None:
+        with _lock:
+            data = A.load()
+        a = data["assets"].get(aid)
+        if a is None:
+            raise KeyError(f"Élément inconnu : {aid}")
+        refs = []
+        if a["kind"] == "outfit":
+            parent = data["assets"].get(a.get("parent") or "")
+            if not parent or parent.get("validated_candidate") is None:
+                raise ValueError("Retenez d'abord l'ancre du personnage de cette tenue")
+            refs = [a["parent"]]
+        job_id = uuid.uuid4().hex[:12]
+        _jobs[job_id] = {"state": "running", "message": "génération en cours…", "candidate": None}
+
+        def work():
+            try:
+                with _lock:
+                    has_prompt = bool(A.load()["assets"][aid].get("prompt"))
+                if not has_prompt:
+                    with _slock:
+                        st = S.load()
+                    with _lock:
+                        data2 = A.load()
+                    text = PR.suggest(st, data2, aid)
+                    with _lock:
+                        data3 = A.load()
+                        data3["assets"][aid]["prompt"] = text
+                        A.save(data3)
+                with _lock:
+                    prompt_now = A.load()["assets"][aid]["prompt"]
+                idx = A.generate_candidate(aid, refs, prompt_now, None, "replicate")
+                _jobs[job_id].update(state="done", message=f"nouvelle image #{idx}", candidate=idx)
+            except Exception as e:
+                traceback.print_exc()
+                _jobs[job_id].update(state="error", message=f"{type(e).__name__}: {e}")
+
+        threading.Thread(target=work, daemon=True).start()
+        self._json(202, {"job": job_id})
 
     # ----- export Ren'Py -----
     def _renpy_view(self) -> None:
@@ -597,11 +662,8 @@ class Handler(BaseHTTPRequestHandler):
         def work():
             try:
                 _load_token_from_keyfile()
-                with _lock:
-                    data = A.load()
-                    idx = A.generate(data, aid, body.get("refs", []), prompt,
-                                     body.get("seed"), "replicate", body.get("aspect") or None)
-                    A.save(data)
+                idx = A.generate_candidate(aid, body.get("refs", []), prompt,
+                                           body.get("seed"), "replicate", body.get("aspect") or None)
                 _jobs[job_id].update(state="done", message="candidat créé", candidate=idx)
             except Exception as e:
                 traceback.print_exc()

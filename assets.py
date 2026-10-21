@@ -20,7 +20,11 @@ import datetime as dt
 import sys
 from pathlib import Path
 
+import threading
+
 import yaml
+
+LOCK = threading.Lock()  # protège game_spec/assets.yaml : partagé par le serveur et le pipeline
 
 ROOT = Path(__file__).resolve().parent
 SPEC = ROOT / "game_spec" / "assets.yaml"
@@ -152,6 +156,40 @@ def ref_path(ref: str, data: dict) -> Path:
     if not 0 <= k < len(a["candidates"]):
         raise ValueError(f"Candidat {k} inconnu pour {aid}")
     return ROOT / a["candidates"][k]["file"]
+
+
+def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int | None,
+                       backend: str = "replicate", aspect: str | None = None) -> int:
+    """Génère un candidat SANS garder le verrou pendant l'appel réseau (qui peut durer plusieurs minutes).
+
+    Le verrou ne protège que la lecture et l'écriture du fichier de registre.
+    """
+    import uuid
+    import image_replicate as rep
+
+    if not prompt or not prompt.strip():
+        raise ValueError("Prompt vide")
+    with LOCK:
+        data = load()
+        a = _get(data, asset_id)
+        refs = [ref_path(r, data) for r in ref_ids]
+        aspect = aspect or DEFAULT_ASPECT[a["kind"]]
+    folder = ROOT / "assets" / asset_id
+    folder.mkdir(parents=True, exist_ok=True)
+    tmp = folder / f"tmp_{uuid.uuid4().hex[:8]}.png"
+    model = rep.generate(prompt, tmp, images=refs or None, seed=seed, aspect_ratio=aspect)
+    with LOCK:
+        data = load()
+        a = _get(data, asset_id)
+        n = len(a["candidates"])
+        final = folder / f"cand_{n:02d}.png"
+        tmp.replace(final)
+        idx = add_candidate(data, asset_id, f"assets/{asset_id}/cand_{n:02d}.png", {
+            "backend": backend, "model": model, "seed": seed, "prompt": prompt,
+            "refs": ref_ids, "aspect": aspect,
+        })
+        save(data)
+    return idx
 
 
 def generate(data: dict, asset_id: str, ref_ids: list[str], prompt: str, seed: int | None,

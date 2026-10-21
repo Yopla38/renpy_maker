@@ -16,9 +16,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import threading
+
 import yaml
 
 ROOT = Path(__file__).resolve().parent
+LOCK = threading.Lock()  # protège game_spec/story.yaml : partagé par le serveur et le pipeline
 STORY = ROOT / "game_spec" / "story.yaml"
 PROVIDER_ROLES = ("text", "image_base", "image_edit")
 NARRATOR = "Narration"
@@ -49,7 +52,7 @@ def new_story(title: str = "", idea: str = "", total_scenes: int = 6) -> dict:
     }
 
 
-SCENE_DEFAULTS = {"choices": [], "ending": False, "locked": False, "dialogue": [], "plans": []}
+SCENE_DEFAULTS = {"choices": [], "ending": False, "locked": False, "dialogue": [], "plans": [], "decor": []}
 CHAPTER_DEFAULTS = {"locked": False, "scenes": []}
 
 

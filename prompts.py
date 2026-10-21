@@ -6,6 +6,8 @@ Rien n'est envoyé au modèle image sans l'accord de l'auteur.
 
 from __future__ import annotations
 
+import re
+
 import llm
 import story as S
 
@@ -22,7 +24,24 @@ FRAMING = {
     "character": "- Show the character alone, in a clear portrait or three-quarter framing.",
     "outfit": "- Show the character wearing the outfit, full body, the clothing clearly visible.",
     "location": "- Describe the place only: a wide establishing shot with no people in it.",
+    "object": "- Show the object alone, centred, clearly lit. No people, no hands, no body parts, no characters at all.",
 }
+
+# Mots qui signalent une personne dans un prompt d'objet ou de lieu.
+PEOPLE_WORDS = re.compile(r"\b(man|woman|men|women|person|people|farmer|girl|boy|he|she|his|her|hands?|"
+                          r"character|figure|someone|pierre|eve|marguerite)\b", re.I)
+
+
+# Interdictions (« No people », « without hands ») : elles ne désignent pas une personne présente.
+NEGATED = re.compile(r"\b(?:no|without|nobody|never any)\s+(?:\w+\s+)?(?:people|person|persons|hands?|body parts?|"
+                     r"characters?|figures?|humans?|men|women|someone|anybody|anyone|faces?)\b", re.I)
+
+
+def people_in_prompt(text: str, kind: str) -> bool:
+    """Vrai si un prompt d'objet ou de lieu MENTIONNE une personne (les interdictions ne comptent pas)."""
+    if kind not in ("object", "location"):
+        return False
+    return bool(PEOPLE_WORDS.search(NEGATED.sub(" ", text)))
 
 
 def match_asset(assets: dict, el: dict, chars: dict) -> str | None:
@@ -80,6 +99,8 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
         return system, "\n".join(l for l in lines if l)
     style = llm_style()
     framing = FRAMING.get(a["kind"], "")
+    if a["kind"] in ("object", "location"):
+        framing += " Never mention a person, even if the story context does."
     system = SYSTEM.format(style=style, framing=framing)
     lines = [
         f"Type : {a['kind']}",
@@ -94,8 +115,12 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
             if parent.get("prompt"):
                 lines.append(f"Character appearance (English, from the existing prompt) : {parent['prompt']}")
     ctx = story_context(st, assets, aid)
+    if a["kind"] in ("object", "location"):
+        # Un objet ou un lieu : seulement le titre de la scène, pour ne pas y faire entrer les personnages.
+        ctx = [c.split(" : ")[0] for c in ctx]
     if ctx:
-        lines.append("Story context (French) :")
+        lines.append("Scene where it appears (titles only) :" if a["kind"] in ("object", "location")
+                     else "Story context (French) :")
         lines += [f"- {c}" for c in ctx]
     return system, "\n".join(lines)
 

@@ -28,20 +28,30 @@ def _token() -> str:
     return tok
 
 
-def _req(method: str, url: str, body: dict | None = None, timeout: int = 120) -> dict:
+def _req(method: str, url: str, body: dict | None = None, timeout: int = 120, retries: int = 6) -> dict:
+    """Appel Replicate. Sur 429 (trop de requêtes, souvent faute de crédit), on attend et on réessaie."""
+    import time
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(
-        url,
-        data=data,
-        method=method,
-        headers={
-            "Authorization": f"Bearer {_token()}",
-            "Content-Type": "application/json",
-            "Prefer": "wait=60",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(
+            url,
+            data=data,
+            method=method,
+            headers={
+                "Authorization": f"Bearer {_token()}",
+                "Content-Type": "application/json",
+                "Prefer": "wait=60",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == retries:
+                raise
+            wait = 10 * (2 ** attempt)  # 10, 20, 40, 80… secondes
+            print(f"Replicate 429 : nouvelle tentative dans {wait} s", flush=True)
+            time.sleep(wait)
 
 
 def _data_uri(path: Path) -> str:
@@ -59,7 +69,7 @@ def generate(
     megapixels: str = "1",
     output_format: str = "png",
     timeout_s: int = 600,
-    disable_safety_checker: bool = True
+    disable_safety_checker: bool = False
 ) -> str:
     """Génère (sans images) avec MODEL_BASE, ou édite (avec images) avec MODEL_EDIT.
 

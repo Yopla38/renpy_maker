@@ -65,6 +65,7 @@
     <a href="#plan" data-tab="plan">Plan</a>
     <a href="#scene" data-tab="scene">Scène</a>
     <a href="#renpy" data-tab="renpy">Ren'Py</a>
+    <a href="/automatique">Automatique</a>
     <a href="/" data-tab="actifs">Actifs</a>
   </nav>
 </header>
@@ -464,10 +465,12 @@ async function detectElements(cid, sid) {
   try {
     const r = await api("POST", `/api/story/chapter/${cid}/scene/${sid}/detect-elements`, {});
     if (!r.elements.length) { box.innerHTML = '<span class="muted">Aucun lieu ni objet à créer.</span>'; return; }
-    const kindLabel = { location: "lieu", object: "objet", character: "personnage" };
+    const kindLabel = { location: "lieu", object: "objet", character: "personnage", decor: "décor" };
     box.innerHTML = `<div class="muted">Éléments visibles ou mentionnés de la scène :</div>` + r.elements.map((el, i) => {
       let action = "";
-      if (el.kind === "character") {
+      if (el.kind === "decor") {
+        action = '<span class="muted">décor de la scène : décrit dans le prompt, pas de fiche</span>';
+      } else if (el.kind === "character") {
         if (el.in_scene) action = '<span class="ok">déjà dans la scène</span>';
         else action = `<button onclick="addDetectedCharacter('${esc(cid)}','${esc(sid)}', ${i})">${el.exists ? "Ajouter à la scène" : "Créer et ajouter à la scène"}</button>`;
       } else if (!el.exists) {
