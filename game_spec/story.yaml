@@ -1,376 +1,418 @@
 version: 1
-title: le manoir enchantée
-idea: un électricien nommé Greg doit faire des réparation dans un manoir qui se trouve
-  être un peu magique
+title: '2050'
+idea: Lou est une femme de 21 ans, très jolie et très convoitée. Elle est rousse,
+  avec un corps athlétique et est très aguicheuse. Elle a de grand yeux bleues. Elle
+  est dans sa chambre et se film. Nous la voyons à travers sa caméra
 settings:
   language: fr
-  explicit_content: false
+  explicit_content: true
   total_scenes: 3
-  style: realiste
-  max_plans: 5
+  style: huile
+  max_plans: 8
   providers:
-    text: anthropic
+    text: ollama
     image_base: replicate
     image_edit: replicate
-synopsis: un électricien nommé Greg doit faire des réparation dans un manoir qui se
-  trouve être un peu magique
+synopsis: Lou est une femme de 21 ans, très jolie et très convoitée. Elle est rousse,
+  avec un corps athlétique et est très aguicheuse. Elle a de grand yeux bleues. Elle
+  est dans sa chambre et se film. Nous la voyons à travers sa caméra
 chapters:
 - id: ch1
-  title: 'Chapitre 1 : Court-circuit'
-  summary: 'Greg, électricien un peu blasé, est appelé en urgence pour réparer l''installation
-    électrique d''un vieux manoir isolé. Dès son arrivée, il remarque que les lieux
-    se comportent de façon étrange : les portes s''ouvrent seules et les lampes s''allument
-    à son passage. La propriétaire, la discrète Mademoiselle Éloïse, lui avoue que
-    le manoir est vivant à sa manière, et que c''est lui qui est « malade ».'
+  title: '2050'
+  summary: En 2050, Lou, 21 ans, rousse aux grands yeux bleus et au corps athlétique,
+    est l'une des créatrices de contenu les plus suivies du réseau. Depuis sa chambre,
+    nous la découvrons uniquement à travers l'objectif de sa caméra. Elle joue de
+    son charme avec ses spectateurs, mais un message mystérieux vient troubler le
+    direct.
   scene_count: 3
   locked: false
   scenes:
   - id: s1
-    title: La grille qui s'ouvre toute seule
-    summary: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
+    title: Le point rouge s'allume
+    summary: L'écran affiche l'image tremblante de la caméra, puis se stabilise sur
+      Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     characters:
-    - Greg
-    location: Allée et jardin du manoir de Valbrume
+    - Lou
+    - IRIS
+    location: Chambre de Lou
     outfits:
-      Greg: Combinaison de travail bleue, ceinture à outils, casque de chantier jaune
-        sous le bras, bottes de sécurité
+      Lou: Brassière de sport noire moulante et short taille haute en maille holographique,
+        cheveux roux détachés
+      IRIS: Voix synthétique, représentée par un anneau lumineux bleu autour de l'objectif
     choices: []
     ending: false
     locked: false
     dialogue:
     - speaker: Narration
-      text: La pluie fine tambourine sur le toit de la camionnette. Au bout du chemin
-        de gravier, le manoir de Valbrume se découpe contre le ciel gris, toutes fenêtres
-        sombres.
+      text: Un point rouge s'allume dans un coin de l'écran. L'image tremble, saccadée,
+        puis se stabilise. Dans la chambre baignée de néons roses et bleus, Lou apparaît,
+        légèrement penchée vers l'objectif.
       expression: neutre
-    - speaker: Greg
-      text: Bon. Un manoir isolé, un appel en urgence, et il pleut. On ne pouvait
-        pas me proposer un pavillon en lotissement, pour une fois ?
-      expression: soupir las
-    - speaker: Narration
-      text: Il s'arrête devant la grille rouillée et cherche déjà l'interphone du
-        regard. Mais avant qu'il ne coupe le moteur, les barreaux s'écartent dans
-        un long grincement, presque poli.
-      expression: surprise
-    - speaker: Greg
-      text: Ah. Ouverture automatique. Au moins, quelque chose marche ici.
-      expression: sourcil levé
-    - speaker: Narration
-      text: Il avance lentement. Le long de l'allée, les lanternes du jardin s'allument
-        une à une, juste devant lui, comme pour l'inviter à suivre la lumière.
-      expression: neutre
-    - speaker: Greg
-      text: Détecteur de présence... Ça doit être un vieux système sur cellule. Même
-        si, sur une installation censée être en panne, c'est un comble.
-      expression: scepticisme
-    - speaker: Narration
-      text: Greg descend de la camionnette, la capuche relevée, et fait le tour des
-        poteaux de la grille puis des lanternes. Il passe la main derrière chaque
-        socle, cherche un capteur, un fil, une cellule. Rien.
+    - speaker: Lou
+      text: Un peu plus à gauche, IRIS... Non, trop. Voilà. Là, mes boucles attrapent
+        bien la lumière, tu ne trouves pas ?
       expression: concentration
-    - speaker: Greg
-      text: Pas de capteur. Pas de câble apparent. Pas même une boîte de dérivation...
-        Alors, qui vous alimente, vous ?
-      expression: méfiance
+    - speaker: IRIS
+      text: Cadrage optimal atteint. Ta chevelure rousse augmente l'engagement visuel
+        de douze pour cent avec cet éclairage, Lou.
+      expression: voix calme
     - speaker: Narration
-      text: La lanterne la plus proche vacille doucement, puis retrouve son éclat,
-        comme si elle avait entendu la question.
-      expression: mystère
-    - speaker: Greg
-      text: Très bien. Je ne dis rien, je ne touche à rien, et je regarde le tableau
-        électrique en premier. Ça, au moins, ça ne ment pas.
-      expression: résigné
+      text: Lou recule d'un pas, passe une main dans ses boucles rousses et fixe l'objectif
+        de ses grands yeux bleus. Un sourire complice se dessine lentement sur ses
+        lèvres.
+      expression: sourire complice
+    - speaker: Lou
+      text: Douze pour cent, hein ? Je vais tâcher de faire encore mieux ce soir.
+        Prête quand tu veux.
+      expression: sourire en coin
+    - speaker: IRIS
+      text: Le direct démarre dans trois, deux, un... Tu es en ligne. Quatre mille
+        spectateurs sont déjà connectés, et le compteur grimpe encore.
+      expression: enthousiasme mesuré
+    - speaker: Lou
+      text: Coucou, mes chéris... Vous m'avez attendue ? Installez-vous bien, ce soir,
+        je suis d'humeur à vous gâter.
+      expression: regard charmeur
+    - speaker: Narration
+      text: Elle s'assoit sur le rebord de son lit, une jambe croisée sur l'autre,
+        et effleure du doigt le bord de son débardeur en lançant un clin d'œil à la
+        caméra. Dans la fenêtre du chat, les messages défilent à toute vitesse.
+      expression: aguicheuse
+    - speaker: IRIS
+      text: 'Lou, un message anonyme vient d''apparaître en priorité dans le chat.
+        Il ne provient d''aucun compte répertorié. Il dit : « Éteins la caméra. Ils
+        t''observent. »'
+      expression: inquiétude
+    - speaker: Lou
+      text: Hein ? ... Sans doute une blague d'un troll. Ignore-le, IRIS. On ne va
+        pas laisser un inconnu gâcher la soirée.
+      expression: sourire crispé
     plans:
     - id: p1
       from_line: 0
       characters:
-      - Greg
-      asset: scene_s1_d3d1fb
+      - Lou
+      asset: scene_s1_afa610
       shot:
         framing: wide shot
         angle: ''
-        note: La camionnette de Greg, sous la pluie fine, au bout de l'allée de gravier
-          face au manoir de Valbrume aux fenêtres sombres.
+        note: La chambre de Lou baignée de néons roses et bleus, avec Lou penchée
+          vers le drone-caméra dont le point rouge clignote.
     - id: p2
-      from_line: 1
+      from_line: 2
       characters:
-      - Greg
-      asset: scene_s1_1cbd1c
+      - IRIS
+      asset: scene_s1_8f28d2
       shot:
         framing: close-up
         angle: ''
-        note: Gros plan sur Greg, qui soupire derrière son pare-brise et se plaint
-          de la pluie et du manoir isolé.
+        note: Gros plan sur l'objectif du drone-caméra d'IRIS, qui annonce le cadrage
+          optimal.
     - id: p3
-      from_line: 2
-      characters: []
-      asset: scene_s1_6d6740
+      from_line: 3
+      characters:
+      - Lou
+      asset: scene_s1_46c76e
       shot:
-        framing: medium shot
+        framing: close-up
         angle: ''
-        note: 'Détail : la grille rouillée dont les barreaux s''écartent d''eux-mêmes
-          dans un long grincement presque poli.'
+        note: Gros plan sur Lou, qui fixe l'objectif de ses grands yeux bleus avec
+          un sourire complice.
     - id: p4
       from_line: 4
       characters:
-      - Greg
-      asset: scene_s1_43fb50
-      shot:
-        framing: wide shot
-        angle: ''
-        note: Les lanternes du jardin s'allument une à une le long de l'allée, guidant
-          la camionnette.
-    - id: p5
-      from_line: 7
-      characters:
-      - Greg
-      asset: scene_s1_d344d9
+      - Lou
+      asset: scene_s1_30dd82
       shot:
         framing: ''
         angle: ''
-        note: Gros plan sur Greg, qui fouille derrière un socle de lanterne sans trouver
-          aucun capteur.
-    decor: []
-  - id: s2
-    title: Mademoiselle Éloïse
-    summary: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
-    characters:
-    - Greg
-    - Éloïse
-    location: Grand hall du manoir
-    outfits:
-      Greg: Combinaison de travail bleue, ceinture à outils, carnet de notes à la
-        main
-      Éloïse: Longue robe verte passée de mode, gilet en laine gris, cheveux attachés
-        en chignon lâche
-    choices: []
-    ending: false
-    locked: false
-    dialogue:
-    - speaker: Narration
-      text: La lourde porte d'entrée se referme derrière Greg sans que personne l'ait
-        touchée. Au centre du grand hall, Éloïse serre ses mains l'une contre l'autre,
-        l'air gêné.
-      expression: gêne
-    - speaker: Éloïse
-      text: Pardonnez le désordre, Monsieur Greg. Et pardonnez aussi le tapis… il
-        a pris votre parapluie, je crois. Il fait ça avec tous les visiteurs. Je vous
-        promets de le récupérer.
-      expression: gêne
-    - speaker: Greg
-      text: Le tapis a pris mon parapluie. Bien sûr. Bon, passons. Dites-moi plutôt
-        ce qui ne va pas, côté électricité.
-      expression: scepticisme
-    - speaker: Éloïse
-      text: Les lumières clignotent, surtout la nuit. Certaines prises deviennent
-        brûlantes sans raison. Et les couloirs… ils changent de longueur. Hier, il
-        m'a fallu dix minutes pour aller à la cuisine.
-      expression: inquiétude
-    - speaker: Greg
-      text: 'Des couloirs qui s''allongent... Je note : « problème de perception de
-        la propriétaire ». Ou de l''installation. On verra.'
-      expression: ironie
-    - speaker: Narration
-      text: Greg griffonne dans son carnet, sourcils froncés. Au-dessus de lui, le
-        lustre de cristal tinte doucement, puis commence à s'incliner lentement, comme
-        un curieux penché sur son épaule.
-      expression: tension
-    - speaker: Éloïse
-      text: Ne bougez pas, je vous en prie. Il vous observe. Il fait toujours ça quand
-        quelqu'un lui plaît… ou lui fait peur.
-      expression: douceur
-    - speaker: Greg
-      text: 'Je ne sais pas laquelle des deux options me rassure le moins. Dites-moi,
-        Mademoiselle Éloïse : ce lustre, il est bien fixé au plafond, au moins ?'
-      expression: méfiance
-    - speaker: Éloïse
-      text: Tant qu'il vous trouve sympathique, oui. Alors, si j'étais vous, je lui
-        sourirais.
-      expression: sourire timide
-    - speaker: Greg
-      text: Génial. Une journée de travail, et je dois séduire un lustre.
-      expression: résignation
-    plans:
-    - id: p1
-      from_line: 0
+        note: Gros plan sur l'entrejambe de Lou, femme majeure
+    - id: p6
+      from_line: 6
       characters:
-      - Greg
-      - Éloïse
-      asset: scene_s2_3f635e
+      - Lou
+      asset: scene_s1_7208d8
       shot:
-        framing: wide shot
+        framing: ''
         angle: ''
-        note: 'Le grand hall du manoir : la lourde porte vient de se refermer derrière
-          Greg, tandis qu''Éloïse, gênée, serre les mains au centre de la pièce.'
-    - id: p2
-      from_line: 3
-      characters:
-      - Éloïse
-      asset: scene_s2_1ff9bc
+        note: Lou assise sur le rebord de son lit lance un clin d'œil à la caméra
+    - id: p7
+      from_line: 7
+      characters: []
+      asset: scene_s1_d08d0d
       shot:
-        framing: close-up
+        framing: ''
         angle: ''
-        note: 'Gros plan sur Éloïse, qui décrit les pannes : lumières qui clignotent,
-          prises brûlantes, couloirs qui changent de longueur.'
-    - id: p3
-      from_line: 4
-      characters:
-      - Greg
-      asset: scene_s2_6e4c7c
-      shot:
-        framing: medium close-up
-        angle: ''
-        note: Gros plan sur Greg, qui note avec scepticisme « problème de perception
-          de la propriétaire ».
-    - id: p4
-      from_line: 5
-      characters:
-      - Greg
-      - Éloïse
-      asset: scene_s2_68ba5b
-      shot:
-        framing: extreme close-up
-        angle: ''
-        note: 'Détail : le lustre de cristal qui tinte et s''incline lentement, comme
-          un curieux penché sur l''épaule de Greg.'
+        note: elle ecarte ses jambes, provocative et aguicheuse, gros plan sur son
+          entrejambe
     - id: p5
       from_line: 8
       characters:
-      - Greg
-      - Éloïse
-      asset: scene_s2_2b1de7
+      - Lou
+      asset: scene_s1_52bdb6
       shot:
-        framing: close-up
+        framing: ''
         angle: ''
-        note: Gros plan sur Éloïse, qui conseille à Greg de sourire au lustre.
+        note: change the position of the woman to be lying on the bed, legs spreaded,
+          shape of genital in frame
     decor: []
-  - id: s3
-    title: Le tableau électrique respire
-    summary: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
+  - id: s2
+    title: Les spectateurs réclament
+    summary: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
     characters:
-    - Greg
-    - Éloïse
-    location: Cave du manoir, local du tableau électrique
+    - Lou
+    - IRIS
+    location: Chambre de Lou
     outfits:
-      Greg: Combinaison de travail bleue, gants isolants, lampe frontale allumée
-      Éloïse: Longue robe verte, gilet en laine gris, lanterne à la main
+      Lou: Brassière de sport noire et short en maille holographique, veste de survêtement
+        transparente glissée sur une épaule
+      IRIS: Anneau lumineux bleu qui pulse à chaque nouveau message
     choices: []
     ending: false
     locked: false
     dialogue:
     - speaker: Narration
-      text: Un escalier de pierre humide s'enfonce dans la cave. À chaque marche,
-        une ampoule nue s'allume au plafond, comme pour guider Greg, puis s'éteint
-        derrière lui.
-      expression: ambiance inquiétante
-    - speaker: Greg
-      text: Ça, ce n'est pas un détecteur de présence. Je connais les détecteurs de
-        présence. Ils ne font pas ça avec autant de... politesse.
-      expression: méfiance
-    - speaker: Éloïse
-      text: Il essaie d'être aimable. Il a si peu de visites. Voilà, c'est ici.
-      expression: sourire timide
+      text: Lou se redresse face à l'objectif. Le compteur de spectateurs grimpe en
+        flèche, et les commentaires envahissent la fenêtre du chat. Dans l'image,
+        sa chevelure rousse accroche la lumière chaude des guirlandes.
+      expression: neutre
+    - speaker: Lou
+      text: Alors, voyons ce que vous me réclamez... « Lou, un moment privé, s'il
+        te plaît ! » « On veut plus ! » « Rien que pour moi, juste dix minutes ! »
+        Oh là là, mais vous êtes insatiables, ce soir.
+      expression: sourire taquin
+    - speaker: IRIS
+      text: Le nombre de demandes d'accès privé a triplé en quatre minutes. Souhaites-tu
+        que j'active la file d'attente VIP ?
+      expression: neutre
+    - speaker: Lou
+      text: Pas encore, IRIS. Ils doivent mériter ça. Ce qu'on désire trop facilement
+        perd toute sa saveur, non ?
+      expression: malicieuse
     - speaker: Narration
-      text: Au fond d'un local étroit, un vieux tableau électrique en fonte gris-vert
-        disparaît sous les toiles d'araignée. Greg essuie le capot du revers de la
-        manche.
-      expression: calme
-    - speaker: Greg
-      text: Un modèle des années trente, avec des fusibles à porcelaine. Je pensais
-        que ça n'existait plus que dans les musées. Bon, on regarde ça.
-      expression: curiosité professionnelle
+      text: Elle se lève lentement, lève les bras au-dessus de la tête et s'étire
+        comme un chat. Son débardeur remonte légèrement sur son ventre ferme et dessiné.
+        Elle laisse échapper un petit soupir satisfait, en gardant les yeux rivés
+        sur l'objectif.
+      expression: sourire
+    - speaker: Lou
+      text: Quelqu'un a écrit « Montre-nous ta salle de sport ». Désolée, mon chéri,
+        aujourd'hui, c'est séance d'entraînement privée... et vous n'êtes pas invités.
+        Enfin, pas tous.
+      expression: clin d'œil
     - speaker: Narration
-      text: 'Il soulève le capot. Derrière, les fusibles palpitent doucement, avec
-        un rythme lent et régulier, comme un cœur. Un grésillement monte, puis une
-        voix presque inaudible murmure : « Aïe. »'
-      expression: stupeur
-    - speaker: Greg
-      text: '...Vous avez entendu ça aussi, n''est-ce pas ? Dites-moi que vous l''avez
-        entendu.'
-      expression: choc
-    - speaker: Éloïse
-      text: Je suis désolée, Greg. Je n'ai pas tout dit. Vous n'êtes pas là pour réparer
-        une installation. Le manoir est vivant, et vous venez soigner un patient.
-      expression: gêne sincère
-    - speaker: Greg
-      text: Un patient. Moi, je suis électricien, pas médecin. Et mon assurance ne
-        couvre sûrement pas les maisons qui parlent.
-      expression: incrédulité
+      text: Elle déambule dans la chambre, d'un pas souple et chaloupé, effleure le
+        dossier d'une chaise, puis la commode, et jette un regard par-dessus son épaule.
+        La caméra de drone d'IRIS la suit, et chaque mouvement de hanche semble calculé.
+      expression: séductrice
+    - speaker: IRIS
+      text: Lou, le message anonyme s'est affiché une seconde fois. Même formulation.
+        Je ne peux toujours pas en tracer l'origine.
+      expression: inquiétude
+    - speaker: Lou
+      text: Chut, IRIS... pas devant tout le monde. Ce n'est qu'un petit malin qui
+        s'amuse.
+      expression: agacée
     - speaker: Narration
-      text: Les fusibles ralentissent, comme retenant leur souffle. Greg garde la
-        main un instant au-dessus du tableau, puis la pose doucement sur la fonte
-        tiède.
-      expression: hésitation
-    - speaker: Greg
-      text: D'accord, du calme. Je vais regarder ce qui ne va pas. Mais si je dois
-        couper quoi que ce soit, je vous préviens d'abord. Ça vaut pour vous aussi,
-        le manoir.
-      expression: résignation douce
-    - speaker: Éloïse
-      text: Merci. Je crois qu'il vient de se détendre un peu.
-      expression: soulagement
+      text: Elle s'approche de l'objectif jusqu'à ce que ses grands yeux bleus remplissent
+        l'écran. Un sourire éclaire son visage, mais son regard glisse une fraction
+        de seconde vers la fenêtre, comme si elle avait senti quelque chose.
+      expression: trouble fugace
+    - speaker: Lou
+      text: Restez avec moi, mes chéris... Cette soirée ne fait que commencer, et
+        j'ai quelques surprises pour ceux qui seront sages. Très sages.
+      expression: murmure séducteur
     plans:
     - id: p1
       from_line: 0
-      asset: scene_s3_baf61a
       characters:
-      - Greg
-      - Éloïse
+      - Lou
+      asset: scene_s2_13b10a
       shot:
-        framing: wide shot
+        framing: ''
         angle: ''
-        note: Greg et Éloïse descendent l'escalier de pierre humide, où les ampoules
-          nues s'allument une à une.
+        note: Plan d'ensemble sur la chambre de Lou. On voit la jeune femme rousse
+          en gros plan
     - id: p2
-      from_line: 3
-      asset: scene_s3_16fff5
+      from_line: 1
       characters:
-      - Greg
+      - Lou
+      asset: scene_s2_15e940
+      shot:
+        framing: close-up
+        angle: ''
+        note: Gros plan sur le visage de Lou, un sourire malicieux aux lèvres.
+    - id: p3
+      from_line: 4
+      characters:
+      - Lou
+      asset: scene_s2_717e7c
+      shot:
+        framing: ''
+        angle: ''
+        note: Plan médian sur Lou qui s'étire devant la caméra, montrant sa poitrine
+    - id: p4
+      from_line: 6
+      characters: []
+      asset: scene_s2_80ab3b
+      shot:
+        framing: ''
+        angle: ''
+        note: Plan rapproché de dos,
+    - id: p6
+      from_line: 8
+      characters: []
+      asset: scene_s2_440386
+      shot:
+        framing: ''
+        angle: ''
+        note: Elle se penche et cambre ses fesses
+      refs_exclude:
+      - tenue:lou
+      - decor
+      refs_extra:
+      - scene_s2_80ab3b
+    - id: p5
+      from_line: 9
+      characters:
+      - Lou
+      asset: scene_s2_91172c
+      shot:
+        framing: extreme close-up
+        angle: ''
+        note: Extême gros plan sur les yeux bleus de Lou, remplissant presque tout
+          l'écran. Son regard semble captiviver les spectateurs.
+      refs_exclude:
+      - tenue:lou
+      - decor
+      refs_extra:
+      - scene_s2_440386
+      - scene_s2_15e940
+    decor: []
+  - id: s3
+    title: Message inconnu
+    summary: 'Au milieu du direct, un message sans pseudonyme s''affiche en rouge
+      : « Je sais où tu habites, Lou. » Son sourire se fige un instant avant qu''elle
+      ne reprenne contenance et feigne l''amusement pour ses abonnés. Une fois la
+      caméra coupée, elle se tient seule dans le silence de sa chambre, le regard
+      rivé sur la fenêtre où une lumière clignote dans l''immeuble d''en face.'
+    characters:
+    - Lou
+    - IRIS
+    location: Chambre de Lou
+    outfits:
+      Lou: Brassière de sport noire et short en maille holographique, veste de survêtement
+        rabattue sur les épaules
+      IRIS: Anneau lumineux passant du bleu à l'orange en signe d'alerte
+    choices: []
+    ending: false
+    locked: false
+    dialogue:
+    - speaker: Narration
+      text: 'Dans le flux du chat, une ligne rouge écrase les cœurs et les emojis
+        : « Je sais où tu habites, Lou. » Aucun pseudonyme. Aucun avatar. Le sourire
+        de Lou se fige une demi-seconde devant l''objectif.'
+      expression: sourire figé
+    - speaker: Lou
+      text: Oh, mais regardez-moi ça... un admirateur timide. Si tu sais où j'habis,
+        mon chou, tu aurais pu apporter des fleurs. Les roses, c'est ma faiblesse.
+      expression: amusement forcé
+    - speaker: Narration
+      text: Elle éclate d'un rire parfaitement dosé, rejette ses boucles rousses derrière
+        son épaule et envoie un baiser à la caméra. Dans le chat, les messages repartent
+        de plus belle. Seuls ses doigts, crispés sur le bord de la coiffeuse, la trahissent.
+      expression: tension masquée
+    - speaker: Lou
+      text: Bon, mes chéris, on fait une petite pause. Ne bougez pas, je reviens avec
+        une surprise. Je vous embrasse.
+      expression: sourire charmeur
+    - speaker: Narration
+      text: Elle tape sur la commande. Le voyant rouge de la caméra s'éteint. Le sourire
+        de Lou s'efface avec lui, et le silence tombe sur la chambre comme une couverture
+        froide.
+      expression: visage fermé
+    - speaker: IRIS
+      text: Direct interrompu. Lou, je n'ai pas pu remonter à l'origine du message.
+        Il est passé par trois relais chiffrés, et son signal a été effacé juste après
+        l'affichage. C'est du travail de professionnel.
+      expression: voix neutre
+    - speaker: Lou
+      text: Un fan trop zélé, c'est tout. Il y en a un par semaine qui veut me faire
+        peur...
+      expression: doute
+    - speaker: Narration
+      text: 'Elle s''approche de la fenêtre sans allumer la lumière. De l''autre côté
+        de la rue, dans l''immeuble d''en face, une fenêtre sombre s''éclaire par
+        intermittence : un clignotement lent, régulier, presque délibéré.'
+      expression: regard fixe
+    - speaker: IRIS
+      text: Lou, cette lumière clignote à intervalles de quatre secondes depuis le
+        début du message. Je te recommande de t'éloigner de la fenêtre et de verrouiller
+        les accès.
+      expression: inquiétude
+    - speaker: Lou
+      text: Verrouille tout, IRIS. Et ne coupe pas l'enregistrement... Je veux savoir
+        qui me regarde.
+      expression: détermination froide
+    plans:
+    - id: p1
+      from_line: 0
+      asset: scene_s3_b8f4c0
+      characters:
+      - Lou
       shot:
         framing: medium shot
         angle: ''
-        note: Au fond du local étroit, Greg essuie les toiles d'araignée du vieux
-          tableau électrique en fonte gris-vert.
+        note: Plan d'ensemble de la chambre de Lou devant son écran, où le message
+          rouge s'affiche.
+      refs_exclude:
+      - tenue:lou
+      refs_extra:
+      - scene_s2_440386
+    - id: p2
+      from_line: 1
+      asset: scene_s3_c91df1
+      characters:
+      - Lou
+      shot:
+        framing: close-up
+        angle: ''
+        note: Gros plan sur Lou, dont le sourire se fige une demi-seconde.
     - id: p3
-      from_line: 5
-      asset: scene_s3_9ab5eb
-      characters: []
-      shot:
-        framing: close-up
-        angle: ''
-        note: 'Détail : les fusibles en porcelaine qui palpitent doucement comme un
-          cœur derrière le capot.'
-    - id: p4
-      from_line: 7
-      asset: scene_s3_1b0997
+      from_line: 2
+      asset: scene_s3_95633f
       characters:
-      - Greg
-      - Éloïse
-      shot:
-        framing: close-up
-        angle: ''
-        note: Gros plan sur Éloïse, qui avoue avec gêne que le manoir est vivant et
-          que Greg vient soigner un patient.
-    - id: p5
-      from_line: 9
-      asset: scene_s3_8c5083
-      characters:
-      - Greg
+      - Lou
       shot:
         framing: medium close-up
         angle: ''
-        note: Gros plan sur Greg, qui pose doucement la main sur la fonte tiède tandis
-          que les fusibles ralentissent.
+        note: Plan poitrine de Lou qui éclate de rire et rejette ses boucles rousses.
+    - id: p4
+      from_line: 4
+      asset: scene_s3_3b1a7d
+      characters:
+      - Lou
+      - IRIS
+      shot:
+        framing: wide shot
+        angle: ''
+        note: Plan large de la chambre soudain silencieuse après l'extinction du direct.
+    - id: p5
+      from_line: 7
+      asset: scene_s3_cc9238
+      characters:
+      - Lou
+      shot:
+        framing: medium shot
+        angle: ''
+        note: Lou devant la fenêtre, observant le clignotement dans l'immeuble d'en
+          face.
     decor: []

@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 import shutil
 import threading
+import yaml
 import time
 import traceback
 import unicodedata
@@ -132,10 +133,22 @@ def _element_card(assets: dict, kind: str, name: str, parent: str | None = None)
             "prompt": a.get("prompt", "") if a else "", "blocked": blocked, "parent": parent or ""}
 
 
+def _refs_view(sc: dict, plan: dict, assets: dict) -> dict:
+    """Images de référence d'un plan : celles du moteur (décor, personnages, tenues) et celles ajoutées."""
+    info = SC.plan_refs(assets, sc, plan)
+    auto = []
+    for it in info["auto"]:
+        a = assets.get(it["id"], {})
+        auto.append({"key": it["key"], "label": it["label"], "excluded": it["excluded"], "ok": it["ok"],
+                     "image": _url(a, a.get("validated_candidate")) if a else None})
+    return {"auto": auto, "extra": [e["id"] for e in info["extra"]], "missing": info["missing"]}
+
+
 def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
     a = assets.get(plan["asset"], {})
     return {"id": plan["id"], "aid": plan["asset"], "from_line": plan["from_line"],
             "candidate": RE.plan_index(plan, a) if a else None,
+            "refs": _refs_view(sc, plan, assets),
             "characters": SC.plan_characters(sc, plan),
             "text": (plan.get("shot") or {}).get("note", ""),
             "image": _url(a, RE.plan_index(plan, a)) if a else None,
@@ -160,6 +173,49 @@ def _ensure_descriptors(st: dict) -> None:
 
 def _ensure_token() -> None:
     REP.ensure_token()
+
+
+# ---------- réglages (roue) ----------
+
+TEXT_LABELS = {"anthropic": "Anthropic (Claude)", "openai": "OpenAI", "ollama": "Ollama (local)"}
+
+
+def settings_view() -> dict:
+    with S.LOCK:
+        st = S.load()
+    choices = []
+    for name, label in TEXT_LABELS.items():
+        cfg = llm.provider_settings(name)
+        choices.append({"name": name, "label": label, "model": cfg.get("model", ""),
+                        "key": llm.key_available(name)})
+    return {
+        "text": {"provider": st["settings"]["providers"]["text"], "choices": choices},
+        "image": {"provider": st["settings"]["providers"]["image_base"],
+                  "choices": [{"name": "replicate", "label": "Replicate (cloud)", "available": True},
+                              {"name": "comfyui", "label": "ComfyUI (local), bientôt", "available": False}],
+                  "models": ["FLUX dev pour les ancres", "FLUX.2 Klein pour les retouches et les scènes"]},
+        "explicit": bool(st["settings"].get("explicit_content")),
+    }
+
+
+def save_settings(body: dict) -> dict:
+    provider = body.get("text_provider", "")
+    if provider not in TEXT_LABELS:
+        raise ValueError("Fournisseur d'écriture inconnu")
+    if body.get("image_provider", "replicate") != "replicate":
+        raise ValueError("ComfyUI n'est pas encore branché au parcours simple : gardez Replicate.")
+    model = str(body.get("text_model", "")).strip()
+    if model:
+        overrides = {}
+        if llm.MODELS_FILE.exists():
+            overrides = yaml.safe_load(llm.MODELS_FILE.read_text(encoding="utf-8")) or {}
+        overrides.setdefault(provider, {})["model"] = model
+        llm.MODELS_FILE.write_text(yaml.safe_dump(overrides, allow_unicode=True), encoding="utf-8")
+    with S.LOCK:
+        st = S.load()
+        st["settings"]["providers"]["text"] = provider
+        S.save(st)
+    return {"ok": True, **settings_view()}
 
 
 # ---------- tâches longues ----------
@@ -196,14 +252,15 @@ def view() -> dict:
         st = S.load()
     with A.LOCK:
         assets = A.load()["assets"]
-    scenes = S.all_scenes(st)
     written = bool(st["chapters"])
     characters = [_element_card(assets, "character", n) for n in _characters(st)]
     locations = [_element_card(assets, "location", n) for n in _locations(st)]
     outfits = [_element_card(assets, "outfit", o, parent=c) for c, o in _outfits(st)]
     cards = [{"id": sc["id"], "title": sc["title"], "summary": sc.get("summary", ""),
+              "chapter": ci + 1, "chapter_title": ch["title"],
               "dialogue": sc.get("dialogue", []), "characters": sc.get("characters", []),
-              "plans": [_plan_view(sc, p, assets) for p in sc.get("plans", [])]} for sc in scenes]
+              "plans": [_plan_view(sc, p, assets) for p in sc.get("plans", [])]}
+             for ci, ch in enumerate(st["chapters"]) for sc in ch["scenes"]]
     done = {
         "style": S.style_of(st) is not None,
         "idee": written,
@@ -220,6 +277,9 @@ def view() -> dict:
         "count": st["settings"].get("total_scenes") or SCENE_COUNTS[1], "counts": list(SCENE_COUNTS),
         "max_plans": _max_plans(st), "plan_limits": list(PLAN_LIMITS),
         "written": written, "characters": characters, "locations": locations, "outfits": outfits, "scenes": cards,
+        "chapters": [{"title": ch["title"], "scenes": len(ch["scenes"])} for ch in st["chapters"]],
+        "ref_choices": [{"ref": aid, "label": a.get("name", aid), "image": _url(a, a["validated_candidate"])}
+                        for aid, a in assets.items() if a.get("validated_candidate") is not None],
         "done": done, "busy": _busy.locked(),
     }
 
@@ -289,6 +349,44 @@ def complete() -> dict:
     if not st["chapters"]:
         raise ValueError("Il n'y a pas encore d'histoire à compléter")
     return _start("Compléter l'histoire", _complete_work)
+
+
+def add_chapter(count: int, guidance: str = "") -> dict:
+    """Ajoute un chapitre à la suite de l'histoire : plan, répliques, nouveaux éléments."""
+    if count not in SCENE_COUNTS:
+        raise ValueError("Choisissez entre 3 et 6 scènes")
+    with S.LOCK:
+        st = S.load()
+    if not st["chapters"]:
+        raise ValueError("Écrivez d'abord l'histoire")
+    return _start("Nouveau chapitre", _chapter_work, count, guidance.strip())
+
+
+def _chapter_work(job_id: str, count: int, guidance: str) -> None:
+    _say(job_id, "Écriture du nouveau chapitre…")
+    with S.LOCK:
+        st = S.load()
+    ch = P.generate_chapter(st, count, guidance, None)
+    with S.LOCK:
+        st = S.load()
+        P.add_generated(st, ch)
+        st["settings"]["total_scenes"] = len(S.all_scenes(st))
+        S.save(st)
+    _complete_work(job_id)
+
+
+def delete_last_chapter() -> dict:
+    """Retire le dernier chapitre (avec ses scènes). Les images restent dans le registre, sans être utilisées."""
+    if _busy.locked():
+        raise ValueError("Une création est en cours : attendez qu'elle se termine.")
+    with S.LOCK:
+        st = S.load()
+        if len(st["chapters"]) < 2:
+            raise ValueError("L'histoire garde au moins un chapitre.")
+        removed = st["chapters"].pop()
+        st["settings"]["total_scenes"] = len(S.all_scenes(st))
+        S.save(st)
+    return {"ok": True, "removed": removed["title"]}
 
 
 def _complete_work(job_id: str) -> None:
@@ -490,11 +588,13 @@ def save_plans(sid: str, items: list[dict]) -> dict:
         raise ValueError("Deux plans ne peuvent pas commencer sur la même réplique")
     cleaned[0]["from_line"] = 0
     old = {p["id"]: p for p in sc.get("plans", [])}
+    taken: set[str] = set()  # identifiants déjà attribués dans ce découpage
     plans = []
     with A.LOCK:
         data = A.load()
         for k, c in enumerate(cleaned, 1):
-            if c["id"] in old:
+            # Un plan garde son image seulement s'il est le premier à porter cet identifiant.
+            if c["id"] in old and c["id"] not in taken:
                 prev = old[c["id"]]
                 asset_id = prev["asset"]
                 shot = {**(prev.get("shot") or {}), "note": c["text"]}
@@ -508,9 +608,14 @@ def save_plans(sid: str, items: list[dict]) -> dict:
                     shot.setdefault("framing", "medium shot")
                 pid = prev["id"]
             else:
+                # Nouvel identifiant jamais utilisé : deux plans ne peuvent pas partager une image.
                 asset_id = _new_asset(data, sid, f"{sc['title']} · plan {k}", sc.get("summary", ""))
                 shot = {"framing": "medium shot", "angle": "", "note": c["text"]}
-                pid = f"p{k}"
+                n = 1
+                while f"p{n}" in taken or f"p{n}" in old:
+                    n += 1
+                pid = f"p{n}"
+            taken.add(pid)
             characters = c["characters"] or shot_characters(c["text"], sc, shot["framing"])
             plans.append({"id": pid, "from_line": c["from_line"], "characters": characters, "asset": asset_id, "shot": shot})
         A.save(data)
@@ -574,6 +679,23 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
         data["assets"][plan["asset"]]["prompt"] = prompt
         A.set_status(data, plan["asset"], idx, True)
         A.save(data)
+
+
+def save_refs(sid: str, pid: str, exclude: list, extra: list) -> dict:
+    """Réglage fin : coche ou décoche les références automatiques, ajoute ou retire des images."""
+    with A.LOCK:
+        assets = A.load()["assets"]
+    for ref in extra:
+        if ref not in assets or assets[ref].get("validated_candidate") is None:
+            raise ValueError("Cette image n'est pas encore retenue : elle ne peut pas servir de référence.")
+    with S.LOCK:
+        st = S.load()
+        sc = _find_scene(st, sid)
+        _, plan = _find_plan(sc, pid)
+        plan["refs_exclude"] = [str(k) for k in exclude]
+        plan["refs_extra"] = [r for r in extra if r != plan["asset"]]
+        S.save(st)
+    return {"ok": True}
 
 
 def copy_plan_image(sid: str, pid: str, source: str, candidate: int) -> dict:
@@ -677,6 +799,8 @@ def route(method: str, path: str, body: dict) -> dict:
     if method == "GET":
         if path == "/api/facile":
             return view()
+        if path == "/api/facile/settings":
+            return settings_view()
         if path.startswith("/api/facile/jobs/"):
             job = JOBS.get(path.rsplit("/", 1)[-1])
             if job is None:
@@ -685,10 +809,13 @@ def route(method: str, path: str, body: dict) -> dict:
     elif method == "POST":
         routes = {
             "/api/facile/style": lambda: set_style(body["style"]),
+            "/api/facile/settings": lambda: save_settings(body),
             "/api/facile/settings/max-plans": lambda: set_max_plans(int(body["max_plans"])),
             "/api/facile/story": lambda: write_story(body.get("title", ""), body.get("idea", ""),
                                                      int(body.get("count", 4)), bool(body.get("explicit"))),
             "/api/facile/complete": complete,
+            "/api/facile/chapter/add": lambda: add_chapter(int(body.get("count", 4)), body.get("guidance", "")),
+            "/api/facile/chapter/delete-last": delete_last_chapter,
             "/api/facile/card": lambda: redo_card(body["aid"], body.get("prompt")),
             "/api/facile/prompt/suggest": lambda: suggest_prompt(body["kind"], body["id"]),
             "/api/facile/dialogue": lambda: redo_dialogue(body["scene"]),
@@ -696,6 +823,8 @@ def route(method: str, path: str, body: dict) -> dict:
             "/api/facile/scene/plans": lambda: save_plans(body["scene"], body.get("plans", [])),
             "/api/facile/plan/image": lambda: make_plan_image(body["scene"], body["plan"], body.get("prompt")),
             "/api/facile/plan/images": make_all_plans,
+            "/api/facile/plan/refs": lambda: save_refs(body["scene"], body["plan"], body.get("exclude", []),
+                                                       body.get("extra", [])),
             "/api/facile/plan/copy-image": lambda: copy_plan_image(body["scene"], body["plan"], body["source"],
                                                                    int(body["candidate"])),
             "/api/facile/export": export_game,

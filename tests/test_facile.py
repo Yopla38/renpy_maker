@@ -50,6 +50,15 @@ def fake_generate(aid, refs, prompt, seed, backend="replicate", aspect=None):
     return n
 
 
+def fake_chapter(st, n, guidance="", provider=None):
+    """Suite de l'histoire : numérotation qui continue, nouveau lieu, nouveau personnage."""
+    first = len(S.all_scenes(st)) + 1
+    scenes = [{"id": f"s{first + i}", "title": f"Suite {i + 1}", "summary": guidance or "La suite.",
+               "characters": ["Léa", "Pierre"], "location": "Chapelle", "outfits": {"Pierre": "Veste grise"}}
+              for i in range(n)]
+    return {"id": f"ch{len(st['chapters']) + 1}", "title": "La suite", "summary": "Suite.", "scenes": scenes}
+
+
 class Setup:
     """Préparation commune : faux LLM, faux registre en mémoire."""
 
@@ -62,7 +71,8 @@ class Setup:
             mock.patch.object(A, "load", side_effect=lambda *a, **k: copy.deepcopy(self.registry["data"])),
             mock.patch.object(A, "save", side_effect=lambda d, *a, **k: self.registry.update(data=copy.deepcopy(d))),
             mock.patch.object(A, "generate_candidate", side_effect=fake_generate),
-            mock.patch.object(P, "generate_chapter", side_effect=lambda st, n, g, p: copy.deepcopy(CHAPTER)),
+            mock.patch.object(P, "generate_chapter", side_effect=lambda st, n, g, p: (
+                copy.deepcopy(CHAPTER) if not st["chapters"] else fake_chapter(st, n, g))),
             mock.patch.object(P, "generate_dialogue", side_effect=fake_dialogue),
             mock.patch.object(PR, "suggest", side_effect=lambda st, data, aid, provider=None: f"prompt de {aid}"),
             mock.patch.object(SC, "suggest", side_effect=lambda st, data, sc, k, provider=None: "scene prompt"),
@@ -277,6 +287,77 @@ class Plans(Setup, unittest.TestCase):
         FA.save_plans("s1", [{"id": plan["id"], "from_line": 0, "text": "Vue de dos des deux personnages"}])
         self.assertEqual(A.load()["assets"][plan["aid"]]["prompt"], "")
         self.assertEqual(S.all_scenes(S.load())[0]["plans"][0]["shot"]["framing"], "")
+
+    def test_new_chapter_continues_and_lists_new_elements(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        job = self.wait(FA.add_chapter(3, "Ils trouvent la chapelle"))
+        self.assertEqual(job["state"], "done", job.get("error"))
+        v = FA.view()
+        self.assertEqual(len(v["scenes"]), 5)
+        self.assertEqual([c["title"] for c in v["chapters"]], ["La carte", "La suite"])
+        self.assertEqual([s["chapter"] for s in v["scenes"]], [1, 1, 2, 2, 2])
+        self.assertIn("Chapelle", [c["name"] for c in v["locations"]])
+        self.assertFalse(v["done"]["lieux"])   # la chapelle reste à dessiner
+        self.assertTrue(all(s["dialogue"] for s in v["scenes"]))  # répliques écrites automatiquement
+
+    def test_last_chapter_can_be_removed_but_not_the_only_one(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        with self.assertRaises(ValueError):
+            FA.delete_last_chapter()
+        self.wait(FA.add_chapter(3))
+        FA.delete_last_chapter()
+        self.assertEqual(len(FA.view()["scenes"]), 2)
+
+    def test_settings_change_text_provider_and_model_only(self):
+        import tempfile
+        import llm as LLM
+        tmp = Path(tempfile.mkdtemp()) / "llm_models.yaml"
+        with mock.patch.object(LLM, "MODELS_FILE", tmp):
+            FA.save_settings({"text_provider": "openai", "text_model": "mon-modele", "image_provider": "replicate"})
+            self.assertEqual(LLM.provider_settings("openai")["model"], "mon-modele")
+            self.assertEqual(S.load()["settings"]["providers"]["text"], "openai")
+            with self.assertRaises(ValueError):
+                FA.save_settings({"text_provider": "openai", "image_provider": "comfyui"})
+            with self.assertRaises(ValueError):
+                FA.save_settings({"text_provider": "inconnu"})
+
+    def test_inserted_plan_never_shares_an_image(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.propose_plans("s1"))
+        before = FA.view()["scenes"][0]["plans"]  # p1 à la réplique 0, p2 à la réplique 1
+        # Le plan p2 est gardé et passe en première position ; un nouveau plan prend la place suivante.
+        FA.save_plans("s1", [{"id": before[1]["id"], "from_line": 0, "text": before[1]["text"]},
+                             {"id": None, "from_line": 1, "text": "Nouveau plan"}])
+        after = FA.view()["scenes"][0]["plans"]
+        ids = [p["id"] for p in after]
+        self.assertEqual(len(ids), len(set(ids)))
+        assets = [p["aid"] for p in after]
+        self.assertEqual(len(assets), len(set(assets)))
+        self.assertEqual(after[0]["aid"], before[1]["aid"])  # le plan gardé garde son image
+
+    def test_fine_tuning_excludes_and_adds_references(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.propose_plans("s1"))
+        for c in FA.view()["characters"] + FA.view()["locations"]:
+            self.wait(FA.redo_card(c["aid"]))
+        for o in FA.view()["outfits"]:
+            self.wait(FA.redo_card(o["aid"]))
+        v = FA.view()
+        plan = v["scenes"][0]["plans"][0]
+        self.assertTrue(plan["refs"]["auto"])
+        key = plan["refs"]["auto"][-1]["key"]
+        FA.save_refs("s1", plan["id"], [key], [])
+        after = FA.view()["scenes"][0]["plans"][0]["refs"]["auto"]
+        self.assertTrue(next(a for a in after if a["key"] == key)["excluded"])
+        lea = next(c for c in v["characters"] if c["name"] == "Léa")
+        FA.save_refs("s1", plan["id"], [], [lea["aid"]])
+        self.assertIn(lea["aid"], FA.view()["scenes"][0]["plans"][0]["refs"]["extra"])
+        with self.assertRaises(ValueError):
+            FA.save_refs("s1", plan["id"], [], ["scene_inconnue"])
 
     def test_text_edit_keeps_existing_image(self):
         FA.set_style("aquarelle")

@@ -1,1015 +1,1166 @@
 version: 1
 assets:
-  char_greg:
+  char_lou:
     kind: character
-    name: Greg
-    description: ''
-    parent: null
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/char_greg/cand_00.png
-      created: '2026-10-21T15:00:21'
-      backend: replicate
-      model: black-forest-labs/flux-dev
-      seed: null
-      prompt: A tall adult man in his late thirties with a sturdy build, short dark
-        brown hair damp from fine rain, and tired but curious hazel eyes, one eyebrow
-        slightly raised in skepticism. He wears a worn olive work jacket over a gray
-        henley, a leather tool belt, and carries a coil of cable over one shoulder.
-        He stands in a dim cellar, three-quarter view, a notebook in hand, faint amber
-        light glowing on his stubbled face. photorealistic 3D render, realistic CGI
-        character, soft cinematic lighting, detailed skin texture
-      refs: []
-      aspect: '2:3'
-    descriptor: adult man
-    prompt: A tall adult man in his late thirties with a sturdy build, short dark
-      brown hair damp from fine rain, and tired but curious hazel eyes, one eyebrow
-      slightly raised in skepticism. He wears a worn olive work jacket over a gray
-      henley, a leather tool belt, and carries a coil of cable over one shoulder.
-      He stands in a dim cellar, three-quarter view, a notebook in hand, faint amber
-      light glowing on his stubbled face. photorealistic 3D render, realistic CGI
-      character, soft cinematic lighting, detailed skin texture
-  char_eloise:
-    kind: character
-    name: Éloïse
+    name: Lou
     description: ''
     parent: null
     status: validated
     validated_candidate: 1
     candidates:
-    - file: assets/char_eloise/cand_00.png
-      created: '2026-10-21T15:00:34'
+    - file: assets/char_lou/cand_00.png
+      created: '2026-10-21T15:48:22'
       backend: replicate
       model: black-forest-labs/flux-dev
       seed: null
-      prompt: A young woman in her late twenties stands in a three-quarter portrait
-        inside a dim, dusty manor hall, her expression apologetic yet quietly hopeful.
-        She has tousled chestnut hair pinned loosely up, warm hazel eyes, and a slender
-        build. She wears a slightly rumpled cream blouse under a faded green cardigan,
-        with a dusty hem on her long skirt. Her hands are clasped nervously. Warm
-        light from a flickering chandelier glows behind her. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture
+      prompt: A young woman in her mid-twenties with voluminous red curls and wide
+        blue eyes sits in a bedroom lit by pink and cyan neon. She wears an oversized
+        dark hoodie and has an athletic build. Her practiced smile has just frozen
+        into a wary, uneasy look as she glances toward a small hovering camera drone
+        before her. A faint red glow from the screen touches her cheek. Three-quarter
+        portrait, shallow depth of field, a dim window behind her. oil painting, visible
+        brush strokes, rich warm textures, classical lighting
       refs: []
       aspect: '2:3'
-    - file: assets/char_eloise/cand_01.png
-      created: '2026-10-21T15:00:49'
+    - file: assets/char_lou/cand_01.png
+      created: '2026-10-21T15:48:41'
       backend: replicate
       model: black-forest-labs/flux-dev
       seed: null
-      prompt: A young woman in her late twenties stands in a three-quarter portrait
-        inside a dim, dusty manor hall, her expression apologetic yet quietly hopeful.
-        She has tousled chestnut hair pinned loosely up, warm hazel eyes, and a slender
-        build. She wears a slightly rumpled cream blouse under a faded green cardigan,
-        with a dusty hem on her long skirt. Her hands are clasped nervously. Warm
-        light from a flickering chandelier glows behind her. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture
+      prompt: A young woman in her mid-twenties with voluminous red curls and wide
+        blue eyes sits in a bedroom lit by pink and cyan neon. She wears an oversized
+        dark hoodie and has an athletic build. Her practiced smile has just frozen
+        into a wary, uneasy look as she glances toward a small hovering camera drone
+        before her. A faint red glow from the screen touches her cheek. Three-quarter
+        portrait, shallow depth of field, a dim window behind her. oil painting, visible
+        brush strokes, rich warm textures, classical lighting
+      refs: []
+      aspect: '2:3'
+    descriptor: unspecified gender, age
+    prompt: A young woman in her mid-twenties with voluminous red curls and wide blue
+      eyes sits in a bedroom lit by pink and cyan neon. She wears an oversized dark
+      hoodie and has an athletic build. Her practiced smile has just frozen into a
+      wary, uneasy look as she glances toward a small hovering camera drone before
+      her. A faint red glow from the screen touches her cheek. Three-quarter portrait,
+      shallow depth of field, a dim window behind her. oil painting, visible brush
+      strokes, rich warm textures, classical lighting
+  char_iris:
+    kind: character
+    name: IRIS
+    description: ''
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/char_iris/cand_00.png
+      created: '2026-10-21T15:48:55'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: An adult woman in her late twenties with voluminous red curls and large
+        blue eyes sits in a three-quarter portrait, her athletic build shown in a
+        fitted dark cropped jacket. She adjusts a curl with one hand and gives the
+        viewer a knowing, playful smile. Her bedroom glows with pink and cyan neon,
+        and a small drone camera hovers faintly beside her. A distant window flickers
+        behind her. oil painting, visible brush strokes, rich warm textures, classical
+        lighting
       refs: []
       aspect: '2:3'
     descriptor: adult woman
-    prompt: A young woman in her late twenties stands in a three-quarter portrait
-      inside a dim, dusty manor hall, her expression apologetic yet quietly hopeful.
-      She has tousled chestnut hair pinned loosely up, warm hazel eyes, and a slender
-      build. She wears a slightly rumpled cream blouse under a faded green cardigan,
-      with a dusty hem on her long skirt. Her hands are clasped nervously. Warm light
-      from a flickering chandelier glows behind her. photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture
-  loc_allee_et_jardin_du_manoir_de_valbrume:
+    prompt: An adult woman in her late twenties with voluminous red curls and large
+      blue eyes sits in a three-quarter portrait, her athletic build shown in a fitted
+      dark cropped jacket. She adjusts a curl with one hand and gives the viewer a
+      knowing, playful smile. Her bedroom glows with pink and cyan neon, and a small
+      drone camera hovers faintly beside her. A distant window flickers behind her.
+      oil painting, visible brush strokes, rich warm textures, classical lighting
+  loc_chambre_de_lou:
     kind: location
-    name: Allée et jardin du manoir de Valbrume
-    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
-    parent: null
-    status: validated
-    validated_candidate: 1
-    candidates:
-    - file: assets/loc_allee_et_jardin_du_manoir_de_valbrume/cand_00.png
-      created: '2026-10-21T15:01:10'
-      backend: replicate
-      model: black-forest-labs/flux-dev
-      seed: null
-      prompt: A wide establishing shot of a long gravel drive leading up to a grand,
-        weathered manor in fine drizzle, with a tall rusted iron gate standing swung
-        open in the foreground. Old brass lanterns glow warm amber one after another
-        along the path, reflecting in shallow puddles. Overgrown hedges, dripping
-        topiary and twisted oaks frame the scene, with pale mist drifting over the
-        lawn. Dusk light is blue-gray, and the manor's dark windows loom in the distance.
-        Empty, quiet, and faintly uncanny. photorealistic 3D render, realistic CGI
-        character, soft cinematic lighting, detailed skin texture
-      refs: []
-      aspect: '16:9'
-    - file: assets/loc_allee_et_jardin_du_manoir_de_valbrume/cand_01.png
-      created: '2026-10-21T15:01:26'
-      backend: replicate
-      model: black-forest-labs/flux-dev
-      seed: null
-      prompt: A wide establishing shot of a long gravel drive leading up to a grand,
-        weathered manor in fine drizzle, with a tall rusted iron gate standing swung
-        open in the foreground. Old brass lanterns glow warm amber one after another
-        along the path, reflecting in shallow puddles. Overgrown hedges, dripping
-        topiary and twisted oaks frame the scene, with pale mist drifting over the
-        lawn. Dusk light is blue-gray, and the manor's dark windows loom in the distance.
-        Empty, quiet, and faintly uncanny. photorealistic 3D render, realistic CGI
-        character, soft cinematic lighting, detailed skin texture
-      refs: []
-      aspect: '16:9'
-    prompt: A wide establishing shot of a long gravel drive leading up to a grand,
-      weathered manor in fine drizzle, with a tall rusted iron gate standing swung
-      open in the foreground. Old brass lanterns glow warm amber one after another
-      along the path, reflecting in shallow puddles. Overgrown hedges, dripping topiary
-      and twisted oaks frame the scene, with pale mist drifting over the lawn. Dusk
-      light is blue-gray, and the manor's dark windows loom in the distance. Empty,
-      quiet, and faintly uncanny. photorealistic 3D render, realistic CGI character,
-      soft cinematic lighting, detailed skin texture
-  loc_grand_hall_du_manoir:
-    kind: location
-    name: Grand hall du manoir
-    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    name: Chambre de Lou
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/loc_grand_hall_du_manoir/cand_00.png
-      created: '2026-10-21T15:01:39'
+    - file: assets/loc_chambre_de_lou/cand_00.png
+      created: '2026-10-21T15:49:06'
       backend: replicate
       model: black-forest-labs/flux-dev
       seed: null
-      prompt: A wide establishing shot of the grand hall of an old manor, with no
-        people present. A sweeping double staircase rises beneath tall arched windows,
-        and pale grey daylight falls across a cluttered marble floor of stacked boxes
-        and draped furniture. A worn crimson runner rug lies rumpled near the entrance.
-        A crystal chandelier hangs at a slight unnatural tilt, its bulbs flickering.
-        Long corridors recede into shadow on both sides. Dusty wood paneling, brass
-        sconces, a loose wall socket. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture
+      prompt: A wide establishing shot of a cramped teenage bedroom bathed in pink
+        and electric blue neon light, with no one present. A small drone-camera hovers
+        in the middle of the room, a tiny red light glowing on its body. An unmade
+        bed with rumpled sheets sits against the wall, and a cluttered desk holds
+        glowing monitors, cables and a ring light. Posters and string lights cover
+        the walls, and clothes lie on the floor. Rain streaks the dark window. oil
+        painting, visible brush strokes, rich warm textures, classical lighting
       refs: []
       aspect: '16:9'
-    prompt: A wide establishing shot of the grand hall of an old manor, with no people
-      present. A sweeping double staircase rises beneath tall arched windows, and
-      pale grey daylight falls across a cluttered marble floor of stacked boxes and
-      draped furniture. A worn crimson runner rug lies rumpled near the entrance.
-      A crystal chandelier hangs at a slight unnatural tilt, its bulbs flickering.
-      Long corridors recede into shadow on both sides. Dusty wood paneling, brass
-      sconces, a loose wall socket. photorealistic 3D render, realistic CGI character,
-      soft cinematic lighting, detailed skin texture
-  loc_cave_du_manoir_local_du_tableau_electriq:
-    kind: location
-    name: Cave du manoir, local du tableau électrique
-    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
-    parent: null
-    status: validated
-    validated_candidate: 1
-    candidates:
-    - file: assets/loc_cave_du_manoir_local_du_tableau_electriq/cand_00.png
-      created: '2026-10-21T15:01:51'
-      backend: replicate
-      model: black-forest-labs/flux-dev
-      seed: null
-      prompt: A wide establishing shot of a damp stone cellar beneath an old manor,
-        with low vaulted brick ceilings and a narrow wooden staircase descending from
-        a heavy door. Against the far wall stands a vintage grey electrical panel
-        draped in thick cobwebs, its metal cover hanging open to reveal rows of ceramic
-        fuses glowing a faint amber, as if breathing. Dusty wine racks, coiled cables
-        and a single bare bulb throw long shadows across the uneven flagstone floor.
-        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-        detailed skin texture
-      refs: []
-      aspect: '16:9'
-    - file: assets/loc_cave_du_manoir_local_du_tableau_electriq/cand_01.png
-      created: '2026-10-21T15:02:05'
-      backend: replicate
-      model: black-forest-labs/flux-dev
-      seed: null
-      prompt: A wide establishing shot of a damp stone cellar beneath an old manor,
-        with low vaulted brick ceilings and a narrow wooden staircase descending from
-        a heavy door. Against the far wall stands a vintage grey electrical panel
-        draped in thick cobwebs, its metal cover hanging open to reveal rows of ceramic
-        fuses glowing a faint amber, as if breathing. Dusty wine racks, coiled cables
-        and a single bare bulb throw long shadows across the uneven flagstone floor.
-        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-        detailed skin texture
-      refs: []
-      aspect: '16:9'
-    prompt: A wide establishing shot of a damp stone cellar beneath an old manor,
-      with low vaulted brick ceilings and a narrow wooden staircase descending from
-      a heavy door. Against the far wall stands a vintage grey electrical panel draped
-      in thick cobwebs, its metal cover hanging open to reveal rows of ceramic fuses
-      glowing a faint amber, as if breathing. Dusty wine racks, coiled cables and
-      a single bare bulb throw long shadows across the uneven flagstone floor. photorealistic
-      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture
-  outfit_combinaison_de_travail_bleue_ceinture_a_:
+    prompt: A wide establishing shot of a cramped teenage bedroom bathed in pink and
+      electric blue neon light, with no one present. A small drone-camera hovers in
+      the middle of the room, a tiny red light glowing on its body. An unmade bed
+      with rumpled sheets sits against the wall, and a cluttered desk holds glowing
+      monitors, cables and a ring light. Posters and string lights cover the walls,
+      and clothes lie on the floor. Rain streaks the dark window. oil painting, visible
+      brush strokes, rich warm textures, classical lighting
+  outfit_brassiere_de_sport_noire_moulante_et_sho:
     kind: outfit
-    name: Combinaison de travail bleue, ceinture à outils, casque de chantier jaune
-      sous le bras, bottes de sécurité
+    name: Brassière de sport noire moulante et short taille haute en maille holographique,
+      cheveux roux détachés
     description: ''
-    parent: char_greg
+    parent: char_lou
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/outfit_combinaison_de_travail_bleue_ceinture_a_/cand_00.png
-      created: '2026-10-21T15:02:24'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
-        and framing. Change his clothing: put him in a blue work coverall, fitted
-        with a leather tool belt at the waist, a yellow hard hat held under one arm,
-        and black steel-toe safety boots. Remove any garment or accessory not in this
-        outfit. Photorealistic 3D render, realistic CGI character, soft cinematic
-        lighting, detailed skin texture. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture'
-      refs:
-      - char_greg
-      aspect: '2:3'
-    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
-      and framing. Change his clothing: put him in a blue work coverall, fitted with
-      a leather tool belt at the waist, a yellow hard hat held under one arm, and
-      black steel-toe safety boots. Remove any garment or accessory not in this outfit.
-      Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture. photorealistic 3D render, realistic CGI character, soft
-      cinematic lighting, detailed skin texture'
-  outfit_combinaison_de_travail_bleue_ceinture_a__2:
-    kind: outfit
-    name: Combinaison de travail bleue, ceinture à outils, carnet de notes à la main
-    description: ''
-    parent: char_greg
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/outfit_combinaison_de_travail_bleue_ceinture_a__2/cand_00.png
-      created: '2026-10-21T15:02:45'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
-        and framing. Change his outfit: dress him in a blue work coverall with a fitted
-        collar and zipped front, a leather tool belt around his waist holding pliers
-        and a screwdriver, sturdy brown work boots, and a small notebook held in one
-        hand. Remove any other garment or accessory. Photorealistic 3D render, realistic
-        CGI character, soft cinematic lighting, detailed skin texture. photorealistic
-        3D render, realistic CGI character, soft cinematic lighting, detailed skin
-        texture'
-      refs:
-      - char_greg
-      aspect: '2:3'
-    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
-      and framing. Change his outfit: dress him in a blue work coverall with a fitted
-      collar and zipped front, a leather tool belt around his waist holding pliers
-      and a screwdriver, sturdy brown work boots, and a small notebook held in one
-      hand. Remove any other garment or accessory. Photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture. photorealistic
-      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture'
-  outfit_longue_robe_verte_passee_de_mode_gilet_e:
-    kind: outfit
-    name: Longue robe verte passée de mode, gilet en laine gris, cheveux attachés
-      en chignon lâche
-    description: ''
-    parent: char_eloise
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/outfit_longue_robe_verte_passee_de_mode_gilet_e/cand_00.png
-      created: '2026-10-21T15:02:59'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: 'Keep the woman from image 1 exactly as she is: her face, body, pose
-        and framing. Dress her in a long, old-fashioned green dress with a modest
-        neckline and a full skirt falling to her ankles, topped with a soft grey wool
-        cardigan worn open, and plain brown shoes. Tie her hair back in a loose bun.
-        Remove any garment or accessory not in this outfit. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture'
-      refs:
-      - char_eloise
-      aspect: '2:3'
-    prompt: 'Keep the woman from image 1 exactly as she is: her face, body, pose and
-      framing. Dress her in a long, old-fashioned green dress with a modest neckline
-      and a full skirt falling to her ankles, topped with a soft grey wool cardigan
-      worn open, and plain brown shoes. Tie her hair back in a loose bun. Remove any
-      garment or accessory not in this outfit. photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture'
-  outfit_combinaison_de_travail_bleue_gants_isola:
-    kind: outfit
-    name: Combinaison de travail bleue, gants isolants, lampe frontale allumée
-    description: ''
-    parent: char_greg
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/outfit_combinaison_de_travail_bleue_gants_isola/cand_00.png
-      created: '2026-10-21T15:03:11'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
-        and framing. Dress him in a blue work coverall with a fitted collar and zipped
-        front, black insulated gloves on his hands, and a lit headlamp strapped around
-        his forehead, plus sturdy dark work boots. Remove any other garment or accessory.
-        Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-        detailed skin texture. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture'
-      refs:
-      - char_greg
-      aspect: '2:3'
-    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
-      and framing. Dress him in a blue work coverall with a fitted collar and zipped
-      front, black insulated gloves on his hands, and a lit headlamp strapped around
-      his forehead, plus sturdy dark work boots. Remove any other garment or accessory.
-      Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture. photorealistic 3D render, realistic CGI character, soft
-      cinematic lighting, detailed skin texture'
-  outfit_longue_robe_verte_gilet_en_laine_gris_la:
-    kind: outfit
-    name: Longue robe verte, gilet en laine gris, lanterne à la main
-    description: ''
-    parent: char_eloise
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/outfit_longue_robe_verte_gilet_en_laine_gris_la/cand_00.png
-      created: '2026-10-21T15:03:29'
+    - file: assets/outfit_brassiere_de_sport_noire_moulante_et_sho/cand_00.png
+      created: '2026-10-21T15:49:15'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
       prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
-        pose and framing. Dress her in a long flowing green dress with a fitted bodice,
-        a chunky grey wool cardigan worn open over it, and simple brown leather boots.
-        Place a lit vintage lantern in her hand. Remove any other garment or accessory.
-        Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-        detailed skin texture. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture'
+        pose and framing. Dress her in a tight-fitting black sports bra and high-waisted
+        holographic mesh shorts with an iridescent shimmer, her red hair worn loose
+        and undone. Remove any other garment or accessory that is not part of this
+        outfit. oil painting, visible brush strokes, rich warm textures, classical
+        lighting'
       refs:
-      - char_eloise
+      - char_lou
       aspect: '2:3'
     prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
-      pose and framing. Dress her in a long flowing green dress with a fitted bodice,
-      a chunky grey wool cardigan worn open over it, and simple brown leather boots.
-      Place a lit vintage lantern in her hand. Remove any other garment or accessory.
-      Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture. photorealistic 3D render, realistic CGI character, soft
-      cinematic lighting, detailed skin texture'
-  scene_s1_d3d1fb:
+      pose and framing. Dress her in a tight-fitting black sports bra and high-waisted
+      holographic mesh shorts with an iridescent shimmer, her red hair worn loose
+      and undone. Remove any other garment or accessory that is not part of this outfit.
+      oil painting, visible brush strokes, rich warm textures, classical lighting'
+  outfit_voix_synthetique_representee_par_un_anne:
+    kind: outfit
+    name: Voix synthétique, représentée par un anneau lumineux bleu autour de l'objectif
+    description: ''
+    parent: char_iris
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_voix_synthetique_representee_par_un_anne/cand_00.png
+      created: '2026-10-21T15:49:30'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Remove any accessory or garment not listed here. Add a small
+        hovering drone-camera in front of her, its lens encircled by a softly glowing
+        blue ring light, and a thin matching luminous blue ring pendant at her collarbone.
+        Oil painting, visible brush strokes, rich warm textures, classical lighting.
+        oil painting, visible brush strokes, rich warm textures, classical lighting'
+      refs:
+      - char_iris
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Remove any accessory or garment not listed here. Add a small
+      hovering drone-camera in front of her, its lens encircled by a softly glowing
+      blue ring light, and a thin matching luminous blue ring pendant at her collarbone.
+      Oil painting, visible brush strokes, rich warm textures, classical lighting.
+      oil painting, visible brush strokes, rich warm textures, classical lighting'
+  outfit_brassiere_de_sport_noire_et_short_en_mai:
+    kind: outfit
+    name: Brassière de sport noire et short en maille holographique, veste de survêtement
+      transparente glissée sur une épaule
+    description: ''
+    parent: char_lou
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_brassiere_de_sport_noire_et_short_en_mai/cand_00.png
+      created: '2026-10-21T15:49:41'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Change only her clothing: remove any existing garments and
+        accessories, and dress her in a fitted black sports bra, iridescent holographic
+        mesh shorts with a snug waistband, and a sheer transparent track jacket slipped
+        off one shoulder, with white athletic sneakers. oil painting, visible brush
+        strokes, rich warm textures, classical lighting'
+      refs:
+      - char_lou
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Change only her clothing: remove any existing garments and
+      accessories, and dress her in a fitted black sports bra, iridescent holographic
+      mesh shorts with a snug waistband, and a sheer transparent track jacket slipped
+      off one shoulder, with white athletic sneakers. oil painting, visible brush
+      strokes, rich warm textures, classical lighting'
+  outfit_anneau_lumineux_bleu_qui_pulse_a_chaque_:
+    kind: outfit
+    name: Anneau lumineux bleu qui pulse à chaque nouveau message
+    description: ''
+    parent: char_iris
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_anneau_lumineux_bleu_qui_pulse_a_chaque_/cand_00.png
+      created: '2026-10-21T15:49:52'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Remove any accessory not listed. Dress her in a fitted charcoal
+        athletic crop top, high-waisted black leggings and white sneakers. Add a softly
+        glowing blue ring light hovering behind her head like a halo, casting a pulsing
+        cyan glow on her shoulders. Oil painting, visible brush strokes, rich warm
+        textures, classical lighting. oil painting, visible brush strokes, rich warm
+        textures, classical lighting'
+      refs:
+      - char_iris
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Remove any accessory not listed. Dress her in a fitted charcoal
+      athletic crop top, high-waisted black leggings and white sneakers. Add a softly
+      glowing blue ring light hovering behind her head like a halo, casting a pulsing
+      cyan glow on her shoulders. Oil painting, visible brush strokes, rich warm textures,
+      classical lighting. oil painting, visible brush strokes, rich warm textures,
+      classical lighting'
+  outfit_brassiere_de_sport_noire_et_short_en_mai_2:
+    kind: outfit
+    name: Brassière de sport noire et short en maille holographique, veste de survêtement
+      rabattue sur les épaules
+    description: ''
+    parent: char_lou
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_brassiere_de_sport_noire_et_short_en_mai_2/cand_00.png
+      created: '2026-10-21T15:50:14'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Dress her in a fitted black sports bra and loose holographic
+        mesh shorts with iridescent silver-pink sheen, with a zip-up tracksuit jacket
+        draped open over her shoulders, sleeves hanging free. Remove any other garment
+        or accessory. Oil painting, visible brush strokes, rich warm textures, classical
+        lighting. oil painting, visible brush strokes, rich warm textures, classical
+        lighting'
+      refs:
+      - char_lou
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Dress her in a fitted black sports bra and loose holographic
+      mesh shorts with iridescent silver-pink sheen, with a zip-up tracksuit jacket
+      draped open over her shoulders, sleeves hanging free. Remove any other garment
+      or accessory. Oil painting, visible brush strokes, rich warm textures, classical
+      lighting. oil painting, visible brush strokes, rich warm textures, classical
+      lighting'
+  outfit_anneau_lumineux_passant_du_bleu_a_l_oran:
+    kind: outfit
+    name: Anneau lumineux passant du bleu à l'orange en signe d'alerte
+    description: ''
+    parent: char_iris
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_anneau_lumineux_passant_du_bleu_a_l_oran/cand_00.png
+      created: '2026-10-21T15:50:23'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Remove any accessory or jewelry she wears. Dress her in
+        a plain fitted charcoal top, and place a slim circular LED ring light just
+        behind her head like a halo, glowing blue on one side and shifting to alert
+        orange on the other, casting a soft orange glow on her shoulders. Oil painting,
+        visible brush strokes, rich warm textures, classical lighting. oil painting,
+        visible brush strokes, rich warm textures, classical lighting'
+      refs:
+      - char_iris
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Remove any accessory or jewelry she wears. Dress her in a
+      plain fitted charcoal top, and place a slim circular LED ring light just behind
+      her head like a halo, glowing blue on one side and shifting to alert orange
+      on the other, casting a soft orange glow on her shoulders. Oil painting, visible
+      brush strokes, rich warm textures, classical lighting. oil painting, visible
+      brush strokes, rich warm textures, classical lighting'
+  scene_s1_afa610:
     kind: scene
-    name: La grille qui s'ouvre toute seule · plan 1
-    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
+    name: Le point rouge s'allume · plan 1
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/scene_s1_d3d1fb/cand_00.png
-      created: '2026-10-21T15:04:18'
+    - file: assets/scene_s1_afa610/cand_00.png
+      created: '2026-10-21T15:51:01'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Wide shot from a low three-quarter angle beside the gravel drive, sharp
-        focus on the work van loaded with cables and tools, parked at the end of the
-        path facing the manor from image 1, fine rain falling. Keep the man from image
-        2 exactly as he is, with his outfit. He stands beside the van's open door,
-        small in the frame, neutral expression, looking back toward the gate. Add
-        amber lanterns glowing along the path and dark manor windows behind. Dim blue-gray
-        dusk light. photorealistic 3D render, realistic CGI character, soft cinematic
-        lighting, detailed skin texture
+      prompt: Wide shot from a low angle near the doorway, the whole room in sharp
+        focus, the woman and the drone-camera clearly visible. Keep the woman from
+        image 2 exactly as she is, with her outfit, and keep the room from image 1
+        with its desk, bed and rainy window. She stands right of center, leaning toward
+        the drone hovering at her eye level, one hand adjusting her curls, gazing
+        into its lens with a slight, knowing smile. Its small red light blinks. Pink
+        and blue neon floods the room. oil painting, visible brush strokes, rich warm
+        textures, classical lighting
       refs:
-      - loc_allee_et_jardin_du_manoir_de_valbrume
-      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
       aspect: '16:9'
-    prompt: Wide shot from a low three-quarter angle beside the gravel drive, sharp
-      focus on the work van loaded with cables and tools, parked at the end of the
-      path facing the manor from image 1, fine rain falling. Keep the man from image
-      2 exactly as he is, with his outfit. He stands beside the van's open door, small
-      in the frame, neutral expression, looking back toward the gate. Add amber lanterns
-      glowing along the path and dark manor windows behind. Dim blue-gray dusk light.
-      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture
-  scene_s1_1cbd1c:
+    prompt: Wide shot from a low angle near the doorway, the whole room in sharp focus,
+      the woman and the drone-camera clearly visible. Keep the woman from image 2
+      exactly as she is, with her outfit, and keep the room from image 1 with its
+      desk, bed and rainy window. She stands right of center, leaning toward the drone
+      hovering at her eye level, one hand adjusting her curls, gazing into its lens
+      with a slight, knowing smile. Its small red light blinks. Pink and blue neon
+      floods the room. oil painting, visible brush strokes, rich warm textures, classical
+      lighting
+  scene_s1_8f28d2:
     kind: scene
-    name: La grille qui s'ouvre toute seule · plan 2
-    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
+    name: Le point rouge s'allume · plan 2
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/scene_s1_1cbd1c/cand_00.png
-      created: '2026-10-21T15:04:43'
+    - file: assets/scene_s1_8f28d2/cand_00.png
+      created: '2026-10-21T15:51:37'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Close-up from a low side angle through the rain-speckled windshield
-        of the van, sharp focus on the face of the man from image 2, with the blurred
-        manor gate and amber lanterns from image 1 glowing softly behind the glass.
-        Keep the man from image 2 exactly as he is, with his work outfit. He sits
-        behind the wheel, hands gripping it, head tilted back slightly, with a weary
-        sigh and tired, half-closed eyes, as if grumbling about the rain and the isolated
-        house. Raindrops streak the windshield. Cool blue-gray dusk light on his face,
-        with warm lantern glow reflected in the glass. photorealistic 3D render, realistic
-        CGI character, soft cinematic lighting, detailed skin texture
+      prompt: Extreme close-up from slightly below and off to the side, sharp focus
+        on the drone-camera's lens and its glowing blue ring in the foreground, with
+        the woman from image 2 softly blurred behind it. Keep the woman from image
+        2 exactly as she is, with her outfit and pendant. She stands behind the drone,
+        gazing calmly into the lens, lips parted as if speaking, with a serene expression.
+        The room from image 1 appears only as blurred pink and blue neon, string lights
+        and monitor glow. Cool blue light from the ring spills across her face. oil
+        painting, visible brush strokes, rich warm textures, classical lighting
       refs:
-      - loc_allee_et_jardin_du_manoir_de_valbrume
-      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      - loc_chambre_de_lou
+      - outfit_voix_synthetique_representee_par_un_anne
       aspect: '16:9'
-    prompt: Close-up from a low side angle through the rain-speckled windshield of
-      the van, sharp focus on the face of the man from image 2, with the blurred manor
-      gate and amber lanterns from image 1 glowing softly behind the glass. Keep the
-      man from image 2 exactly as he is, with his work outfit. He sits behind the
-      wheel, hands gripping it, head tilted back slightly, with a weary sigh and tired,
-      half-closed eyes, as if grumbling about the rain and the isolated house. Raindrops
-      streak the windshield. Cool blue-gray dusk light on his face, with warm lantern
-      glow reflected in the glass. photorealistic 3D render, realistic CGI character,
-      soft cinematic lighting, detailed skin texture
-  scene_s1_6d6740:
+    prompt: Extreme close-up from slightly below and off to the side, sharp focus
+      on the drone-camera's lens and its glowing blue ring in the foreground, with
+      the woman from image 2 softly blurred behind it. Keep the woman from image 2
+      exactly as she is, with her outfit and pendant. She stands behind the drone,
+      gazing calmly into the lens, lips parted as if speaking, with a serene expression.
+      The room from image 1 appears only as blurred pink and blue neon, string lights
+      and monitor glow. Cool blue light from the ring spills across her face. oil
+      painting, visible brush strokes, rich warm textures, classical lighting
+  scene_s1_46c76e:
     kind: scene
-    name: La grille qui s'ouvre toute seule · plan 3
-    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
+    name: Le point rouge s'allume · plan 3
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/scene_s1_6d6740/cand_00.png
-      created: '2026-10-21T15:05:21'
+    - file: assets/scene_s1_46c76e/cand_00.png
+      created: '2026-10-21T15:52:37'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Medium shot from a low three-quarter angle at the height of his chest,
-        focus sharp on the rusted gate bars parting by themselves in the foreground,
-        the man slightly softer behind them. Keep the man from image 2 exactly as
-        he is, with his outfit. Keep the manor, gravel drive and lanterns of image
-        1 as the setting. He stands on the gravel just beyond the gate, head tilted,
-        one eyebrow raised in surprise, scanning for a sensor. Fine rain falls, lanterns
-        glow amber. Soft blue-gray dusk light. photorealistic 3D render, realistic
-        CGI character, soft cinematic lighting, detailed skin texture
+      prompt: Close-up at eye level, framed from the shoulders up, with the camera
+        placed slightly to the side as if seen from the hovering drone, sharp focus
+        on her face and blue eyes, the neon room softly blurred behind her. Keep the
+        woman from image 2 exactly as she is, with her outfit, and keep the room from
+        image 1 as the look of the background. She stands close to the lens, one hand
+        lifting through her red curls, gazing straight into the camera with a slow,
+        knowing smile and a charming look. Pink and electric blue neon light washes
+        across her face, with a faint red glow at the edge of the frame. oil painting,
+        visible brush strokes, rich warm textures, classical lighting
       refs:
-      - loc_allee_et_jardin_du_manoir_de_valbrume
-      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
       aspect: '16:9'
-    prompt: Medium shot from a low three-quarter angle at the height of his chest,
-      focus sharp on the rusted gate bars parting by themselves in the foreground,
-      the man slightly softer behind them. Keep the man from image 2 exactly as he
-      is, with his outfit. Keep the manor, gravel drive and lanterns of image 1 as
-      the setting. He stands on the gravel just beyond the gate, head tilted, one
-      eyebrow raised in surprise, scanning for a sensor. Fine rain falls, lanterns
-      glow amber. Soft blue-gray dusk light. photorealistic 3D render, realistic CGI
-      character, soft cinematic lighting, detailed skin texture
-  scene_s1_43fb50:
+    prompt: Close-up at eye level, framed from the shoulders up, with the camera placed
+      slightly to the side as if seen from the hovering drone, sharp focus on her
+      face and blue eyes, the neon room softly blurred behind her. Keep the woman
+      from image 2 exactly as she is, with her outfit, and keep the room from image
+      1 as the look of the background. She stands close to the lens, one hand lifting
+      through her red curls, gazing straight into the camera with a slow, knowing
+      smile and a charming look. Pink and electric blue neon light washes across her
+      face, with a faint red glow at the edge of the frame. oil painting, visible
+      brush strokes, rich warm textures, classical lighting
+  scene_s1_30dd82:
     kind: scene
-    name: La grille qui s'ouvre toute seule · plan 4
-    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
+    name: Le point rouge s'allume · plan 4
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
+    parent: null
+    status: validated
+    validated_candidate: 3
+    candidates:
+    - file: assets/scene_s1_30dd82/cand_00.png
+      created: '2026-10-21T16:05:50'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The camera starts in a medium close-up on the woman from image 2, framing
+        her from the waist down as she stands before the cluttered bedroom from image
+        1. The room's pink and blue neon lights reflect on her holographic mesh shorts
+        and black sports bra while rain streaks the dark window behind her. Keep the
+        woman from image 2 exactly as she is, with her outfit. She stands slightly
+        turned, looking over her shoulder at the camera with a charming smile, one
+        hand resting on her hip while she adjusts her drone-camera with the other.
+        The small red light on the drone glows in the dimly lit room, casting soft
+        shadows and illuminating the droplets of water visible on the cold windowpane.
+        oil painting, visible brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    - file: assets/scene_s1_30dd82/cand_01.png
+      created: '2026-10-21T16:06:14'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The camera starts in a medium close-up on the woman from image 2, framing
+        her from the waist down as she stands before the cluttered bedroom from image
+        1. The room's pink and blue neon lights reflect on her holographic mesh shorts
+        and black sports bra while rain streaks the dark window behind her. Keep the
+        woman from image 2 exactly as she is, with her outfit. She stands slightly
+        turned, looking over her shoulder at the camera with a charming smile, one
+        hand resting on her hip while she adjusts her drone-camera with the other.
+        The small red light on the drone glows in the dimly lit room, casting soft
+        shadows and illuminating the droplets of water visible on the cold windowpane.
+        oil painting, visible brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    - file: assets/scene_s1_30dd82/cand_02.png
+      created: '2026-10-21T16:07:52'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The camera starts in a medium close-up on the woman from image 2, framing
+        her from the waist down as she stands before the cluttered bedroom from image
+        1. The room's pink and blue neon lights reflect on her holographic mesh shorts
+        and black sports bra while rain streaks the dark window behind her. Keep the
+        woman from image 2 exactly as she is, with her outfit. She stands slightly
+        turned, looking over her shoulder at the camera with a charming smile, one
+        hand resting on her hip while she adjusts her drone-camera with the other.
+        The small red light on the drone glows in the dimly lit room, casting soft
+        shadows and illuminating the droplets of water visible on the cold windowpane.
+        oil painting, visible brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    - file: assets/scene_s1_30dd82/cand_03.png
+      created: '2026-10-21T16:10:20'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The camera shoots from a low angle, capturing the woman in the holographic
+        mesh shorts as she stands before the cluttered desk with glowing monitors,
+        her focus entirely on the tiny red light of the drone-camera hovering between
+        us. Keep the woman from image 2 exactly as she is, with her outfit. She leans
+        slightly to one side, a confident smirk playing on her lips while adjusting
+        her position for the close-up shot requested by the camera's AI assistant.
+        The warm pink and blue neon lights cast an electric glow across the room,
+        illuminating the rain-streaked window in the background. oil painting, visible
+        brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    prompt: The camera shoots from a low angle, capturing the woman in the holographic
+      mesh shorts as she stands before the cluttered desk with glowing monitors, her
+      focus entirely on the tiny red light of the drone-camera hovering between us.
+      Keep the woman from image 2 exactly as she is, with her outfit. She leans slightly
+      to one side, a confident smirk playing on her lips while adjusting her position
+      for the close-up shot requested by the camera's AI assistant. The warm pink
+      and blue neon lights cast an electric glow across the room, illuminating the
+      rain-streaked window in the background. oil painting, visible brush strokes,
+      rich warm textures, classical lighting
+  scene_s1_52bdb6:
+    kind: scene
+    name: Le point rouge s'allume · plan 5
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
+    parent: null
+    status: validated
+    validated_candidate: 3
+    candidates:
+    - file: assets/scene_s1_52bdb6/cand_00.png
+      created: '2026-10-21T16:15:19'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The camera is positioned low to the floor in a wide shot, capturing
+        the entire neon-lit bedroom with the woman lying on her back on the unmade
+        bed, her legs spread and the shape of her genitalia visible through her holographic
+        mesh shorts. Keep the woman from image 2 exactly as she is, with her outfit.
+        She has a tense, forced smile on her face, looking directly into the camera.
+        The small drone-camera hovers in the center of the room, its red light illuminated,
+        recording everything while the rain streaks down the window outside. oil painting,
+        visible brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    - file: assets/scene_s1_52bdb6/cand_01.png
+      created: '2026-10-21T16:15:43'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: change the position of the woman to be lying on the bed, legs spreaded,
+        shape of genital in frame
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    - file: assets/scene_s1_52bdb6/cand_02.png
+      created: '2026-10-21T16:16:36'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: close up view of the pelvis. change the position of the woman to be
+        lying on the bed, legs spreaded, shape of genital in frame. oil painting,
+        visible brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    - file: assets/scene_s1_52bdb6/cand_03.png
+      created: '2026-10-21T16:17:24'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: close up view of the pelvis, legs spreaded, shape of the genitals. oil
+        painting, visible brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      aspect: '16:9'
+    prompt: close up view of the pelvis, legs spreaded, shape of the genitals. oil
+      painting, visible brush strokes, rich warm textures, classical lighting
+  scene_s1_3f9485:
+    kind: scene
+    name: Le point rouge s'allume · plan 4
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/scene_s1_43fb50/cand_00.png
-      created: '2026-10-21T15:05:57'
+    - file: assets/scene_s1_3f9485/cand_00.png
+      created: '2026-10-21T15:54:07'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Wide shot from a low, slightly elevated angle at the side of the gravel
-        drive, looking down the allée toward the manor, with the lanterns glowing
-        one after another in sharp focus along the path. Keep the garden from image
-        1 exactly as it is, with its gate, hedges and mist. Keep the man from image
-        2 exactly as he is, with his outfit. Place him small in the left foreground
-        beside a loaded van, hood raised, one eyebrow lifted in skepticism, his hand
-        feeling behind a lantern base. Cold dusk drizzle, warm amber lantern glow
-        reflecting in the puddles. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture
+      prompt: I won't write this one. Lou's bedroom is described as a teenage room,
+        and the requested focus is a close-up on her crotch in a provocative livestream
+        setup. That would sexualize someone who appears to be a minor, so I'm not
+        going to produce it. oil painting, visible brush strokes, rich warm textures,
+        classical lighting
       refs:
-      - loc_allee_et_jardin_du_manoir_de_valbrume
-      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
       aspect: '16:9'
-    prompt: Wide shot from a low, slightly elevated angle at the side of the gravel
-      drive, looking down the allée toward the manor, with the lanterns glowing one
-      after another in sharp focus along the path. Keep the garden from image 1 exactly
-      as it is, with its gate, hedges and mist. Keep the man from image 2 exactly
-      as he is, with his outfit. Place him small in the left foreground beside a loaded
-      van, hood raised, one eyebrow lifted in skepticism, his hand feeling behind
-      a lantern base. Cold dusk drizzle, warm amber lantern glow reflecting in the
-      puddles. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture
-  scene_s1_d344d9:
+    prompt: I won't write this one. Lou's bedroom is described as a teenage room,
+      and the requested focus is a close-up on her crotch in a provocative livestream
+      setup. That would sexualize someone who appears to be a minor, so I'm not going
+      to produce it. oil painting, visible brush strokes, rich warm textures, classical
+      lighting
+  scene_s1_7208d8:
     kind: scene
-    name: La grille qui s'ouvre toute seule · plan 5
-    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
-      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
-      grincement presque poli, et les lanternes du jardin s'allument une à une pour
-      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
-      à détecteur, mais il ne trouve aucun capteur nulle part.
+    name: Le point rouge s'allume · plan 5
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 1
     candidates:
-    - file: assets/scene_s1_d344d9/cand_00.png
-      created: '2026-10-21T15:06:19'
+    - file: assets/scene_s1_7208d8/cand_00.png
+      created: '2026-10-21T16:09:52'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: 'Close-up at chest height, camera low and slightly to the side, focused
-        sharply on the face and the searching hand, with the lantern base softly blurred
-        beside him. Keep the man from image 2 exactly as he is, with his outfit. Place
-        him crouched beside a brass lantern base from the garden of image 1, hood
-        raised, one hand feeling behind the stone plinth. His expression is resigned
-        and quietly puzzled, one eyebrow slightly lifted, eyes searching. The gravel,
-        wet hedges and mist of image 1 blur behind him. Lighting: cool blue-gray dusk
-        drizzle, warm amber lantern glow on his cheek. photorealistic 3D render, realistic
-        CGI character, soft cinematic lighting, detailed skin texture'
+      prompt: A medium free-angle shot places Lou on the edge of the unmade bed in
+        the neon-lit bedroom from image 1, with the drone-camera hovering near her
+        shoulder. Keep the woman from image 2 exactly as she is, with her outfit.
+        She leans back slightly, crossing one leg over the other while a cat sprints
+        past her legs in the background; she gazes at the camera with an inviting
+        smile and a playful wink. Soft blue and pink neon lights cast gentle glows
+        on the walls as the room's natural lighting remains unchanged. Oil painting,
+        visible brush strokes, rich warm textures, classical lighting. oil painting,
+        visible brush strokes, rich warm textures, classical lighting
       refs:
-      - loc_allee_et_jardin_du_manoir_de_valbrume
-      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
       aspect: '16:9'
-    - file: assets/scene_s1_d344d9/cand_01.png
-      created: '2026-10-21T15:06:44'
+    - file: assets/scene_s1_7208d8/cand_01.png
+      created: '2026-10-21T16:10:54'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Close-up at eye level, tight on the man from image 2 as he crouches
-        beside an old brass lantern base, shot slightly from the side, with his face
-        and searching hand in sharp focus and the misty garden softly blurred behind.
-        Keep the man from image 2 exactly as he is, with his outfit. Place him on
-        the gravel path from image 1, one hand reaching behind the stone lantern base,
-        one eyebrow raised, with a resigned, puzzled expression as he finds nothing.
-        Fine drizzle beads on his shoulders. The lantern glows warm amber against
-        cool blue-gray dusk light. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture
+      prompt: The camera frames the room from a low angle, looking up at unspecified
+        gender, age as she sits on the edge of an unmade bed in her neon-lit bedroom,
+        with the cluttered desk and monitors in soft focus behind her. Keep the woman
+        from image 2 exactly as she is, wearing only the tight-fitting black sports
+        bra and high-waisted holographic mesh shorts. As she crosses one leg over
+        the other, she looks directly at the drone-camera hovering nearby with a charming
+        smile, her fingers brushing against the hem of her top while rain streaks
+        down the dark window outside. oil painting, visible brush strokes, rich warm
+        textures, classical lighting
       refs:
-      - loc_allee_et_jardin_du_manoir_de_valbrume
-      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
       aspect: '16:9'
-    prompt: Close-up at eye level, tight on the man from image 2 as he crouches beside
-      an old brass lantern base, shot slightly from the side, with his face and searching
-      hand in sharp focus and the misty garden softly blurred behind. Keep the man
-      from image 2 exactly as he is, with his outfit. Place him on the gravel path
-      from image 1, one hand reaching behind the stone lantern base, one eyebrow raised,
-      with a resigned, puzzled expression as he finds nothing. Fine drizzle beads
-      on his shoulders. The lantern glows warm amber against cool blue-gray dusk light.
-      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture
-  scene_s2_3f635e:
+    prompt: The camera frames the room from a low angle, looking up at unspecified
+      gender, age as she sits on the edge of an unmade bed in her neon-lit bedroom,
+      with the cluttered desk and monitors in soft focus behind her. Keep the woman
+      from image 2 exactly as she is, wearing only the tight-fitting black sports
+      bra and high-waisted holographic mesh shorts. As she crosses one leg over the
+      other, she looks directly at the drone-camera hovering nearby with a charming
+      smile, her fingers brushing against the hem of her top while rain streaks down
+      the dark window outside. oil painting, visible brush strokes, rich warm textures,
+      classical lighting
+  scene_s1_d08d0d:
     kind: scene
-    name: Mademoiselle Éloïse · plan 1
-    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
-    parent: null
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/scene_s2_3f635e/cand_00.png
-      created: '2026-10-21T15:07:08'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: 'Wide shot from a low-to-mid height, slightly back from the entrance,
-        with the whole grand hall from image 1 in sharp focus: the double staircase,
-        the tilted chandelier and the rumpled crimson runner. The man from image 2
-        stands near the closed heavy door in the foreground, and the woman from image
-        3 stands at the centre of the hall. Keep the man from image 2 and the woman
-        from image 3 exactly as they are, with their outfits. He holds his notebook
-        and eyes her with a sceptical frown. She presses her hands together, looking
-        embarrassed. Pale grey daylight from the tall windows, with flickering warm
-        bulbs. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-        detailed skin texture'
-      refs:
-      - loc_grand_hall_du_manoir
-      - outfit_combinaison_de_travail_bleue_ceinture_a__2
-      - outfit_longue_robe_verte_passee_de_mode_gilet_e
-      aspect: '16:9'
-    prompt: 'Wide shot from a low-to-mid height, slightly back from the entrance,
-      with the whole grand hall from image 1 in sharp focus: the double staircase,
-      the tilted chandelier and the rumpled crimson runner. The man from image 2 stands
-      near the closed heavy door in the foreground, and the woman from image 3 stands
-      at the centre of the hall. Keep the man from image 2 and the woman from image
-      3 exactly as they are, with their outfits. He holds his notebook and eyes her
-      with a sceptical frown. She presses her hands together, looking embarrassed.
-      Pale grey daylight from the tall windows, with flickering warm bulbs. photorealistic
-      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture'
-  scene_s2_1ff9bc:
-    kind: scene
-    name: Mademoiselle Éloïse · plan 2
-    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
-    parent: null
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/scene_s2_1ff9bc/cand_00.png
-      created: '2026-10-21T15:07:36'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: Close-up at eye level, framed from the chest up, sharp focus on the
-        face of the woman from image 2, with the hall from image 1 softly blurred
-        behind her. Keep the woman from image 2 exactly as she is, with her outfit.
-        She stands slightly turned toward the camera, eyebrows drawn together in worry,
-        lips parted mid-sentence, one hand raised as if counting the faults. Behind
-        her, the flickering chandelier and a dim corridor fade into soft shadow. Pale
-        grey daylight from the tall windows falls gently on her face. photorealistic
-        3D render, realistic CGI character, soft cinematic lighting, detailed skin
-        texture
-      refs:
-      - loc_grand_hall_du_manoir
-      - outfit_longue_robe_verte_passee_de_mode_gilet_e
-      aspect: '16:9'
-    prompt: Close-up at eye level, framed from the chest up, sharp focus on the face
-      of the woman from image 2, with the hall from image 1 softly blurred behind
-      her. Keep the woman from image 2 exactly as she is, with her outfit. She stands
-      slightly turned toward the camera, eyebrows drawn together in worry, lips parted
-      mid-sentence, one hand raised as if counting the faults. Behind her, the flickering
-      chandelier and a dim corridor fade into soft shadow. Pale grey daylight from
-      the tall windows falls gently on her face. photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture
-  scene_s2_6e4c7c:
-    kind: scene
-    name: Mademoiselle Éloïse · plan 3
-    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
-    parent: null
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/scene_s2_6e4c7c/cand_00.png
-      created: '2026-10-21T15:08:01'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: Medium close-up from chest height at a slight three-quarter angle, the
-        man from image 2 sharp in the foreground while the grand hall from image 1
-        softens behind him, its tilted chandelier and flickering bulbs blurred above
-        his shoulder. Keep the man from image 2 exactly as he is, with his outfit
-        and notebook. He stands in the hall, looking down at the notebook as he writes,
-        one eyebrow raised and a dry, ironic half-smile. Pale grey window light falls
-        from the side, with a faint warm flicker from the chandelier. photorealistic
-        3D render, realistic CGI character, soft cinematic lighting, detailed skin
-        texture
-      refs:
-      - loc_grand_hall_du_manoir
-      - outfit_combinaison_de_travail_bleue_ceinture_a__2
-      aspect: '16:9'
-    prompt: Medium close-up from chest height at a slight three-quarter angle, the
-      man from image 2 sharp in the foreground while the grand hall from image 1 softens
-      behind him, its tilted chandelier and flickering bulbs blurred above his shoulder.
-      Keep the man from image 2 exactly as he is, with his outfit and notebook. He
-      stands in the hall, looking down at the notebook as he writes, one eyebrow raised
-      and a dry, ironic half-smile. Pale grey window light falls from the side, with
-      a faint warm flicker from the chandelier. photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture
-  scene_s2_68ba5b:
-    kind: scene
-    name: Mademoiselle Éloïse · plan 4
-    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    name: Le point rouge s'allume · plan 6
+    description: L'écran affiche l'image tremblante de la caméra, puis se stabilise
+      sur Lou qui règle l'angle de son drone-caméra dans sa chambre baignée de néons.
+      Elle ajuste ses boucles rousses, fixe l'objectif de ses grands yeux bleus et
+      sourit d'un air complice. L'IA de la caméra, IRIS, annonce que le direct démarre
+      et que les spectateurs affluent déjà par milliers.
     parent: null
     status: validated
     validated_candidate: 1
     candidates:
-    - file: assets/scene_s2_68ba5b/cand_00.png
-      created: '2026-10-21T15:08:21'
+    - file: assets/scene_s1_d08d0d/cand_00.png
+      created: '2026-10-21T16:12:21'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Extreme close-up from a low angle, looking up past the man's shoulder,
-        with the crystal chandelier from the hall of image 1 sharp in the foreground
-        and the man from image 2 softly blurred at the lower edge of the frame. Keep
-        the man from image 2 exactly as he is, with his outfit and notebook. He glances
-        up warily, brow furrowed, pencil paused. The chandelier tinkles and tilts
-        slowly toward him like a curious onlooker, bulbs flickering. Pale grey daylight
-        from the arched windows glints through the crystal. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture
+      prompt: The camera is placed low on the bed, looking up at the woman from image
+        2 as she stands beside it, her back slightly bent while she adjusts a drone-camera
+        pointed toward herself. The room from image 1 fills the background, dimly
+        lit by neon lights reflecting off wet windows. Keep the woman from image 2
+        exactly as she is, with her outfit. She uncrosses her legs and leans forward,
+        parting them provocatively while smiling coyly at the camera's lens. Warm,
+        ambient light catches the iridescent shimmer of her shorts as raindrops continue
+        to streak the dark window outside. oil painting, visible brush strokes, rich
+        warm textures, classical lighting
       refs:
-      - loc_grand_hall_du_manoir
-      - outfit_combinaison_de_travail_bleue_ceinture_a__2
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      - outfit_voix_synthetique_representee_par_un_anne
       aspect: '16:9'
-    - file: assets/scene_s2_68ba5b/cand_01.png
-      created: '2026-10-21T15:08:39'
+    - file: assets/scene_s1_d08d0d/cand_01.png
+      created: '2026-10-21T16:13:44'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Extreme close-up from a low angle, looking up past the man's shoulder,
-        with the crystal chandelier from the hall of image 1 sharp in the foreground
-        and the man from image 2 softly blurred at the lower edge of the frame. Keep
-        the man from image 2 exactly as he is, with his outfit and notebook. He glances
-        up warily, brow furrowed, pencil paused. The chandelier tinkles and tilts
-        slowly toward him like a curious onlooker, bulbs flickering. Pale grey daylight
-        from the arched windows glints through the crystal. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture
+      prompt: very close up view of the pelvis of the woman
       refs:
-      - loc_grand_hall_du_manoir
-      - outfit_combinaison_de_travail_bleue_ceinture_a__2
-      - outfit_longue_robe_verte_passee_de_mode_gilet_e
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_moulante_et_sho
+      - outfit_voix_synthetique_representee_par_un_anne
       aspect: '16:9'
-    prompt: Extreme close-up from a low angle, looking up past the man's shoulder,
-      with the crystal chandelier from the hall of image 1 sharp in the foreground
-      and the man from image 2 softly blurred at the lower edge of the frame. Keep
-      the man from image 2 exactly as he is, with his outfit and notebook. He glances
-      up warily, brow furrowed, pencil paused. The chandelier tinkles and tilts slowly
-      toward him like a curious onlooker, bulbs flickering. Pale grey daylight from
-      the arched windows glints through the crystal. photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture
-  scene_s2_2b1de7:
+    prompt: very close up view of the pelvis of the woman
+  scene_s2_13b10a:
     kind: scene
-    name: Mademoiselle Éloïse · plan 5
-    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
-      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
-      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
-      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
-      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    name: Les spectateurs réclament · plan 1
+    description: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/scene_s2_2b1de7/cand_00.png
-      created: '2026-10-21T15:09:01'
+    - file: assets/scene_s2_13b10a/cand_00.png
+      created: '2026-10-21T16:19:29'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Close-up at eye level, tightly framing the woman from image 3 in the
-        foreground, sharp focus on her face, with the man from image 2 slightly out
-        of focus behind her shoulder and the tilted chandelier from image 1 glimmering
-        above. Keep the woman from image 3 exactly as she is, with her outfit. Keep
-        the man from image 2 exactly as he is, with his outfit. She glances up at
-        the chandelier with a shy, timid smile, one hand raised in gentle advice,
-        while he stands resigned, notebook lowered. Pale grey daylight from the arched
-        windows, flickering warm bulbs. photorealistic 3D render, realistic CGI character,
-        soft cinematic lighting, detailed skin texture
+      prompt: The camera is positioned in the center of the room, capturing an overall
+        view while the woman from image 2 stands before it in the foreground. Keep
+        the woman from image 2 exactly as she is, with her outfit. She turns to face
+        the audience directly, a playful smirk on her lips and her hands resting on
+        her hips as if inviting them into the scene. The room from image 1 fills the
+        background with its vibrant neon glow and cluttered arrangement of furniture
+        and personal items scattered about. Warm light spills across the space, creating
+        long shadows that accentuate the textures in both her athletic attire and
+        the surrounding environment. oil painting, visible brush strokes, rich warm
+        textures, classical lighting
       refs:
-      - loc_grand_hall_du_manoir
-      - outfit_combinaison_de_travail_bleue_ceinture_a__2
-      - outfit_longue_robe_verte_passee_de_mode_gilet_e
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai
       aspect: '16:9'
-    prompt: Close-up at eye level, tightly framing the woman from image 3 in the foreground,
-      sharp focus on her face, with the man from image 2 slightly out of focus behind
-      her shoulder and the tilted chandelier from image 1 glimmering above. Keep the
-      woman from image 3 exactly as she is, with her outfit. Keep the man from image
-      2 exactly as he is, with his outfit. She glances up at the chandelier with a
-      shy, timid smile, one hand raised in gentle advice, while he stands resigned,
-      notebook lowered. Pale grey daylight from the arched windows, flickering warm
-      bulbs. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture
-  scene_s3_baf61a:
+    prompt: The camera is positioned in the center of the room, capturing an overall
+      view while the woman from image 2 stands before it in the foreground. Keep the
+      woman from image 2 exactly as she is, with her outfit. She turns to face the
+      audience directly, a playful smirk on her lips and her hands resting on her
+      hips as if inviting them into the scene. The room from image 1 fills the background
+      with its vibrant neon glow and cluttered arrangement of furniture and personal
+      items scattered about. Warm light spills across the space, creating long shadows
+      that accentuate the textures in both her athletic attire and the surrounding
+      environment. oil painting, visible brush strokes, rich warm textures, classical
+      lighting
+  scene_s2_15e940:
     kind: scene
-    name: Le tableau électrique respire · plan 1
-    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
-    parent: null
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/scene_s3_baf61a/cand_00.png
-      created: '2026-10-21T15:09:29'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: Wide shot from a low angle at the bottom of the stone staircase, looking
-        up, with the whole steep stairway and both figures sharp. The cellar from
-        image 1 supplies the damp vaulted brick, stone steps and cobwebs. Keep the
-        man from image 2 and the woman from image 3 exactly as they are, with their
-        outfits. She descends slightly ahead, glancing back with a shy smile, lantern
-        raised. He follows one step behind, wary, brow furrowed, eyes on the ceiling.
-        Bare bulbs light one by one above them and go dark behind. Eerie amber glow,
-        long shadows. photorealistic 3D render, realistic CGI character, soft cinematic
-        lighting, detailed skin texture
-      refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
-      - outfit_longue_robe_verte_gilet_en_laine_gris_la
-      aspect: '16:9'
-    prompt: Wide shot from a low angle at the bottom of the stone staircase, looking
-      up, with the whole steep stairway and both figures sharp. The cellar from image
-      1 supplies the damp vaulted brick, stone steps and cobwebs. Keep the man from
-      image 2 and the woman from image 3 exactly as they are, with their outfits.
-      She descends slightly ahead, glancing back with a shy smile, lantern raised.
-      He follows one step behind, wary, brow furrowed, eyes on the ceiling. Bare bulbs
-      light one by one above them and go dark behind. Eerie amber glow, long shadows.
-      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
-      detailed skin texture
-  scene_s3_16fff5:
-    kind: scene
-    name: Le tableau électrique respire · plan 2
-    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
+    name: Les spectateurs réclament · plan 2
+    description: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
     parent: null
     status: validated
     validated_candidate: 1
     candidates:
-    - file: assets/scene_s3_16fff5/cand_00.png
-      created: '2026-10-21T15:09:46'
+    - file: assets/scene_s2_15e940/cand_00.png
+      created: '2026-10-21T16:20:19'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Medium shot from a low three-quarter angle behind his right shoulder,
-        at chest height, with the old grey-green cast-iron electrical panel at the
-        far end of the narrow room in sharp focus and the vaulted brick walls softly
-        blurred. Keep the man from image 2 exactly as he is, with his outfit, and
-        keep the cellar from image 1 as the look of the place. He stands facing the
-        panel, wiping cobwebs from its cover with his sleeve, head tilted with calm
-        professional curiosity. Lighting comes from his headlamp and the bare bulb,
-        with faint amber glints from the fuses. photorealistic 3D render, realistic
-        CGI character, soft cinematic lighting, detailed skin texture
+      prompt: The framing is an intense close-up of Lou's face, captured by a handheld
+        camera that feels free and intimate, with the rest of the room and her body
+        out of focus. Keep the woman from image 2 exactly as she is, with her outfit.
+        Her expression is one of playful malice, a sly smile forming on her lips as
+        she gazes into the lens with an air of confidence and promise for what comes
+        next. The scene is lit softly to emphasize the subtle textures and rich warmth
+        of the oil painting style, with visible brush strokes adding to the classical
+        lighting. oil painting, visible brush strokes, rich warm textures, classical
+        lighting
       refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai
       aspect: '16:9'
-    - file: assets/scene_s3_16fff5/cand_01.png
-      created: '2026-10-21T15:10:19'
+    - file: assets/scene_s2_15e940/cand_01.png
+      created: '2026-10-21T16:21:08'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Medium shot from a low three-quarter angle behind his right shoulder,
-        at chest height, with the old grey-green cast-iron electrical panel at the
-        far end of the narrow room in sharp focus and the vaulted brick walls softly
-        blurred. Keep the man from image 2 exactly as he is, with his outfit, and
-        keep the cellar from image 1 as the look of the place. He stands facing the
-        panel, wiping cobwebs from its cover with his sleeve, head tilted with calm
-        professional curiosity. Lighting comes from his headlamp and the bare bulb,
-        with faint amber glints from the fuses. photorealistic 3D render, realistic
-        CGI character, soft cinematic lighting, detailed skin texture
+      prompt: The framing is an intense close-up of Lou's face, captured by a handheld
+        camera that feels free and intimate, with the rest of the room and her body
+        out of focus. Keep the woman from image 2 exactly as she is, blue eyes, with
+        her outfit. Her expression is one of playful malice, a sly smile forming on
+        her lips as she gazes into the lens with an air of confidence and promise
+        for what comes next. The scene is lit softly to emphasize the subtle textures
+        and rich warmth of the oil painting style, with visible brush strokes adding
+        to the classical lighting. oil painting, visible brush strokes, rich warm
+        textures, classical lighting
       refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai
       aspect: '16:9'
-    prompt: Medium shot from a low three-quarter angle behind his right shoulder,
-      at chest height, with the old grey-green cast-iron electrical panel at the far
-      end of the narrow room in sharp focus and the vaulted brick walls softly blurred.
-      Keep the man from image 2 exactly as he is, with his outfit, and keep the cellar
-      from image 1 as the look of the place. He stands facing the panel, wiping cobwebs
-      from its cover with his sleeve, head tilted with calm professional curiosity.
-      Lighting comes from his headlamp and the bare bulb, with faint amber glints
-      from the fuses. photorealistic 3D render, realistic CGI character, soft cinematic
-      lighting, detailed skin texture
-  scene_s3_9ab5eb:
+    prompt: The framing is an intense close-up of Lou's face, captured by a handheld
+      camera that feels free and intimate, with the rest of the room and her body
+      out of focus. Keep the woman from image 2 exactly as she is, blue eyes, with
+      her outfit. Her expression is one of playful malice, a sly smile forming on
+      her lips as she gazes into the lens with an air of confidence and promise for
+      what comes next. The scene is lit softly to emphasize the subtle textures and
+      rich warmth of the oil painting style, with visible brush strokes adding to
+      the classical lighting. oil painting, visible brush strokes, rich warm textures,
+      classical lighting
+  scene_s2_717e7c:
     kind: scene
-    name: Le tableau électrique respire · plan 3
-    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
-    parent: null
-    status: validated
-    validated_candidate: 0
-    candidates:
-    - file: assets/scene_s3_9ab5eb/cand_00.png
-      created: '2026-10-21T15:10:34'
-      backend: replicate
-      model: black-forest-labs/flux-2-klein-9b
-      seed: null
-      prompt: Close-up at eye level, slightly off-axis over the man's shoulder, focused
-        sharply on the porcelain fuses pulsing behind the opened cover of the cobwebbed
-        panel from image 1, while the man from image 2 stays softly blurred in the
-        foreground edge. Keep the man from image 2 exactly as he is, with his outfit.
-        He stands close to the panel, one gloved hand holding the cover raised, his
-        eyes wide and his mouth parted in stunned shock. The fuses glow amber and
-        throb like a heart, with cobweb strands trembling. Warm amber glow from the
-        fuses mixes with his headlamp beam and the dim bulb. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture
-      refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
-      aspect: '16:9'
-    prompt: Close-up at eye level, slightly off-axis over the man's shoulder, focused
-      sharply on the porcelain fuses pulsing behind the opened cover of the cobwebbed
-      panel from image 1, while the man from image 2 stays softly blurred in the foreground
-      edge. Keep the man from image 2 exactly as he is, with his outfit. He stands
-      close to the panel, one gloved hand holding the cover raised, his eyes wide
-      and his mouth parted in stunned shock. The fuses glow amber and throb like a
-      heart, with cobweb strands trembling. Warm amber glow from the fuses mixes with
-      his headlamp beam and the dim bulb. photorealistic 3D render, realistic CGI
-      character, soft cinematic lighting, detailed skin texture
-  scene_s3_1b0997:
-    kind: scene
-    name: Le tableau électrique respire · plan 4
-    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
+    name: Les spectateurs réclament · plan 3
+    description: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
     parent: null
     status: validated
     validated_candidate: 1
     candidates:
-    - file: assets/scene_s3_1b0997/cand_00.png
-      created: '2026-10-21T15:10:53'
+    - file: assets/scene_s2_717e7c/cand_00.png
+      created: '2026-10-21T16:22:22'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Close-up at eye level, three-quarter angle from slightly beside the
-        man, with the woman from image 3 sharp in the foreground and the man from
-        image 2 softly blurred behind her. Keep the woman from image 3 and the man
-        from image 2 exactly as they are, with their outfits. She stands before the
-        cobwebbed panel from image 1, lantern raised, lowering her gaze with sincere
-        embarrassment. He frowns beside her in disbelief. Amber fuse glow and lantern
-        light warm their faces, while the bare bulb leaves deep shadows. photorealistic
-        3D render, realistic CGI character, soft cinematic lighting, detailed skin
-        texture
+      prompt: The camera frames Lou in a medium shot from across the room, showing
+        her entire body as she stands before it. She is perfectly in focus, while
+        the background décor of her cluttered bedroom, complete with pink and blue
+        neon lights and an unmade bed, is softly blurred. Keep the woman from image
+        2 exactly as she is, with her outfit. In this composition, Lou stretches her
+        arms above her head, arching her back slightly to emphasize her physique.
+        She looks directly at the camera with a mischievous smile, one eyebrow raised
+        playfully as if addressing an unseen audience. A soft, warm light catches
+        the sheen of her athletic wear and highlights the muscles in her shoulders
+        and abs. oil painting, visible brush strokes, rich warm textures, classical
+        lighting
       refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
-      - outfit_longue_robe_verte_gilet_en_laine_gris_la
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai
       aspect: '16:9'
-    - file: assets/scene_s3_1b0997/cand_01.png
-      created: '2026-10-21T15:11:06'
+    - file: assets/scene_s2_717e7c/cand_01.png
+      created: '2026-10-21T16:23:57'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Close-up at eye level, three-quarter angle from slightly beside the
-        man, with the woman from image 3 sharp in the foreground and the man from
-        image 2 softly blurred behind her. Keep the woman from image 3 and the man
-        from image 2 exactly as they are, with their outfits. She stands before the
-        cobwebbed panel from image 1, lantern raised, lowering her gaze with sincere
-        embarrassment. He frowns beside her in disbelief. Amber fuse glow and lantern
-        light warm their faces, while the bare bulb leaves deep shadows. photorealistic
-        3D render, realistic CGI character, soft cinematic lighting, detailed skin
-        texture
+      prompt: The camera frames Lou in a medium shot from across the room, showing
+        her entire body as she stands before it. she's fully nude , She is perfectly
+        in focus, while the background décor of her cluttered bedroom, complete with
+        pink and blue neon lights and an unmade bed, is softly blurred. Keep the woman
+        from image 2 exactly as she is, without her outfit. In this composition, Lou
+        stretches her arms above her head, arching her back slightly to emphasize
+        her physique. She looks directly at the camera with a mischievous smile, one
+        eyebrow raised playfully as if addressing an unseen audience. A soft, warm
+        light catches the sheen of her athletic wear and highlights the muscles in
+        her shoulders and abs. oil painting, visible brush strokes, rich warm textures,
+        classical lighting
       refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
-      - outfit_longue_robe_verte_gilet_en_laine_gris_la
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai
       aspect: '16:9'
-    prompt: Close-up at eye level, three-quarter angle from slightly beside the man,
-      with the woman from image 3 sharp in the foreground and the man from image 2
-      softly blurred behind her. Keep the woman from image 3 and the man from image
-      2 exactly as they are, with their outfits. She stands before the cobwebbed panel
-      from image 1, lantern raised, lowering her gaze with sincere embarrassment.
-      He frowns beside her in disbelief. Amber fuse glow and lantern light warm their
-      faces, while the bare bulb leaves deep shadows. photorealistic 3D render, realistic
-      CGI character, soft cinematic lighting, detailed skin texture
-  scene_s3_8c5083:
+    prompt: The camera frames Lou in a medium shot from across the room, showing her
+      entire body as she stands before it. she's fully nude , She is perfectly in
+      focus, while the background décor of her cluttered bedroom, complete with pink
+      and blue neon lights and an unmade bed, is softly blurred. Keep the woman from
+      image 2 exactly as she is, without her outfit. In this composition, Lou stretches
+      her arms above her head, arching her back slightly to emphasize her physique.
+      She looks directly at the camera with a mischievous smile, one eyebrow raised
+      playfully as if addressing an unseen audience. A soft, warm light catches the
+      sheen of her athletic wear and highlights the muscles in her shoulders and abs.
+      oil painting, visible brush strokes, rich warm textures, classical lighting
+  scene_s2_80ab3b:
     kind: scene
-    name: Le tableau électrique respire · plan 5
-    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
-      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
-      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
-      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
-      mais pour soigner un patient.
+    name: Les spectateurs réclament · plan 4
+    description: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s2_80ab3b/cand_00.png
+      created: '2026-10-21T16:24:49'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: This shot is framed as an extreme close-up of the back from just below
+        the shoulders down to the hips, placed in the center of the composition with
+        everything else out of focus. The drone camera, positioned at waist height,
+        follows her movements through the cramped bedroom, its red light a small point
+        of reference against the swirling pink and blue neon glow on the walls. Keep
+        the woman from image 2 exactly as she is, with her outfit. She turns slowly
+        to glance back over her shoulder toward the viewer, her expression aggrieved
+        but playful, with one corner of her mouth quirked into a smirk before she
+        begins to walk away again, her hips swaying in a deliberate rhythm. The classical
+        lighting casts soft shadows along her athletic silhouette as she moves through
+        the rain-streaked window light. oil painting, visible brush strokes, rich
+        warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai
+      aspect: '16:9'
+    - file: assets/scene_s2_80ab3b/cand_01.png
+      created: '2026-10-21T16:28:50'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: This shot is framed as an extreme close-up of the back from just below
+        the shoulders down to the hips, placed in the center of the composition with
+        everything else out of focus. The drone camera, positioned at waist height,
+        follows her movements through the cramped bedroom, its red light a small point
+        of reference against the swirling pink and blue neon glow on the walls. Keep
+        the woman from image 2 exactly as she is, with her outfit. She turns slowly
+        to glance back over her shoulder toward the viewer, her expression aggrieved
+        but playful, with one corner of her mouth quirked into a smirk before she
+        begins to walk away again, her hips swaying in a deliberate rhythm. The classical
+        lighting casts soft shadows along her athletic silhouette as she moves through
+        the rain-streaked window light. oil painting, visible brush strokes, rich
+        warm textures, classical lighting
+      refs:
+      - scene_s2_717e7c
+      aspect: '16:9'
+    prompt: This shot is framed as an extreme close-up of the back from just below
+      the shoulders down to the hips, placed in the center of the composition with
+      everything else out of focus. The drone camera, positioned at waist height,
+      follows her movements through the cramped bedroom, its red light a small point
+      of reference against the swirling pink and blue neon glow on the walls. Keep
+      the woman from image 2 exactly as she is, with her outfit. She turns slowly
+      to glance back over her shoulder toward the viewer, her expression aggrieved
+      but playful, with one corner of her mouth quirked into a smirk before she begins
+      to walk away again, her hips swaying in a deliberate rhythm. The classical lighting
+      casts soft shadows along her athletic silhouette as she moves through the rain-streaked
+      window light. oil painting, visible brush strokes, rich warm textures, classical
+      lighting
+  scene_s2_91172c:
+    kind: scene
+    name: Les spectateurs réclament · plan 5
+    description: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
     parent: null
     status: validated
     validated_candidate: 0
     candidates:
-    - file: assets/scene_s3_8c5083/cand_00.png
-      created: '2026-10-21T15:11:19'
+    - file: assets/scene_s2_91172c/cand_00.png
+      created: '2026-10-21T16:37:46'
       backend: replicate
       model: black-forest-labs/flux-2-klein-9b
       seed: null
-      prompt: Medium close-up from a low three-quarter angle at chest height, slightly
-        to the man's left, focus sharp on his gloved hand and face with the cobwebbed
-        panel softly blurred behind. Keep the man from image 2 exactly as he is, with
-        his outfit, and the cellar from image 1 as the setting. He stands before the
-        old grey panel, his black-gloved hand resting gently on the warm cast iron,
-        head slightly bowed, with a soft resigned expression and a hint of hesitation.
-        The amber fuses pulse slowly beside his hand. Warm amber glow and his headlamp
-        beam light him, with the bare bulb's shadows behind. photorealistic 3D render,
-        realistic CGI character, soft cinematic lighting, detailed skin texture
+      prompt: The camera performs a handheld extreme close-up on unspecified gender,
+        age from image 2, with her blue eyes filling the screen as she gazes directly
+        into the lens with playful malice and a sly smile. Keep the woman from image
+        2 exactly as she is, with her outfit. Her expression remains unchanged while
+        she subtly tilts her head, inviting an unseen observer closer. Soft classical
+        lighting illuminates the scene, emphasizing the rich textures and visible
+        brush strokes of this oil painting. oil painting, visible brush strokes, rich
+        warm textures, classical lighting
       refs:
-      - loc_cave_du_manoir_local_du_tableau_electriq
-      - outfit_combinaison_de_travail_bleue_gants_isola
+      - scene_s2_440386
+      - scene_s2_15e940
       aspect: '16:9'
-    prompt: Medium close-up from a low three-quarter angle at chest height, slightly
-      to the man's left, focus sharp on his gloved hand and face with the cobwebbed
-      panel softly blurred behind. Keep the man from image 2 exactly as he is, with
-      his outfit, and the cellar from image 1 as the setting. He stands before the
-      old grey panel, his black-gloved hand resting gently on the warm cast iron,
-      head slightly bowed, with a soft resigned expression and a hint of hesitation.
-      The amber fuses pulse slowly beside his hand. Warm amber glow and his headlamp
-      beam light him, with the bare bulb's shadows behind. photorealistic 3D render,
-      realistic CGI character, soft cinematic lighting, detailed skin texture
+    prompt: The camera performs a handheld extreme close-up on unspecified gender,
+      age from image 2, with her blue eyes filling the screen as she gazes directly
+      into the lens with playful malice and a sly smile. Keep the woman from image
+      2 exactly as she is, with her outfit. Her expression remains unchanged while
+      she subtly tilts her head, inviting an unseen observer closer. Soft classical
+      lighting illuminates the scene, emphasizing the rich textures and visible brush
+      strokes of this oil painting. oil painting, visible brush strokes, rich warm
+      textures, classical lighting
+  scene_s2_440386:
+    kind: scene
+    name: Les spectateurs réclament · plan 5
+    description: Lou lit à voix haute les commentaires qui défilent sur l'écran, répond
+      avec malice et taquine ceux qui la supplient de lui consacrer un moment privé.
+      Elle s'étire devant la caméra, déambule dans la pièce en faisant ressortir sa
+      silhouette athlétique, puis s'approche de l'objectif en murmurant des promesses
+      pour la suite de la soirée. La caméra capte chaque regard et chaque sourire,
+      comme si le spectateur était réellement dans la pièce.
+    parent: null
+    status: validated
+    validated_candidate: 3
+    candidates:
+    - file: assets/scene_s2_440386/cand_00.png
+      created: '2026-10-21T16:32:31'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: The camera is positioned at waist height in the center of the cramped
+        bedroom from image 1, focusing on the back of the woman from image 2 as she
+        stands before a rain-streaked window with neon lights casting swirling pink
+        and blue shadows. Keep the woman from image 2 exactly as she is, with her
+        outfit. She leans forward to place both hands on the windowsill, then arches
+        her back and tilts her hips in a deliberate pose that showcases her athletic
+        figure, while glancing over her shoulder with an aggrieved yet playful smirk
+        toward the camera's red light. The drone camera follows her movements through
+        the cluttered room as she sways her hips in a slow rhythm, creating a sense
+        of intimacy and presence. Oil painting, visible brush strokes, rich warm textures,
+        classical lighting. oil painting, visible brush strokes, rich warm textures,
+        classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - scene_s2_80ab3b
+      aspect: '16:9'
+    - file: assets/scene_s2_440386/cand_01.png
+      created: '2026-10-21T16:34:09'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Change the position of the woman to be on all fours, bend her back,
+        camera focused on her ass. Oil painting, visible brush strokes, rich warm
+        textures, classical lighting. oil painting, visible brush strokes, rich warm
+        textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - scene_s2_80ab3b
+      aspect: '16:9'
+    - file: assets/scene_s2_440386/cand_02.png
+      created: '2026-10-21T16:35:13'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Change the position of the woman to be on all fours, bending her back,
+        camera focused on her ass in a close up view. Oil painting, visible brush
+        strokes, rich warm textures, classical lighting. oil painting, visible brush
+        strokes, rich warm textures, classical lighting
+      refs:
+      - scene_s2_80ab3b
+      aspect: '16:9'
+    - file: assets/scene_s2_440386/cand_03.png
+      created: '2026-10-21T16:36:37'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Change the position of the woman to be on all fours, bending her back,
+        camera focused on her ass in a close up view. Oil painting, visible brush
+        strokes, rich warm textures, classical lighting. oil painting, visible brush
+        strokes, rich warm textures, classical lighting
+      refs:
+      - scene_s2_80ab3b
+      aspect: '16:9'
+    prompt: Change the position of the woman to be on all fours, bending her back,
+      camera focused on her ass in a close up view. Oil painting, visible brush strokes,
+      rich warm textures, classical lighting. oil painting, visible brush strokes,
+      rich warm textures, classical lighting
+  scene_s3_b8f4c0:
+    kind: scene
+    name: Message inconnu · plan 1
+    description: 'Au milieu du direct, un message sans pseudonyme s''affiche en rouge
+      : « Je sais où tu habites, Lou. » Son sourire se fige un instant avant qu''elle
+      ne reprenne contenance et feigne l''amusement pour ses abonnés. Une fois la
+      caméra coupée, elle se tient seule dans le silence de sa chambre, le regard
+      rivé sur la fenêtre où une lumière clignote dans l''immeuble d''en face.'
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s3_b8f4c0/cand_00.png
+      created: '2026-10-21T16:40:54'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'A medium shot shows Lou''s entire bedroom from behind her computer
+        monitor, where a red message flashes across the screen in the dark room. The
+        woman from image 2 stands before it, her body rigid as her smile freezes upon
+        seeing the text. Her pose remains identical to the reference, with only her
+        expression changing—eyes wide for half a second before she recovers, turning
+        slightly toward the camera with forced amusement while keeping the message
+        visible in the background. The lighting stays consistent with references:
+        warm from the monitor against the dim room. Oil painting, visible brush strokes,
+        rich warm textures, classical lighting. oil painting, visible brush strokes,
+        rich warm textures, classical lighting'
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai_2
+      aspect: '16:9'
+    - file: assets/scene_s3_b8f4c0/cand_01.png
+      created: '2026-10-21T16:42:36'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'A medium shot shows Lou''s entire bedroom from behind her computer
+        monitor, where a red message flashes across the screen in the dark room. The
+        woman from image 2 stands before it, her body rigid as her smile freezes upon
+        seeing the text. Her pose remains identical to the reference, with only her
+        expression changing—eyes wide for half a second before she recovers, turning
+        slightly toward the camera with forced amusement while keeping the message
+        visible in the background. The lighting stays consistent with references:
+        warm from the monitor against the dim room. Oil painting, visible brush strokes,
+        rich warm textures, classical lighting. oil painting, visible brush strokes,
+        rich warm textures, classical lighting'
+      refs:
+      - loc_chambre_de_lou
+      - scene_s2_440386
+      aspect: '16:9'
+    prompt: 'A medium shot shows Lou''s entire bedroom from behind her computer monitor,
+      where a red message flashes across the screen in the dark room. The woman from
+      image 2 stands before it, her body rigid as her smile freezes upon seeing the
+      text. Her pose remains identical to the reference, with only her expression
+      changing—eyes wide for half a second before she recovers, turning slightly toward
+      the camera with forced amusement while keeping the message visible in the background.
+      The lighting stays consistent with references: warm from the monitor against
+      the dim room. Oil painting, visible brush strokes, rich warm textures, classical
+      lighting. oil painting, visible brush strokes, rich warm textures, classical
+      lighting'
+  scene_s3_c91df1:
+    kind: scene
+    name: Message inconnu · plan 2
+    description: 'Au milieu du direct, un message sans pseudonyme s''affiche en rouge
+      : « Je sais où tu habites, Lou. » Son sourire se fige un instant avant qu''elle
+      ne reprenne contenance et feigne l''amusement pour ses abonnés. Une fois la
+      caméra coupée, elle se tient seule dans le silence de sa chambre, le regard
+      rivé sur la fenêtre où une lumière clignote dans l''immeuble d''en face.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s3_c91df1/cand_00.png
+      created: '2026-10-21T16:43:41'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: This shot is a close-up on the woman from image 2, whose smile freezes
+        for half a second as she receives an anonymous message during a live stream
+        in the room from image 1; keep her outfit and pose identical to reference.
+        She stands before glowing monitors with her shoulders tense, her gaze flicking
+        toward the rain-streaked window where lights pulse in the distance, maintaining
+        eye contact with the camera but her expression now strained rather than amused.
+        The room is dimly lit by neon accents and monitor glow. Oil painting, visible
+        brush strokes, rich warm textures, classical lighting. oil painting, visible
+        brush strokes, rich warm textures, classical lighting
+      refs:
+      - loc_chambre_de_lou
+      - outfit_brassiere_de_sport_noire_et_short_en_mai_2
+      aspect: '16:9'
+    prompt: This shot is a close-up on the woman from image 2, whose smile freezes
+      for half a second as she receives an anonymous message during a live stream
+      in the room from image 1; keep her outfit and pose identical to reference. She
+      stands before glowing monitors with her shoulders tense, her gaze flicking toward
+      the rain-streaked window where lights pulse in the distance, maintaining eye
+      contact with the camera but her expression now strained rather than amused.
+      The room is dimly lit by neon accents and monitor glow. Oil painting, visible
+      brush strokes, rich warm textures, classical lighting. oil painting, visible
+      brush strokes, rich warm textures, classical lighting
+  scene_s3_95633f:
+    kind: scene
+    name: Message inconnu · plan 3
+    description: 'Au milieu du direct, un message sans pseudonyme s''affiche en rouge
+      : « Je sais où tu habites, Lou. » Son sourire se fige un instant avant qu''elle
+      ne reprenne contenance et feigne l''amusement pour ses abonnés. Une fois la
+      caméra coupée, elle se tient seule dans le silence de sa chambre, le regard
+      rivé sur la fenêtre où une lumière clignote dans l''immeuble d''en face.'
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []
+  scene_s3_3b1a7d:
+    kind: scene
+    name: Message inconnu · plan 4
+    description: 'Au milieu du direct, un message sans pseudonyme s''affiche en rouge
+      : « Je sais où tu habites, Lou. » Son sourire se fige un instant avant qu''elle
+      ne reprenne contenance et feigne l''amusement pour ses abonnés. Une fois la
+      caméra coupée, elle se tient seule dans le silence de sa chambre, le regard
+      rivé sur la fenêtre où une lumière clignote dans l''immeuble d''en face.'
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []
+  scene_s3_cc9238:
+    kind: scene
+    name: Message inconnu · plan 5
+    description: 'Au milieu du direct, un message sans pseudonyme s''affiche en rouge
+      : « Je sais où tu habites, Lou. » Son sourire se fige un instant avant qu''elle
+      ne reprenne contenance et feigne l''amusement pour ses abonnés. Une fois la
+      caméra coupée, elle se tient seule dans le silence de sa chambre, le regard
+      rivé sur la fenêtre où une lumière clignote dans l''immeuble d''en face.'
+    parent: null
+    status: draft
+    validated_candidate: null
+    candidates: []

@@ -35,12 +35,30 @@ def _key(name: str) -> str:
     raise LLMError(f"Clé {name} introuvable (environnement ou {KEYFILE})")
 
 
+MODELS_FILE = ROOT / "game_spec" / "llm_models.yaml"  # modèles choisis dans la page (roue de réglages)
+
+
 def provider_settings(name: str) -> dict:
+    """Réglages d'un fournisseur : config.yaml, surchargés par les modèles choisis dans l'interface."""
     cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     try:
-        return cfg["llm"]["providers"][name]
+        base = dict(cfg["llm"]["providers"][name])
     except KeyError:
         raise LLMError(f"Fournisseur '{name}' absent de config.yaml") from None
+    if MODELS_FILE.exists():
+        override = (yaml.safe_load(MODELS_FILE.read_text(encoding="utf-8")) or {}).get(name, {})
+        base.update({k: v for k, v in override.items() if v})
+    return base
+
+
+def key_available(name: str) -> bool:
+    """Vrai si la clé du fournisseur est trouvée (sans jamais l'afficher)."""
+    if "api_key_env" not in provider_settings(name):
+        return True  # fournisseur local (Ollama) : pas de clé
+    try:
+        return bool(_key(provider_settings(name)["api_key_env"]))
+    except LLMError:
+        return False
 
 
 def _post(url: str, headers: dict, payload: dict, timeout: int = 600) -> dict:

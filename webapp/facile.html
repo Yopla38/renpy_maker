@@ -39,7 +39,7 @@ body {
 }
 header.top {
   max-width: 920px; margin: 0 auto; padding: 28px 16px 8px;
-  display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
 .brand { font: 700 26px/1.1 Fraunces, Georgia, serif; margin: 0; letter-spacing: -.01em; }
 .brand small { display: block; font: 600 13px Nunito, sans-serif; color: var(--muted); letter-spacing: .02em; margin-top: 4px; }
@@ -181,6 +181,29 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 .zoomable { cursor: zoom-in; }
 .lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(20, 16, 14, .9); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
 .lightbox img { max-width: 100%; max-height: 100%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5); object-fit: contain; }
+.chapbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--paper); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
+.chapform { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
+.chapform h3 { margin-bottom: 12px; }
+.pending { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--accent-soft); border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; }
+.pending b { margin-right: 4px; }
+.chapter-title { font: 700 22px/1.2 Fraunces, Georgia, serif; margin: 26px 0 10px; color: var(--accent); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.gear { background: var(--card); border: 1px solid var(--line); border-radius: 50%; width: 44px; height: 44px; padding: 0; font-size: 22px; color: var(--ink); align-self: center; }
+.gear:hover { border-color: var(--accent); color: var(--accent); transform: rotate(45deg); transition: .3s; }
+.settings .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 60; width: min(560px, calc(100vw - 32px)); box-shadow: var(--shadow); margin: 0; }
+.errbox.toast { cursor: pointer; }
+.fine { margin: 8px 0; border-top: 1px dashed var(--line); padding-top: 8px; }
+.fine summary { cursor: pointer; font-weight: 700; color: var(--muted); font-size: 14px; }
+.refs-title { font-weight: 800; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+.reflist { display: grid; gap: 6px; }
+.ref { display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 700; margin: 0; }
+.ref img { width: 44px; height: 28px; object-fit: cover; border-radius: 6px; }
+.ref.off span { text-decoration: line-through; opacity: .5; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { width: 96px; padding: 4px; border-radius: 10px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 11px Nunito, sans-serif; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.thumb img { width: 86px; height: 52px; object-fit: cover; border-radius: 6px; }
+.thumb.on { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(93, 139, 123, .25); }
+.thumb span { max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) { .plan { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   body { font-size: 16px; }
@@ -195,6 +218,7 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 <body>
 <header class="top">
   <h1 class="brand">Mon histoire<small>Créez votre jeu, étape par étape</small></h1>
+  <button class="gear" title="Réglages : modèles et fournisseurs" onclick="toggleSettings()" aria-label="Réglages">⚙</button>
 </header>
 <nav class="steps" id="steps"></nav>
 <main><section class="stage" id="stage"><p class="notice">Chargement…</p></section></main>
@@ -228,6 +252,10 @@ let err = "";          // dernier message d'erreur à montrer
 let draft = null;      // brouillon du formulaire d'idée (survit aux rafraîchissements)
 let planDraft = {};    // découpage modifié, par scène, pas encore enregistré
 let gameResult = null; // résultat de la dernière création du jeu
+let chapterForm = null; // formulaire « nouveau chapitre » ouvert : {count, guidance}
+let busyPrompt = {};   // suggestion de prompt en cours, par identifiant
+let settingsForm = null; // panneau de réglages ouvert : {text, image, explicit, text_provider, text_model}
+const CHAPTER_STEPS = ["idee", "images", "histoire", "jouer"];
 const autoTried = {};  // cartes déjà lancées automatiquement
 
 const $ = (id) => document.getElementById(id);
@@ -282,7 +310,7 @@ function prev() {
 }
 
 function jobHtml() {
-  return job ? `<div class="job"><span class="spin"></span><span>${esc(job.message)}</span></div>` : "";
+  return job ? `<div class="job toast"><span class="spin"></span><span>${esc(job.message)}</span></div>` : "";
 }
 
 // Lance une tâche côté serveur et suit son avancement jusqu'à la fin.
@@ -313,6 +341,133 @@ async function runJob(start, onDone) {
   render();
 }
 
+// --- réglages (roue) : fournisseur et modèle d'écriture, fournisseur d'images ---
+async function toggleSettings() {
+  if (settingsForm) { settingsForm = null; return render(); }
+  try {
+    const d = await api("GET", "/api/facile/settings");
+    settingsForm = { ...d, text_provider: d.text.provider, text_model: "" };
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+function pickTextProvider(name) {
+  settingsForm.text_provider = name;
+  settingsForm.text_model = "";
+  render();
+}
+
+function settingsHtml() {
+  const f = settingsForm;
+  const cur = f.text.choices.find((c) => c.name === f.text_provider) || f.text.choices[0];
+  const opts = f.text.choices.map((c) => `<button class="chip ${c.name === f.text_provider ? "on" : ""}"
+    onclick="pickTextProvider('${c.name}')" ${job ? "disabled" : ""}>${esc(c.label)}</button>`).join("");
+  const keyNote = cur.key ? "" : `<p class="warn">Clé absente pour ${esc(cur.label)} : ajoutez-la au fichier de clés, ou choisissez un autre fournisseur.</p>`;
+  const imgOpts = f.image.choices.map((c) => `<button class="chip ${c.name === f.image.provider ? "on" : ""}"
+    ${c.available ? "" : "disabled"} title="${c.available ? "" : "Pas encore branché au parcours simple"}">${esc(c.label)}</button>`).join("");
+  return `<div class="chapform settings">
+    <h3>Réglages</h3>
+    <div class="field"><span>Écrivain (plans, répliques, prompts)</span><div class="chips">${opts}</div></div>
+    <label>Modèle
+      <input type="text" id="text-model" value="${esc(f.text_model)}" placeholder="${esc(cur.model)}"
+        oninput="settingsForm.text_model = this.value"></label>
+    <p class="notice">Laissez vide pour garder « ${esc(cur.model)} ». Le changement vaut pour les prochaines générations.</p>
+    ${keyNote}
+    <div class="field"><span>Images</span><div class="chips">${imgOpts}</div>
+      <p class="notice">${f.image.models.map(esc).join(" · ")}</p></div>
+    <div class="actions"><button class="ghost" onclick="toggleSettings()">Fermer</button>
+      <div class="right"><button class="primary" onclick="saveSettings()" ${job ? "disabled" : ""}>Enregistrer</button></div></div>
+  </div>`;
+}
+
+async function saveSettings() {
+  try {
+    await api("POST", "/api/facile/settings", {
+      text_provider: settingsForm.text_provider, text_model: settingsForm.text_model, image_provider: settingsForm.image.provider,
+    });
+    settingsForm = null;
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+// --- chapitres : suite de l'histoire ---
+function chapterBar() {
+  if (!V.written || !CHAPTER_STEPS.includes(step)) return "";
+  const busy = job || V.busy;
+  const button = chapterForm ? "" : `<button class="primary small" onclick="openChapter()" ${busy ? "disabled" : ""}>+ Ajouter un chapitre</button>`;
+  return `<div class="chapbar"><span class="notice">${V.chapters.length} chapitre(s) · ${V.scenes.length} scène(s)</span>${button}</div>${chapterForm ? chapterFormHtml() : ""}`;
+}
+
+function openChapter() { chapterForm = { count: 4, guidance: "" }; render(); }
+function closeChapter() { chapterForm = null; render(); }
+function setChapterCount(n) { chapterForm.count = n; render(); }
+
+function chapterFormHtml() {
+  const seg = V.counts.map((n) => `<button class="${n === chapterForm.count ? "on" : ""}" onclick="setChapterCount(${n})">${n}</button>`).join("");
+  return `<div class="chapform">
+    <h3>La suite de l'histoire</h3>
+    <div class="field"><span>Nombre de scènes du chapitre</span><div class="seg">${seg}</div></div>
+    <label>Consigne <span class="notice">(facultative)</span>
+      <textarea rows="3" placeholder="Par exemple : ils trouvent la chapelle abandonnée, et une lumière s'y allume"
+        oninput="chapterForm.guidance = this.value">${esc(chapterForm.guidance)}</textarea></label>
+    <div class="actions"><button class="ghost" onclick="closeChapter()" ${job ? "disabled" : ""}>Annuler</button>
+      <div class="right"><button class="primary" onclick="writeChapter()" ${job ? "disabled" : ""}>Écrire le chapitre</button></div></div>
+  </div>`;
+}
+
+async function writeChapter() {
+  const { count, guidance } = chapterForm;
+  await runJob(
+    () => api("POST", "/api/facile/chapter/add", { count, guidance }),
+    () => { chapterForm = null; step = STEPS[firstOpen()].id; },
+  );
+}
+
+async function deleteLastChapter() {
+  if (!confirm("Supprimer le dernier chapitre et ses scènes ? Ses images restent dans le registre, mais ne seront plus utilisées.")) return;
+  try {
+    await api("POST", "/api/facile/chapter/delete-last", {});
+    planDraft = {};
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+// Ce qui reste à faire après un ajout : un raccourci vers chaque étape concernée.
+function pendingItems() {
+  const items = [];
+  const todo = (list) => list.filter((c) => !c.ready).length;
+  const chars = todo(V.characters), locs = todo(V.locations), outs = todo(V.outfits);
+  const noText = V.scenes.filter((s) => !s.dialogue.length).length;
+  const noPlan = V.scenes.filter((s) => !s.plans.length).length;
+  const noImg = V.scenes.reduce((n, s) => n + s.plans.filter((p) => !p.image).length, 0);
+  if (chars) items.push({ step: "personnages", text: `${chars} personnage(s) à dessiner` });
+  if (locs) items.push({ step: "lieux", text: `${locs} lieu(x) à dessiner` });
+  if (outs) items.push({ step: "tenues", text: `${outs} tenue(s) à dessiner` });
+  if (noText) items.push({ step: "histoire", text: `${noText} scène(s) sans répliques` });
+  if (noPlan || noImg) items.push({ step: "images", text: `${noPlan ? noPlan + " scène(s) sans découpage, " : ""}${noImg} plan(s) sans image` });
+  return items;
+}
+
+function pendingHtml() {
+  if (!V.written || step === "style") return "";
+  const items = pendingItems();
+  if (!items.length) return "";
+  return `<div class="pending"><b>Reste à faire</b>
+    ${items.map((i) => `<button class="ghost small" onclick="go('${i.step}')" ${job ? "disabled" : ""}>${esc(i.text)} →</button>`).join("")}</div>`;
+}
+
+// Titre de chapitre au premier scène de chaque chapitre (Histoire et Plans).
+function chapterHead(list, n) {
+  const s = list[n];
+  if (n > 0 && list[n - 1].chapter === s.chapter) return "";
+  return `<h2 class="chapter-title">Chapitre ${s.chapter} · ${esc(s.chapter_title)}</h2>`;
+}
+
 // --- étape Style ---
 async function pickStyle(key) {
   if (job || V.written) return;
@@ -339,11 +494,12 @@ function bodyStyle() {
 // --- étape Idée ---
 function bodyIdee() {
   if (V.written) {
-    const lines = V.scenes.map((s, n) => `<div class="summary-block"><span class="okmark">Scène ${n + 1}</span> · ${esc(s.title)}</div>`).join("");
-    const todo = !V.done.histoire || !V.done.personnages || !V.done.lieux || !V.done.tenues;
+    const lines = V.chapters.map((c, i) => `<div class="summary-block"><span class="okmark">Chapitre ${i + 1}</span> · ${esc(c.title)} <span class="notice">(${c.scenes} scène(s))</span></div>`).join("");
+    const todo = !V.done.histoire || !V.done.personnages || !V.done.lieux || !V.done.tenues || !V.done.images;
     return {
-      body: `<p class="lead">Votre histoire est écrite : ${V.scenes.length} scène(s).${todo ? " Certaines parties restent à compléter." : ""}</p>${lines}`,
+      body: `<p class="lead">Votre histoire est écrite : ${V.chapters.length} chapitre(s), ${V.scenes.length} scène(s).${todo ? " Certaines parties restent à compléter." : ""}</p>${lines}`,
       foot: `<div class="actions"><button class="link" onclick="reset()" ${job ? "disabled" : ""}>Recommencer une autre histoire</button>
+        ${V.chapters.length > 1 ? `<button class="link" onclick="deleteLastChapter()" ${job ? "disabled" : ""}>Supprimer le dernier chapitre</button>` : ""}
         <div class="right">${todo ? `<button class="ghost" onclick="completeStory()" ${job ? "disabled" : ""}>Compléter l'histoire</button>` : ""}
         <button class="primary" onclick="next()" ${job ? "disabled" : ""}>Continuer</button></div></div>`,
     };
@@ -384,7 +540,7 @@ async function reset() {
   if (!confirm("Recommencer ? L'histoire, ses personnages et ses images seront remis à zéro. Une copie est gardée dans work/backups.")) return;
   try {
     await api("POST", "/api/facile/reset", {});
-    draft = null; V = null; planDraft = {}; idx = { characters: 0, locations: 0, outfits: 0 };
+    draft = null; V = null; planDraft = {}; chapterForm = null; idx = { characters: 0, locations: 0, outfits: 0 };
     for (const k of Object.keys(autoTried)) delete autoTried[k];
     await load();
     step = "style";
@@ -408,24 +564,27 @@ function promptBox(aid, text, suggestKind, redoJs) {
     hits.length ? `Ce prompt contient un prénom (${esc(hits.join(", "))}) : l'image ne le comprend pas. Proposez un autre prompt, qui décrit le genre et l'âge.` : "",
     noStyle ? "Le style de l'histoire ne termine pas ce prompt : proposez un autre prompt, il le remettra." : "",
   ].filter(Boolean).map((w) => `<p class="warn">${w}</p>`).join("");
-  return `<details class="prompt"${hits.length || noStyle ? " open" : ""}>
+  return `<details class="prompt" data-key="prompt-${aid}"${hits.length || noStyle ? " open" : ""}>
     <summary>Prompt de l'image (en anglais)</summary>
     ${warns}
     ${text ? "" : `<p class="notice">Pas encore de prompt : il sera rédigé à partir du texte du plan.</p>`}
     <textarea id="pr-${aid}" rows="4">${esc(text)}</textarea>
     <div class="prompt-actions">
-      <button class="ghost small" onclick="suggestPrompt('${suggestKind}', '${aid}')" ${busy ? "disabled" : ""}>Proposer un autre prompt</button>
+      <button class="ghost small" onclick="suggestPrompt('${suggestKind}', '${aid}')" ${busy || busyPrompt[aid] ? "disabled" : ""}>${busyPrompt[aid] ? "Rédaction en cours… (quelques secondes)" : "Proposer un autre prompt"}</button>
       <button class="primary small" onclick="${redoJs}" ${busy ? "disabled" : ""}>Refaire avec ce prompt</button>
     </div></details>`;
 }
 
 async function suggestPrompt(kind, id) {
+  busyPrompt[id] = true;
+  render();
   try {
     const r = await api("POST", "/api/facile/prompt/suggest", { kind, id });
     const ta = $("pr-" + id);
     if (ta) ta.value = r.prompt;
     err = "";
   } catch (e) { err = e.message; }
+  delete busyPrompt[id];
   render();
 }
 
@@ -486,7 +645,7 @@ function cardStep(key, delta) {
 // --- étape Histoire ---
 function bodyHistoire() {
   const missing = V.scenes.filter((s) => !s.dialogue.length).length;
-  const cards = V.scenes.map((s, n) => `
+  const cards = V.scenes.map((s, n) => chapterHead(V.scenes, n) + `
     <article class="scene">
       <header><span class="num">Scène ${n + 1}</span><h3>${esc(s.title)}</h3></header>
       <p class="summary">${esc(s.summary)}</p>
@@ -678,12 +837,63 @@ function planHtml(s, r, k, busy) {
         <select ${busy || k === 0 ? "disabled" : ""} onchange="planField('${s.id}', ${k}, 'from_line', Number(this.value))">${opts}</select></div>
       <textarea rows="2" ${busy ? "disabled" : ""} oninput="planField('${s.id}', ${k}, 'text', this.value, true)" placeholder="Ce que montre ce plan">${esc(r.text)}</textarea>
       <div class="chips"><span class="notice">Visible :</span>${chips || `<span class="notice">aucun personnage dans la scène</span>`}</div>
+      ${fineHtml(s, vp, busy)}
       <div class="prompt-actions">
         ${vp ? `<button class="ghost small" onclick="planImage('${s.id}', '${vp.id}', '${vp.aid}')" ${busy ? "disabled" : ""}>${vp.image ? "Refaire l'image" : "Créer l'image"}</button>` : ""}
         <button class="link" onclick="removePlanRow('${s.id}', ${k})" ${busy || rows.length < 2 ? "disabled" : ""}>Supprimer ce plan</button>
       </div>
       ${vp ? promptBox(vp.aid, vp.prompt, "plan", `planImage('${s.id}', '${vp.id}', '${vp.aid}', true)`) : ""}
     </div></div>`;
+}
+
+// --- réglage fin : images de référence d'un plan (option, replié par défaut) ---
+function fineHtml(s, vp, busy) {
+  if (!vp) return "";
+  const r = vp.refs;
+  const auto = r.auto.map((a, ai) => `<label class="ref ${a.excluded ? "off" : ""}">
+      <input type="checkbox" ${a.excluded ? "" : "checked"} ${busy ? "disabled" : ""} onchange="toggleRef('${s.id}', '${vp.id}', ${ai})">
+      ${a.image ? `<img src="${esc(a.image)}" alt="">` : ""}<span>${esc(a.label)}</span></label>`).join("");
+  const choices = V.ref_choices.filter((c) => c.ref !== vp.aid).map((c) => `<button class="thumb ${r.extra.includes(c.ref) ? "on" : ""}"
+      ${busy ? "disabled" : ""} onclick="addRef('${s.id}', '${vp.id}', '${c.ref}')" title="${esc(c.label)}">
+      <img src="${esc(c.image)}" alt=""><span>${esc(c.label)}</span></button>`).join("");
+  const miss = r.missing.length ? `<p class="warn">${esc(r.missing.join(" · "))}</p>` : "";
+  return `<details class="fine" data-key="fine-${vp.id}">
+    <summary>Réglage fin : images de référence</summary>
+    <p class="notice">Ces images guident le dessin. Ne modifiez ce réglage que si le résultat ne convient pas. Klein accepte 5 références au maximum.</p>
+    <div class="refs-title">Références automatiques (décochez pour les retirer)</div>
+    <div class="reflist">${auto || `<span class="notice">Aucune</span>`}</div>
+    <div class="refs-title">Images ajoutées (cliquez pour ajouter ou retirer)</div>
+    <div class="thumbs">${choices || `<span class="notice">Aucune autre image retenue.</span>`}</div>${miss}
+  </details>`;
+}
+
+async function changeRefs(sid, pid, change) {
+  err = "";
+  try {
+    await saveDraftIfAny(sid);
+    const p = V.scenes.find((x) => x.id === sid).plans.find((x) => x.id === pid);
+    const exclude = p.refs.auto.filter((a) => a.excluded).map((a) => a.key);
+    const extra = p.refs.extra.slice();
+    change(exclude, extra);
+    await api("POST", "/api/facile/plan/refs", { scene: sid, plan: pid, exclude, extra });
+    await load();
+  } catch (e) { err = e.message; }
+  render();
+}
+
+function toggleRef(sid, pid, ai) {
+  const key = V.scenes.find((x) => x.id === sid).plans.find((x) => x.id === pid).refs.auto[ai].key;
+  return changeRefs(sid, pid, (exclude) => {
+    const i = exclude.indexOf(key);
+    if (i >= 0) exclude.splice(i, 1); else exclude.push(key);
+  });
+}
+
+function addRef(sid, pid, aid) {
+  return changeRefs(sid, pid, (_, extra) => {
+    const i = extra.indexOf(aid);
+    if (i >= 0) extra.splice(i, 1); else extra.push(aid);
+  });
 }
 
 function sceneBlock(s, n, busy) {
@@ -715,7 +925,7 @@ function bodyPlans() {
     body: `<div class="planbar">${select}</div>
       <p class="hint">Astuces : le « + » entre deux plans en ajoute un. Glissez l'image d'un plan sur un autre pour la réutiliser
       (sur ordinateur : la tablette ne permet pas le glisser-déposer).</p>
-      ${V.scenes.map((s, n) => sceneBlock(s, n, busy)).join("")}`,
+      ${V.scenes.map((s, n) => chapterHead(V.scenes, n) + sceneBlock(s, n, busy)).join("")}`,
     foot: `<div class="actions">
       <button class="ghost" onclick="prev()" ${busy ? "disabled" : ""}>Retour</button>
       <div class="right">${missing ? `<button class="ghost" onclick="allPlanImages()" ${busy ? "disabled" : ""}>Créer toutes les images (${missing})</button>` : ""}
@@ -781,12 +991,17 @@ function render() {
     images: () => bodyPlans(),
     jouer: () => bodyJouer(),
   }[step]();
-  const errBox = err ? `<div class="errbox">${esc(err)}</div>` : "";
+  const errBox = err ? `<div class="errbox toast" onclick="err = ''; render()" title="Cliquer pour fermer">${esc(err)}</div>` : "";
+  // Les blocs repliables gardent leur état (ouvert ou fermé) quand la page se redessine.
+  const opened = new Set([...document.querySelectorAll("details[data-key][open]")].map((d) => d.dataset.key));
   $("stage").innerHTML = `
     <p class="kicker">Étape ${i + 1} sur ${STEPS.length}</p>
     <h1>${esc(s.title)}</h1>
     <p class="lead">${esc(s.lead)}</p>
-    <div id="jobslot">${jobHtml()}</div>${errBox}${parts.body}${parts.foot}`;
+    <div id="jobslot">${jobHtml()}</div>${errBox}${settingsForm ? settingsHtml() : ""}${chapterBar()}${pendingHtml()}${parts.body}${parts.foot}`;
+  for (const d of document.querySelectorAll("details[data-key]")) {
+    if (opened.has(d.dataset.key)) d.open = true;
+  }
   const key = CARD_KEYS[step];
   if (key && !job && !V.busy) {
     // Éléments jamais créés (histoire écrite avant cette étape) : on les crée une fois, sans boucle.

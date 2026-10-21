@@ -82,7 +82,7 @@ def generate(
     megapixels: str = "1",
     output_format: str = "png",
     timeout_s: int = 600,
-    disable_safety_checker: bool = False
+    disable_safety_checker: bool = True
 ) -> str:
     """Génère (sans images) avec MODEL_BASE, ou édite (avec images) avec MODEL_EDIT.
 
