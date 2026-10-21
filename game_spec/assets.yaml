@@ -1,2 +1,1015 @@
 version: 1
-assets: {}
+assets:
+  char_greg:
+    kind: character
+    name: Greg
+    description: ''
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/char_greg/cand_00.png
+      created: '2026-10-21T15:00:21'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A tall adult man in his late thirties with a sturdy build, short dark
+        brown hair damp from fine rain, and tired but curious hazel eyes, one eyebrow
+        slightly raised in skepticism. He wears a worn olive work jacket over a gray
+        henley, a leather tool belt, and carries a coil of cable over one shoulder.
+        He stands in a dim cellar, three-quarter view, a notebook in hand, faint amber
+        light glowing on his stubbled face. photorealistic 3D render, realistic CGI
+        character, soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '2:3'
+    descriptor: adult man
+    prompt: A tall adult man in his late thirties with a sturdy build, short dark
+      brown hair damp from fine rain, and tired but curious hazel eyes, one eyebrow
+      slightly raised in skepticism. He wears a worn olive work jacket over a gray
+      henley, a leather tool belt, and carries a coil of cable over one shoulder.
+      He stands in a dim cellar, three-quarter view, a notebook in hand, faint amber
+      light glowing on his stubbled face. photorealistic 3D render, realistic CGI
+      character, soft cinematic lighting, detailed skin texture
+  char_eloise:
+    kind: character
+    name: Éloïse
+    description: ''
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/char_eloise/cand_00.png
+      created: '2026-10-21T15:00:34'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A young woman in her late twenties stands in a three-quarter portrait
+        inside a dim, dusty manor hall, her expression apologetic yet quietly hopeful.
+        She has tousled chestnut hair pinned loosely up, warm hazel eyes, and a slender
+        build. She wears a slightly rumpled cream blouse under a faded green cardigan,
+        with a dusty hem on her long skirt. Her hands are clasped nervously. Warm
+        light from a flickering chandelier glows behind her. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '2:3'
+    - file: assets/char_eloise/cand_01.png
+      created: '2026-10-21T15:00:49'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A young woman in her late twenties stands in a three-quarter portrait
+        inside a dim, dusty manor hall, her expression apologetic yet quietly hopeful.
+        She has tousled chestnut hair pinned loosely up, warm hazel eyes, and a slender
+        build. She wears a slightly rumpled cream blouse under a faded green cardigan,
+        with a dusty hem on her long skirt. Her hands are clasped nervously. Warm
+        light from a flickering chandelier glows behind her. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '2:3'
+    descriptor: adult woman
+    prompt: A young woman in her late twenties stands in a three-quarter portrait
+      inside a dim, dusty manor hall, her expression apologetic yet quietly hopeful.
+      She has tousled chestnut hair pinned loosely up, warm hazel eyes, and a slender
+      build. She wears a slightly rumpled cream blouse under a faded green cardigan,
+      with a dusty hem on her long skirt. Her hands are clasped nervously. Warm light
+      from a flickering chandelier glows behind her. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture
+  loc_allee_et_jardin_du_manoir_de_valbrume:
+    kind: location
+    name: Allée et jardin du manoir de Valbrume
+    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
+      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
+      grincement presque poli, et les lanternes du jardin s'allument une à une pour
+      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
+      à détecteur, mais il ne trouve aucun capteur nulle part.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/loc_allee_et_jardin_du_manoir_de_valbrume/cand_00.png
+      created: '2026-10-21T15:01:10'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A wide establishing shot of a long gravel drive leading up to a grand,
+        weathered manor in fine drizzle, with a tall rusted iron gate standing swung
+        open in the foreground. Old brass lanterns glow warm amber one after another
+        along the path, reflecting in shallow puddles. Overgrown hedges, dripping
+        topiary and twisted oaks frame the scene, with pale mist drifting over the
+        lawn. Dusk light is blue-gray, and the manor's dark windows loom in the distance.
+        Empty, quiet, and faintly uncanny. photorealistic 3D render, realistic CGI
+        character, soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '16:9'
+    - file: assets/loc_allee_et_jardin_du_manoir_de_valbrume/cand_01.png
+      created: '2026-10-21T15:01:26'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A wide establishing shot of a long gravel drive leading up to a grand,
+        weathered manor in fine drizzle, with a tall rusted iron gate standing swung
+        open in the foreground. Old brass lanterns glow warm amber one after another
+        along the path, reflecting in shallow puddles. Overgrown hedges, dripping
+        topiary and twisted oaks frame the scene, with pale mist drifting over the
+        lawn. Dusk light is blue-gray, and the manor's dark windows loom in the distance.
+        Empty, quiet, and faintly uncanny. photorealistic 3D render, realistic CGI
+        character, soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '16:9'
+    prompt: A wide establishing shot of a long gravel drive leading up to a grand,
+      weathered manor in fine drizzle, with a tall rusted iron gate standing swung
+      open in the foreground. Old brass lanterns glow warm amber one after another
+      along the path, reflecting in shallow puddles. Overgrown hedges, dripping topiary
+      and twisted oaks frame the scene, with pale mist drifting over the lawn. Dusk
+      light is blue-gray, and the manor's dark windows loom in the distance. Empty,
+      quiet, and faintly uncanny. photorealistic 3D render, realistic CGI character,
+      soft cinematic lighting, detailed skin texture
+  loc_grand_hall_du_manoir:
+    kind: location
+    name: Grand hall du manoir
+    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
+      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
+      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
+      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
+      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/loc_grand_hall_du_manoir/cand_00.png
+      created: '2026-10-21T15:01:39'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A wide establishing shot of the grand hall of an old manor, with no
+        people present. A sweeping double staircase rises beneath tall arched windows,
+        and pale grey daylight falls across a cluttered marble floor of stacked boxes
+        and draped furniture. A worn crimson runner rug lies rumpled near the entrance.
+        A crystal chandelier hangs at a slight unnatural tilt, its bulbs flickering.
+        Long corridors recede into shadow on both sides. Dusty wood paneling, brass
+        sconces, a loose wall socket. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture
+      refs: []
+      aspect: '16:9'
+    prompt: A wide establishing shot of the grand hall of an old manor, with no people
+      present. A sweeping double staircase rises beneath tall arched windows, and
+      pale grey daylight falls across a cluttered marble floor of stacked boxes and
+      draped furniture. A worn crimson runner rug lies rumpled near the entrance.
+      A crystal chandelier hangs at a slight unnatural tilt, its bulbs flickering.
+      Long corridors recede into shadow on both sides. Dusty wood paneling, brass
+      sconces, a loose wall socket. photorealistic 3D render, realistic CGI character,
+      soft cinematic lighting, detailed skin texture
+  loc_cave_du_manoir_local_du_tableau_electriq:
+    kind: location
+    name: Cave du manoir, local du tableau électrique
+    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
+      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
+      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
+      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
+      mais pour soigner un patient.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/loc_cave_du_manoir_local_du_tableau_electriq/cand_00.png
+      created: '2026-10-21T15:01:51'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A wide establishing shot of a damp stone cellar beneath an old manor,
+        with low vaulted brick ceilings and a narrow wooden staircase descending from
+        a heavy door. Against the far wall stands a vintage grey electrical panel
+        draped in thick cobwebs, its metal cover hanging open to reveal rows of ceramic
+        fuses glowing a faint amber, as if breathing. Dusty wine racks, coiled cables
+        and a single bare bulb throw long shadows across the uneven flagstone floor.
+        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture
+      refs: []
+      aspect: '16:9'
+    - file: assets/loc_cave_du_manoir_local_du_tableau_electriq/cand_01.png
+      created: '2026-10-21T15:02:05'
+      backend: replicate
+      model: black-forest-labs/flux-dev
+      seed: null
+      prompt: A wide establishing shot of a damp stone cellar beneath an old manor,
+        with low vaulted brick ceilings and a narrow wooden staircase descending from
+        a heavy door. Against the far wall stands a vintage grey electrical panel
+        draped in thick cobwebs, its metal cover hanging open to reveal rows of ceramic
+        fuses glowing a faint amber, as if breathing. Dusty wine racks, coiled cables
+        and a single bare bulb throw long shadows across the uneven flagstone floor.
+        photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture
+      refs: []
+      aspect: '16:9'
+    prompt: A wide establishing shot of a damp stone cellar beneath an old manor,
+      with low vaulted brick ceilings and a narrow wooden staircase descending from
+      a heavy door. Against the far wall stands a vintage grey electrical panel draped
+      in thick cobwebs, its metal cover hanging open to reveal rows of ceramic fuses
+      glowing a faint amber, as if breathing. Dusty wine racks, coiled cables and
+      a single bare bulb throw long shadows across the uneven flagstone floor. photorealistic
+      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture
+  outfit_combinaison_de_travail_bleue_ceinture_a_:
+    kind: outfit
+    name: Combinaison de travail bleue, ceinture à outils, casque de chantier jaune
+      sous le bras, bottes de sécurité
+    description: ''
+    parent: char_greg
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_combinaison_de_travail_bleue_ceinture_a_/cand_00.png
+      created: '2026-10-21T15:02:24'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+        and framing. Change his clothing: put him in a blue work coverall, fitted
+        with a leather tool belt at the waist, a yellow hard hat held under one arm,
+        and black steel-toe safety boots. Remove any garment or accessory not in this
+        outfit. Photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture'
+      refs:
+      - char_greg
+      aspect: '2:3'
+    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+      and framing. Change his clothing: put him in a blue work coverall, fitted with
+      a leather tool belt at the waist, a yellow hard hat held under one arm, and
+      black steel-toe safety boots. Remove any garment or accessory not in this outfit.
+      Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture. photorealistic 3D render, realistic CGI character, soft
+      cinematic lighting, detailed skin texture'
+  outfit_combinaison_de_travail_bleue_ceinture_a__2:
+    kind: outfit
+    name: Combinaison de travail bleue, ceinture à outils, carnet de notes à la main
+    description: ''
+    parent: char_greg
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_combinaison_de_travail_bleue_ceinture_a__2/cand_00.png
+      created: '2026-10-21T15:02:45'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+        and framing. Change his outfit: dress him in a blue work coverall with a fitted
+        collar and zipped front, a leather tool belt around his waist holding pliers
+        and a screwdriver, sturdy brown work boots, and a small notebook held in one
+        hand. Remove any other garment or accessory. Photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture'
+      refs:
+      - char_greg
+      aspect: '2:3'
+    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+      and framing. Change his outfit: dress him in a blue work coverall with a fitted
+      collar and zipped front, a leather tool belt around his waist holding pliers
+      and a screwdriver, sturdy brown work boots, and a small notebook held in one
+      hand. Remove any other garment or accessory. Photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture. photorealistic
+      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture'
+  outfit_longue_robe_verte_passee_de_mode_gilet_e:
+    kind: outfit
+    name: Longue robe verte passée de mode, gilet en laine gris, cheveux attachés
+      en chignon lâche
+    description: ''
+    parent: char_eloise
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_longue_robe_verte_passee_de_mode_gilet_e/cand_00.png
+      created: '2026-10-21T15:02:59'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, body, pose
+        and framing. Dress her in a long, old-fashioned green dress with a modest
+        neckline and a full skirt falling to her ankles, topped with a soft grey wool
+        cardigan worn open, and plain brown shoes. Tie her hair back in a loose bun.
+        Remove any garment or accessory not in this outfit. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture'
+      refs:
+      - char_eloise
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, body, pose and
+      framing. Dress her in a long, old-fashioned green dress with a modest neckline
+      and a full skirt falling to her ankles, topped with a soft grey wool cardigan
+      worn open, and plain brown shoes. Tie her hair back in a loose bun. Remove any
+      garment or accessory not in this outfit. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture'
+  outfit_combinaison_de_travail_bleue_gants_isola:
+    kind: outfit
+    name: Combinaison de travail bleue, gants isolants, lampe frontale allumée
+    description: ''
+    parent: char_greg
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_combinaison_de_travail_bleue_gants_isola/cand_00.png
+      created: '2026-10-21T15:03:11'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+        and framing. Dress him in a blue work coverall with a fitted collar and zipped
+        front, black insulated gloves on his hands, and a lit headlamp strapped around
+        his forehead, plus sturdy dark work boots. Remove any other garment or accessory.
+        Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture'
+      refs:
+      - char_greg
+      aspect: '2:3'
+    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+      and framing. Dress him in a blue work coverall with a fitted collar and zipped
+      front, black insulated gloves on his hands, and a lit headlamp strapped around
+      his forehead, plus sturdy dark work boots. Remove any other garment or accessory.
+      Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture. photorealistic 3D render, realistic CGI character, soft
+      cinematic lighting, detailed skin texture'
+  outfit_longue_robe_verte_gilet_en_laine_gris_la:
+    kind: outfit
+    name: Longue robe verte, gilet en laine gris, lanterne à la main
+    description: ''
+    parent: char_eloise
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_longue_robe_verte_gilet_en_laine_gris_la/cand_00.png
+      created: '2026-10-21T15:03:29'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+        pose and framing. Dress her in a long flowing green dress with a fitted bodice,
+        a chunky grey wool cardigan worn open over it, and simple brown leather boots.
+        Place a lit vintage lantern in her hand. Remove any other garment or accessory.
+        Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture'
+      refs:
+      - char_eloise
+      aspect: '2:3'
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, hair, body,
+      pose and framing. Dress her in a long flowing green dress with a fitted bodice,
+      a chunky grey wool cardigan worn open over it, and simple brown leather boots.
+      Place a lit vintage lantern in her hand. Remove any other garment or accessory.
+      Photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture. photorealistic 3D render, realistic CGI character, soft
+      cinematic lighting, detailed skin texture'
+  scene_s1_d3d1fb:
+    kind: scene
+    name: La grille qui s'ouvre toute seule · plan 1
+    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
+      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
+      grincement presque poli, et les lanternes du jardin s'allument une à une pour
+      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
+      à détecteur, mais il ne trouve aucun capteur nulle part.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_d3d1fb/cand_00.png
+      created: '2026-10-21T15:04:18'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Wide shot from a low three-quarter angle beside the gravel drive, sharp
+        focus on the work van loaded with cables and tools, parked at the end of the
+        path facing the manor from image 1, fine rain falling. Keep the man from image
+        2 exactly as he is, with his outfit. He stands beside the van's open door,
+        small in the frame, neutral expression, looking back toward the gate. Add
+        amber lanterns glowing along the path and dark manor windows behind. Dim blue-gray
+        dusk light. photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - loc_allee_et_jardin_du_manoir_de_valbrume
+      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      aspect: '16:9'
+    prompt: Wide shot from a low three-quarter angle beside the gravel drive, sharp
+      focus on the work van loaded with cables and tools, parked at the end of the
+      path facing the manor from image 1, fine rain falling. Keep the man from image
+      2 exactly as he is, with his outfit. He stands beside the van's open door, small
+      in the frame, neutral expression, looking back toward the gate. Add amber lanterns
+      glowing along the path and dark manor windows behind. Dim blue-gray dusk light.
+      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture
+  scene_s1_1cbd1c:
+    kind: scene
+    name: La grille qui s'ouvre toute seule · plan 2
+    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
+      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
+      grincement presque poli, et les lanternes du jardin s'allument une à une pour
+      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
+      à détecteur, mais il ne trouve aucun capteur nulle part.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_1cbd1c/cand_00.png
+      created: '2026-10-21T15:04:43'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up from a low side angle through the rain-speckled windshield
+        of the van, sharp focus on the face of the man from image 2, with the blurred
+        manor gate and amber lanterns from image 1 glowing softly behind the glass.
+        Keep the man from image 2 exactly as he is, with his work outfit. He sits
+        behind the wheel, hands gripping it, head tilted back slightly, with a weary
+        sigh and tired, half-closed eyes, as if grumbling about the rain and the isolated
+        house. Raindrops streak the windshield. Cool blue-gray dusk light on his face,
+        with warm lantern glow reflected in the glass. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_allee_et_jardin_du_manoir_de_valbrume
+      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      aspect: '16:9'
+    prompt: Close-up from a low side angle through the rain-speckled windshield of
+      the van, sharp focus on the face of the man from image 2, with the blurred manor
+      gate and amber lanterns from image 1 glowing softly behind the glass. Keep the
+      man from image 2 exactly as he is, with his work outfit. He sits behind the
+      wheel, hands gripping it, head tilted back slightly, with a weary sigh and tired,
+      half-closed eyes, as if grumbling about the rain and the isolated house. Raindrops
+      streak the windshield. Cool blue-gray dusk light on his face, with warm lantern
+      glow reflected in the glass. photorealistic 3D render, realistic CGI character,
+      soft cinematic lighting, detailed skin texture
+  scene_s1_6d6740:
+    kind: scene
+    name: La grille qui s'ouvre toute seule · plan 3
+    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
+      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
+      grincement presque poli, et les lanternes du jardin s'allument une à une pour
+      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
+      à détecteur, mais il ne trouve aucun capteur nulle part.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_6d6740/cand_00.png
+      created: '2026-10-21T15:05:21'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium shot from a low three-quarter angle at the height of his chest,
+        focus sharp on the rusted gate bars parting by themselves in the foreground,
+        the man slightly softer behind them. Keep the man from image 2 exactly as
+        he is, with his outfit. Keep the manor, gravel drive and lanterns of image
+        1 as the setting. He stands on the gravel just beyond the gate, head tilted,
+        one eyebrow raised in surprise, scanning for a sensor. Fine rain falls, lanterns
+        glow amber. Soft blue-gray dusk light. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_allee_et_jardin_du_manoir_de_valbrume
+      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      aspect: '16:9'
+    prompt: Medium shot from a low three-quarter angle at the height of his chest,
+      focus sharp on the rusted gate bars parting by themselves in the foreground,
+      the man slightly softer behind them. Keep the man from image 2 exactly as he
+      is, with his outfit. Keep the manor, gravel drive and lanterns of image 1 as
+      the setting. He stands on the gravel just beyond the gate, head tilted, one
+      eyebrow raised in surprise, scanning for a sensor. Fine rain falls, lanterns
+      glow amber. Soft blue-gray dusk light. photorealistic 3D render, realistic CGI
+      character, soft cinematic lighting, detailed skin texture
+  scene_s1_43fb50:
+    kind: scene
+    name: La grille qui s'ouvre toute seule · plan 4
+    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
+      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
+      grincement presque poli, et les lanternes du jardin s'allument une à une pour
+      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
+      à détecteur, mais il ne trouve aucun capteur nulle part.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_43fb50/cand_00.png
+      created: '2026-10-21T15:05:57'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Wide shot from a low, slightly elevated angle at the side of the gravel
+        drive, looking down the allée toward the manor, with the lanterns glowing
+        one after another in sharp focus along the path. Keep the garden from image
+        1 exactly as it is, with its gate, hedges and mist. Keep the man from image
+        2 exactly as he is, with his outfit. Place him small in the left foreground
+        beside a loaded van, hood raised, one eyebrow lifted in skepticism, his hand
+        feeling behind a lantern base. Cold dusk drizzle, warm amber lantern glow
+        reflecting in the puddles. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_allee_et_jardin_du_manoir_de_valbrume
+      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      aspect: '16:9'
+    prompt: Wide shot from a low, slightly elevated angle at the side of the gravel
+      drive, looking down the allée toward the manor, with the lanterns glowing one
+      after another in sharp focus along the path. Keep the garden from image 1 exactly
+      as it is, with its gate, hedges and mist. Keep the man from image 2 exactly
+      as he is, with his outfit. Place him small in the left foreground beside a loaded
+      van, hood raised, one eyebrow lifted in skepticism, his hand feeling behind
+      a lantern base. Cold dusk drizzle, warm amber lantern glow reflecting in the
+      puddles. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture
+  scene_s1_d344d9:
+    kind: scene
+    name: La grille qui s'ouvre toute seule · plan 5
+    description: Greg arrive sous une pluie fine devant le manoir de Valbrume, camionnette
+      chargée de câbles et d'outils. La grille rouillée s'ouvre d'elle-même dans un
+      grincement presque poli, et les lanternes du jardin s'allument une à une pour
+      guider sa route. Greg hausse un sourcil, persuadé qu'il s'agit d'un vieux système
+      à détecteur, mais il ne trouve aucun capteur nulle part.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s1_d344d9/cand_00.png
+      created: '2026-10-21T15:06:19'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Close-up at chest height, camera low and slightly to the side, focused
+        sharply on the face and the searching hand, with the lantern base softly blurred
+        beside him. Keep the man from image 2 exactly as he is, with his outfit. Place
+        him crouched beside a brass lantern base from the garden of image 1, hood
+        raised, one hand feeling behind the stone plinth. His expression is resigned
+        and quietly puzzled, one eyebrow slightly lifted, eyes searching. The gravel,
+        wet hedges and mist of image 1 blur behind him. Lighting: cool blue-gray dusk
+        drizzle, warm amber lantern glow on his cheek. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture'
+      refs:
+      - loc_allee_et_jardin_du_manoir_de_valbrume
+      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      aspect: '16:9'
+    - file: assets/scene_s1_d344d9/cand_01.png
+      created: '2026-10-21T15:06:44'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at eye level, tight on the man from image 2 as he crouches
+        beside an old brass lantern base, shot slightly from the side, with his face
+        and searching hand in sharp focus and the misty garden softly blurred behind.
+        Keep the man from image 2 exactly as he is, with his outfit. Place him on
+        the gravel path from image 1, one hand reaching behind the stone lantern base,
+        one eyebrow raised, with a resigned, puzzled expression as he finds nothing.
+        Fine drizzle beads on his shoulders. The lantern glows warm amber against
+        cool blue-gray dusk light. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_allee_et_jardin_du_manoir_de_valbrume
+      - outfit_combinaison_de_travail_bleue_ceinture_a_
+      aspect: '16:9'
+    prompt: Close-up at eye level, tight on the man from image 2 as he crouches beside
+      an old brass lantern base, shot slightly from the side, with his face and searching
+      hand in sharp focus and the misty garden softly blurred behind. Keep the man
+      from image 2 exactly as he is, with his outfit. Place him on the gravel path
+      from image 1, one hand reaching behind the stone lantern base, one eyebrow raised,
+      with a resigned, puzzled expression as he finds nothing. Fine drizzle beads
+      on his shoulders. The lantern glows warm amber against cool blue-gray dusk light.
+      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture
+  scene_s2_3f635e:
+    kind: scene
+    name: Mademoiselle Éloïse · plan 1
+    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
+      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
+      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
+      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
+      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_3f635e/cand_00.png
+      created: '2026-10-21T15:07:08'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: 'Wide shot from a low-to-mid height, slightly back from the entrance,
+        with the whole grand hall from image 1 in sharp focus: the double staircase,
+        the tilted chandelier and the rumpled crimson runner. The man from image 2
+        stands near the closed heavy door in the foreground, and the woman from image
+        3 stands at the centre of the hall. Keep the man from image 2 and the woman
+        from image 3 exactly as they are, with their outfits. He holds his notebook
+        and eyes her with a sceptical frown. She presses her hands together, looking
+        embarrassed. Pale grey daylight from the tall windows, with flickering warm
+        bulbs. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+        detailed skin texture'
+      refs:
+      - loc_grand_hall_du_manoir
+      - outfit_combinaison_de_travail_bleue_ceinture_a__2
+      - outfit_longue_robe_verte_passee_de_mode_gilet_e
+      aspect: '16:9'
+    prompt: 'Wide shot from a low-to-mid height, slightly back from the entrance,
+      with the whole grand hall from image 1 in sharp focus: the double staircase,
+      the tilted chandelier and the rumpled crimson runner. The man from image 2 stands
+      near the closed heavy door in the foreground, and the woman from image 3 stands
+      at the centre of the hall. Keep the man from image 2 and the woman from image
+      3 exactly as they are, with their outfits. He holds his notebook and eyes her
+      with a sceptical frown. She presses her hands together, looking embarrassed.
+      Pale grey daylight from the tall windows, with flickering warm bulbs. photorealistic
+      3D render, realistic CGI character, soft cinematic lighting, detailed skin texture'
+  scene_s2_1ff9bc:
+    kind: scene
+    name: Mademoiselle Éloïse · plan 2
+    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
+      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
+      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
+      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
+      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_1ff9bc/cand_00.png
+      created: '2026-10-21T15:07:36'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at eye level, framed from the chest up, sharp focus on the
+        face of the woman from image 2, with the hall from image 1 softly blurred
+        behind her. Keep the woman from image 2 exactly as she is, with her outfit.
+        She stands slightly turned toward the camera, eyebrows drawn together in worry,
+        lips parted mid-sentence, one hand raised as if counting the faults. Behind
+        her, the flickering chandelier and a dim corridor fade into soft shadow. Pale
+        grey daylight from the tall windows falls gently on her face. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_grand_hall_du_manoir
+      - outfit_longue_robe_verte_passee_de_mode_gilet_e
+      aspect: '16:9'
+    prompt: Close-up at eye level, framed from the chest up, sharp focus on the face
+      of the woman from image 2, with the hall from image 1 softly blurred behind
+      her. Keep the woman from image 2 exactly as she is, with her outfit. She stands
+      slightly turned toward the camera, eyebrows drawn together in worry, lips parted
+      mid-sentence, one hand raised as if counting the faults. Behind her, the flickering
+      chandelier and a dim corridor fade into soft shadow. Pale grey daylight from
+      the tall windows falls gently on her face. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture
+  scene_s2_6e4c7c:
+    kind: scene
+    name: Mademoiselle Éloïse · plan 3
+    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
+      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
+      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
+      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
+      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_6e4c7c/cand_00.png
+      created: '2026-10-21T15:08:01'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium close-up from chest height at a slight three-quarter angle, the
+        man from image 2 sharp in the foreground while the grand hall from image 1
+        softens behind him, its tilted chandelier and flickering bulbs blurred above
+        his shoulder. Keep the man from image 2 exactly as he is, with his outfit
+        and notebook. He stands in the hall, looking down at the notebook as he writes,
+        one eyebrow raised and a dry, ironic half-smile. Pale grey window light falls
+        from the side, with a faint warm flicker from the chandelier. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_grand_hall_du_manoir
+      - outfit_combinaison_de_travail_bleue_ceinture_a__2
+      aspect: '16:9'
+    prompt: Medium close-up from chest height at a slight three-quarter angle, the
+      man from image 2 sharp in the foreground while the grand hall from image 1 softens
+      behind him, its tilted chandelier and flickering bulbs blurred above his shoulder.
+      Keep the man from image 2 exactly as he is, with his outfit and notebook. He
+      stands in the hall, looking down at the notebook as he writes, one eyebrow raised
+      and a dry, ironic half-smile. Pale grey window light falls from the side, with
+      a faint warm flicker from the chandelier. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture
+  scene_s2_68ba5b:
+    kind: scene
+    name: Mademoiselle Éloïse · plan 4
+    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
+      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
+      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
+      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
+      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s2_68ba5b/cand_00.png
+      created: '2026-10-21T15:08:21'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Extreme close-up from a low angle, looking up past the man's shoulder,
+        with the crystal chandelier from the hall of image 1 sharp in the foreground
+        and the man from image 2 softly blurred at the lower edge of the frame. Keep
+        the man from image 2 exactly as he is, with his outfit and notebook. He glances
+        up warily, brow furrowed, pencil paused. The chandelier tinkles and tilts
+        slowly toward him like a curious onlooker, bulbs flickering. Pale grey daylight
+        from the arched windows glints through the crystal. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_grand_hall_du_manoir
+      - outfit_combinaison_de_travail_bleue_ceinture_a__2
+      aspect: '16:9'
+    - file: assets/scene_s2_68ba5b/cand_01.png
+      created: '2026-10-21T15:08:39'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Extreme close-up from a low angle, looking up past the man's shoulder,
+        with the crystal chandelier from the hall of image 1 sharp in the foreground
+        and the man from image 2 softly blurred at the lower edge of the frame. Keep
+        the man from image 2 exactly as he is, with his outfit and notebook. He glances
+        up warily, brow furrowed, pencil paused. The chandelier tinkles and tilts
+        slowly toward him like a curious onlooker, bulbs flickering. Pale grey daylight
+        from the arched windows glints through the crystal. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_grand_hall_du_manoir
+      - outfit_combinaison_de_travail_bleue_ceinture_a__2
+      - outfit_longue_robe_verte_passee_de_mode_gilet_e
+      aspect: '16:9'
+    prompt: Extreme close-up from a low angle, looking up past the man's shoulder,
+      with the crystal chandelier from the hall of image 1 sharp in the foreground
+      and the man from image 2 softly blurred at the lower edge of the frame. Keep
+      the man from image 2 exactly as he is, with his outfit and notebook. He glances
+      up warily, brow furrowed, pencil paused. The chandelier tinkles and tilts slowly
+      toward him like a curious onlooker, bulbs flickering. Pale grey daylight from
+      the arched windows glints through the crystal. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture
+  scene_s2_2b1de7:
+    kind: scene
+    name: Mademoiselle Éloïse · plan 5
+    description: 'Dans le grand hall, Greg est accueilli par Éloïse, la jeune propriétaire,
+      qui s''excuse pour le désordre et pour le tapis qui lui a dérobé son parapluie.
+      Elle lui décrit les pannes : lumières qui clignotent, prises qui chauffent,
+      couloirs qui changent de longueur. Greg prend des notes avec scepticisme, jusqu''à
+      ce qu''un lustre se mette à pencher vers lui comme pour l''observer.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_2b1de7/cand_00.png
+      created: '2026-10-21T15:09:01'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at eye level, tightly framing the woman from image 3 in the
+        foreground, sharp focus on her face, with the man from image 2 slightly out
+        of focus behind her shoulder and the tilted chandelier from image 1 glimmering
+        above. Keep the woman from image 3 exactly as she is, with her outfit. Keep
+        the man from image 2 exactly as he is, with his outfit. She glances up at
+        the chandelier with a shy, timid smile, one hand raised in gentle advice,
+        while he stands resigned, notebook lowered. Pale grey daylight from the arched
+        windows, flickering warm bulbs. photorealistic 3D render, realistic CGI character,
+        soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_grand_hall_du_manoir
+      - outfit_combinaison_de_travail_bleue_ceinture_a__2
+      - outfit_longue_robe_verte_passee_de_mode_gilet_e
+      aspect: '16:9'
+    prompt: Close-up at eye level, tightly framing the woman from image 3 in the foreground,
+      sharp focus on her face, with the man from image 2 slightly out of focus behind
+      her shoulder and the tilted chandelier from image 1 glimmering above. Keep the
+      woman from image 3 exactly as she is, with her outfit. Keep the man from image
+      2 exactly as he is, with his outfit. She glances up at the chandelier with a
+      shy, timid smile, one hand raised in gentle advice, while he stands resigned,
+      notebook lowered. Pale grey daylight from the arched windows, flickering warm
+      bulbs. photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture
+  scene_s3_baf61a:
+    kind: scene
+    name: Le tableau électrique respire · plan 1
+    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
+      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
+      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
+      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
+      mais pour soigner un patient.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s3_baf61a/cand_00.png
+      created: '2026-10-21T15:09:29'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Wide shot from a low angle at the bottom of the stone staircase, looking
+        up, with the whole steep stairway and both figures sharp. The cellar from
+        image 1 supplies the damp vaulted brick, stone steps and cobwebs. Keep the
+        man from image 2 and the woman from image 3 exactly as they are, with their
+        outfits. She descends slightly ahead, glancing back with a shy smile, lantern
+        raised. He follows one step behind, wary, brow furrowed, eyes on the ceiling.
+        Bare bulbs light one by one above them and go dark behind. Eerie amber glow,
+        long shadows. photorealistic 3D render, realistic CGI character, soft cinematic
+        lighting, detailed skin texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      - outfit_longue_robe_verte_gilet_en_laine_gris_la
+      aspect: '16:9'
+    prompt: Wide shot from a low angle at the bottom of the stone staircase, looking
+      up, with the whole steep stairway and both figures sharp. The cellar from image
+      1 supplies the damp vaulted brick, stone steps and cobwebs. Keep the man from
+      image 2 and the woman from image 3 exactly as they are, with their outfits.
+      She descends slightly ahead, glancing back with a shy smile, lantern raised.
+      He follows one step behind, wary, brow furrowed, eyes on the ceiling. Bare bulbs
+      light one by one above them and go dark behind. Eerie amber glow, long shadows.
+      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture
+  scene_s3_16fff5:
+    kind: scene
+    name: Le tableau électrique respire · plan 2
+    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
+      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
+      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
+      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
+      mais pour soigner un patient.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s3_16fff5/cand_00.png
+      created: '2026-10-21T15:09:46'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium shot from a low three-quarter angle behind his right shoulder,
+        at chest height, with the old grey-green cast-iron electrical panel at the
+        far end of the narrow room in sharp focus and the vaulted brick walls softly
+        blurred. Keep the man from image 2 exactly as he is, with his outfit, and
+        keep the cellar from image 1 as the look of the place. He stands facing the
+        panel, wiping cobwebs from its cover with his sleeve, head tilted with calm
+        professional curiosity. Lighting comes from his headlamp and the bare bulb,
+        with faint amber glints from the fuses. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      aspect: '16:9'
+    - file: assets/scene_s3_16fff5/cand_01.png
+      created: '2026-10-21T15:10:19'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium shot from a low three-quarter angle behind his right shoulder,
+        at chest height, with the old grey-green cast-iron electrical panel at the
+        far end of the narrow room in sharp focus and the vaulted brick walls softly
+        blurred. Keep the man from image 2 exactly as he is, with his outfit, and
+        keep the cellar from image 1 as the look of the place. He stands facing the
+        panel, wiping cobwebs from its cover with his sleeve, head tilted with calm
+        professional curiosity. Lighting comes from his headlamp and the bare bulb,
+        with faint amber glints from the fuses. photorealistic 3D render, realistic
+        CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      aspect: '16:9'
+    prompt: Medium shot from a low three-quarter angle behind his right shoulder,
+      at chest height, with the old grey-green cast-iron electrical panel at the far
+      end of the narrow room in sharp focus and the vaulted brick walls softly blurred.
+      Keep the man from image 2 exactly as he is, with his outfit, and keep the cellar
+      from image 1 as the look of the place. He stands facing the panel, wiping cobwebs
+      from its cover with his sleeve, head tilted with calm professional curiosity.
+      Lighting comes from his headlamp and the bare bulb, with faint amber glints
+      from the fuses. photorealistic 3D render, realistic CGI character, soft cinematic
+      lighting, detailed skin texture
+  scene_s3_9ab5eb:
+    kind: scene
+    name: Le tableau électrique respire · plan 3
+    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
+      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
+      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
+      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
+      mais pour soigner un patient.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s3_9ab5eb/cand_00.png
+      created: '2026-10-21T15:10:34'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at eye level, slightly off-axis over the man's shoulder, focused
+        sharply on the porcelain fuses pulsing behind the opened cover of the cobwebbed
+        panel from image 1, while the man from image 2 stays softly blurred in the
+        foreground edge. Keep the man from image 2 exactly as he is, with his outfit.
+        He stands close to the panel, one gloved hand holding the cover raised, his
+        eyes wide and his mouth parted in stunned shock. The fuses glow amber and
+        throb like a heart, with cobweb strands trembling. Warm amber glow from the
+        fuses mixes with his headlamp beam and the dim bulb. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      aspect: '16:9'
+    prompt: Close-up at eye level, slightly off-axis over the man's shoulder, focused
+      sharply on the porcelain fuses pulsing behind the opened cover of the cobwebbed
+      panel from image 1, while the man from image 2 stays softly blurred in the foreground
+      edge. Keep the man from image 2 exactly as he is, with his outfit. He stands
+      close to the panel, one gloved hand holding the cover raised, his eyes wide
+      and his mouth parted in stunned shock. The fuses glow amber and throb like a
+      heart, with cobweb strands trembling. Warm amber glow from the fuses mixes with
+      his headlamp beam and the dim bulb. photorealistic 3D render, realistic CGI
+      character, soft cinematic lighting, detailed skin texture
+  scene_s3_1b0997:
+    kind: scene
+    name: Le tableau électrique respire · plan 4
+    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
+      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
+      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
+      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
+      mais pour soigner un patient.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s3_1b0997/cand_00.png
+      created: '2026-10-21T15:10:53'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at eye level, three-quarter angle from slightly beside the
+        man, with the woman from image 3 sharp in the foreground and the man from
+        image 2 softly blurred behind her. Keep the woman from image 3 and the man
+        from image 2 exactly as they are, with their outfits. She stands before the
+        cobwebbed panel from image 1, lantern raised, lowering her gaze with sincere
+        embarrassment. He frowns beside her in disbelief. Amber fuse glow and lantern
+        light warm their faces, while the bare bulb leaves deep shadows. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      - outfit_longue_robe_verte_gilet_en_laine_gris_la
+      aspect: '16:9'
+    - file: assets/scene_s3_1b0997/cand_01.png
+      created: '2026-10-21T15:11:06'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Close-up at eye level, three-quarter angle from slightly beside the
+        man, with the woman from image 3 sharp in the foreground and the man from
+        image 2 softly blurred behind her. Keep the woman from image 3 and the man
+        from image 2 exactly as they are, with their outfits. She stands before the
+        cobwebbed panel from image 1, lantern raised, lowering her gaze with sincere
+        embarrassment. He frowns beside her in disbelief. Amber fuse glow and lantern
+        light warm their faces, while the bare bulb leaves deep shadows. photorealistic
+        3D render, realistic CGI character, soft cinematic lighting, detailed skin
+        texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      - outfit_longue_robe_verte_gilet_en_laine_gris_la
+      aspect: '16:9'
+    prompt: Close-up at eye level, three-quarter angle from slightly beside the man,
+      with the woman from image 3 sharp in the foreground and the man from image 2
+      softly blurred behind her. Keep the woman from image 3 and the man from image
+      2 exactly as they are, with their outfits. She stands before the cobwebbed panel
+      from image 1, lantern raised, lowering her gaze with sincere embarrassment.
+      He frowns beside her in disbelief. Amber fuse glow and lantern light warm their
+      faces, while the bare bulb leaves deep shadows. photorealistic 3D render, realistic
+      CGI character, soft cinematic lighting, detailed skin texture
+  scene_s3_8c5083:
+    kind: scene
+    name: Le tableau électrique respire · plan 5
+    description: Éloïse conduit Greg à la cave, où se trouve un vieux tableau électrique
+      couvert de toiles d'araignée. Quand Greg ouvre le capot, les fusibles palpitent
+      doucement comme un cœur, et une voix grésillante murmure « aïe ». Éloïse avoue
+      alors que le manoir est vivant et que Greg n'est pas là pour réparer une installation,
+      mais pour soigner un patient.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s3_8c5083/cand_00.png
+      created: '2026-10-21T15:11:19'
+      backend: replicate
+      model: black-forest-labs/flux-2-klein-9b
+      seed: null
+      prompt: Medium close-up from a low three-quarter angle at chest height, slightly
+        to the man's left, focus sharp on his gloved hand and face with the cobwebbed
+        panel softly blurred behind. Keep the man from image 2 exactly as he is, with
+        his outfit, and the cellar from image 1 as the setting. He stands before the
+        old grey panel, his black-gloved hand resting gently on the warm cast iron,
+        head slightly bowed, with a soft resigned expression and a hint of hesitation.
+        The amber fuses pulse slowly beside his hand. Warm amber glow and his headlamp
+        beam light him, with the bare bulb's shadows behind. photorealistic 3D render,
+        realistic CGI character, soft cinematic lighting, detailed skin texture
+      refs:
+      - loc_cave_du_manoir_local_du_tableau_electriq
+      - outfit_combinaison_de_travail_bleue_gants_isola
+      aspect: '16:9'
+    prompt: Medium close-up from a low three-quarter angle at chest height, slightly
+      to the man's left, focus sharp on his gloved hand and face with the cobwebbed
+      panel softly blurred behind. Keep the man from image 2 exactly as he is, with
+      his outfit, and the cellar from image 1 as the setting. He stands before the
+      old grey panel, his black-gloved hand resting gently on the warm cast iron,
+      head slightly bowed, with a soft resigned expression and a hint of hesitation.
+      The amber fuses pulse slowly beside his hand. Warm amber glow and his headlamp
+      beam light him, with the bare bulb's shadows behind. photorealistic 3D render,
+      realistic CGI character, soft cinematic lighting, detailed skin texture

@@ -17,7 +17,7 @@ def sample():
     S.add_scene(ch, "s1", "Arrivée", "Eve entre au Velvet.", ["Eve"], "Le Velvet", {"Eve": "robe bleue"})
     ch["scenes"][0]["ending"] = True
     assets = {
-        "char_eve": {"kind": "character", "name": "Eve", "description": "femme de 21 ans, blonde",
+        "char_eve": {"kind": "character", "name": "Eve", "descriptor": "young woman", "description": "femme de 21 ans, blonde",
                      "prompt": "adult woman, 21, blonde hair, blue eyes", "parent": None,
                      "status": "draft", "candidates": []},
         "outfit_robe": {"kind": "outfit", "name": "robe bleue", "description": "robe courte bleu nuit",
@@ -27,12 +27,15 @@ def sample():
 
 
 class PromptTests(unittest.TestCase):
-    def test_request_contains_context_and_framing(self):
+    # Style figé : sans style choisi dans l'histoire, c'est celui de config.yaml qui s'applique.
+    @mock.patch("assets.reference_style", return_value={"name": "3D réaliste", "positive_suffix": "photorealistic 3D render, realistic CGI character, soft cinematic lighting, detailed skin texture"})
+    def test_request_contains_context_and_framing(self, _style):
         st, data = sample()
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
         self.assertIn("Keep the woman from image 1", system)  # une tenue est une retouche de la personne
-        self.assertIn("Reference image 1 : Eve", user)
-        self.assertIn("Eve entre au Velvet.", user)
+        self.assertIn("Reference image 1 : the young woman", user)
+        self.assertIn("young woman entre au Velvet.", user)
+        self.assertNotIn("Eve", user)  # aucun prénom dans ce que lit le modèle image
         self.assertIn("photorealistic 3D render", system)  # style de référence, lu dans config.yaml
 
     def test_location_requests_no_people(self):
@@ -51,7 +54,8 @@ class PromptTests(unittest.TestCase):
         st, data = sample()
         with mock.patch.object(llm, "complete", return_value="A young woman in a short dark blue dress.") as m:
             text = PR.suggest(st, data, "outfit_robe")
-        self.assertEqual(text, "A young woman in a short dark blue dress.")
+        self.assertTrue(text.startswith("A young woman in a short dark blue dress."))
+        self.assertTrue(text.endswith(PR.llm_style()))
         provider = m.call_args[0][0]
         self.assertEqual(provider, st["settings"]["providers"]["text"])
 
@@ -68,8 +72,18 @@ class EditPromptTests(unittest.TestCase):
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
         self.assertIn("EDIT", system)
         self.assertIn("Keep the woman from image 1", system)
-        self.assertIn("Reference image 1 : Eve", user)
+        self.assertIn("Reference image 1 : the young woman", user)
+        self.assertNotIn("Eve", user)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StyleEndingTests(unittest.TestCase):
+    def test_style_is_added_once_at_the_end(self):
+        style = "watercolor painting, soft wet edges"
+        self.assertEqual(PR.with_style("A woman in blue.", style), "A woman in blue. watercolor painting, soft wet edges")
+        already = "A woman in blue. watercolor painting, soft wet edges"
+        self.assertEqual(PR.with_style(already, style), already)
+        self.assertEqual(PR.with_style("A woman.", ""), "A woman.")

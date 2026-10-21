@@ -11,9 +11,16 @@ import re
 import llm
 import story as S
 
+# Les modèles d'image ne connaissent pas les prénoms : une personne se décrit par son genre et son âge.
+NO_NAMES = ("Never write a first name or any proper name of a person in the prompt: describe each person by gender "
+            "and age instead ('a young woman', 'a teenage boy', 'an old man').")
+DESCRIBE_SYSTEM = ("Give the gender and age group of the person described, as a 2 to 4 word English noun phrase, "
+                   "for example 'young woman', 'teenage boy', 'old man'. Output only that phrase, never a name.")
+
 SYSTEM = """You write prompts for FLUX image models.
 Rules:
 - Output ONLY the prompt: one paragraph, in English, 40 to 90 words.
+- """ + NO_NAMES + """
 - Natural descriptive sentences, not comma-separated tags.
 - Be concrete: age, hair, eyes, build, clothing, pose, expression, setting, lighting, framing.
 - No negative prompt, no quality tags, no text or captions, no French.
@@ -56,6 +63,36 @@ def match_asset(assets: dict, el: dict, chars: dict) -> str | None:
     return None
 
 
+def character_names(assets: dict) -> list[str]:
+    return [a["name"] for a in assets.values() if a["kind"] == "character" and a.get("name")]
+
+
+def person_word(assets: dict, name: str) -> str:
+    """Comment désigner une personne dans un prompt : son genre et son âge, jamais son prénom."""
+    chars = {S.norm(a["name"]): k for k, a in assets.items() if a["kind"] == "character"}
+    aid = match_asset(assets, {"kind": "character", "name": name, "parent_name": None}, chars)
+    return (assets[aid].get("descriptor") if aid else None) or "person"
+
+
+def anonymize(text: str, assets: dict, names: list[str] | None = None) -> str:
+    """Remplace les prénoms des personnages par leur genre et âge dans un texte destiné au modèle image."""
+    for name in sorted(names if names is not None else character_names(assets), key=len, reverse=True):
+        text = re.sub(rf"(?<![\w]){re.escape(name)}(?![\w])", person_word(assets, name), text)
+    return text
+
+
+def clean_descriptor(text: str) -> str:
+    words = " ".join(text.strip().strip("`\"'.").split()).lower().split()
+    return " ".join(words[:5]) or "person"
+
+
+def describe_person(st: dict, name: str, description: str = "", provider: str | None = None) -> str:
+    """Genre et âge d'un personnage, en quelques mots anglais (une seule fois par personnage)."""
+    provider = provider or st["settings"]["providers"]["text"]
+    user = f"Person : {name}\nNotes (French) : {description}" if description else f"Person : {name}"
+    return clean_descriptor(llm.complete(provider, DESCRIBE_SYSTEM, user))
+
+
 def story_context(st: dict, assets: dict, aid: str) -> list[str]:
     """Résumés des scènes où apparaît l'actif `aid` (en français, comme le texte de l'histoire)."""
     chars = {S.norm(a["name"]): k for k, a in assets.items() if a["kind"] == "character"}
@@ -78,6 +115,7 @@ Output ONLY the prompt, in English, one paragraph of 30 to 80 words, never more 
 - Then state the change: the clothing to put on, and what to remove (any garment or accessory not in the outfit).
 - Do not re-describe her face, hair or body: the reference already shows them.
 - Describe the clothes concretely (garments, colours, fit, footwear, accessories). No negative terms, no quality words.
+- Never write a first name: say 'the woman from image 1', 'the man', 'the girl'.
 - Finish with this rendering style, word for word: {style}"""
 
 
@@ -90,12 +128,12 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
         lines = [
             f"Outfit to put on the character : {a['name']}",
             f"Notes (French) : {a.get('description', '')}" if a.get("description") else "",
-            f"Reference image 1 : {parent['name']}, as they look now.",
+            f"Reference image 1 : the {parent.get('descriptor') or 'person'}, as they look now.",
         ]
         ctx = story_context(st, assets, aid)
         if ctx:
             lines.append("Story context (French) :")
-            lines += [f"- {c}" for c in ctx]
+            lines += [f"- {anonymize(c, assets)}" for c in ctx]
         return system, "\n".join(l for l in lines if l)
     style = llm_style()
     framing = FRAMING.get(a["kind"], "")
@@ -104,16 +142,17 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     system = SYSTEM.format(style=style, framing=framing)
     lines = [
         f"Type : {a['kind']}",
-        f"Name : {a['name']}",
+        f"Name (never write it in the prompt) : {anonymize(a['name'], assets)}",
     ]
     if a.get("description"):
         lines.append(f"Notes (French) : {a['description']}")
     if a.get("parent"):
         parent = assets.get(a["parent"])
         if parent:
-            lines.append(f"Worn by : {parent['name']}")
+            lines.append(f"Worn by : the {parent.get('descriptor') or 'person'}")
             if parent.get("prompt"):
-                lines.append(f"Character appearance (English, from the existing prompt) : {parent['prompt']}")
+                lines.append(f"Character appearance (English, from the existing prompt) : "
+                             f"{anonymize(parent['prompt'], assets)}")
     ctx = story_context(st, assets, aid)
     if a["kind"] in ("object", "location"):
         # Un objet ou un lieu : seulement le titre de la scène, pour ne pas y faire entrer les personnages.
@@ -121,7 +160,7 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     if ctx:
         lines.append("Scene where it appears (titles only) :" if a["kind"] in ("object", "location")
                      else "Story context (French) :")
-        lines += [f"- {c}" for c in ctx]
+        lines += [f"- {anonymize(c, assets)}" for c in ctx]
     return system, "\n".join(lines)
 
 
@@ -142,7 +181,14 @@ def clean(text: str) -> str:
     return t
 
 
+def with_style(text: str, style: str) -> str:
+    """Le style du projet doit terminer le prompt. Le LLM l'oublie parfois : on le remet, visible dans le champ."""
+    if not style or style in text:
+        return text
+    return text.rstrip(" .") + ". " + style
+
+
 def suggest(st: dict, assets_data: dict, aid: str, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], aid)
     provider = provider or st["settings"]["providers"]["text"]
-    return clean(llm.complete(provider, system, user))
+    return with_style(clean(llm.complete(provider, system, user)), llm_style())

@@ -29,6 +29,7 @@ import plan as P  # noqa: E402
 import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
 import renpy_export as RE  # noqa: E402
+import facile as FA  # noqa: E402
 import pipeline as PL  # noqa: E402
 from prompts import match_asset as _match_asset  # noqa: E402
 import story as S  # noqa: E402
@@ -38,6 +39,7 @@ PORT = int(os.environ.get("RENPY_MAKER_PORT", "8765"))  # 8765 est souvent pris 
 KEYFILE = Path.home() / ".config/slapsci/llm_api_keys.txt"
 INDEX = Path(__file__).with_name("index.html")
 PLAN_PAGE = Path(__file__).with_name("plan.html")
+FACILE_PAGE = Path(__file__).with_name("facile.html")
 
 _lock = A.LOCK                    # protège game_spec/assets.yaml (partagé avec le pipeline)
 _slock = S.LOCK                   # protège game_spec/story.yaml (partagé avec le pipeline)
@@ -105,6 +107,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/":
             return self._send(200, INDEX.read_bytes(), "text/html; charset=utf-8")
+        if path in ("/facile", "/facile/"):
+            return self._send(200, FACILE_PAGE.read_bytes(), "text/html; charset=utf-8")
+        if path.startswith("/api/facile"):
+            return self._facile("GET", path, {})
         if path in ("/histoire", "/histoire/"):
             return self._send(200, PLAN_PAGE.read_bytes(), "text/html; charset=utf-8")
         if path == "/api/assets":
@@ -136,6 +142,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._file(path[len("/files/"):])
         self._json(404, {"error": "introuvable"})
 
+    def _facile(self, method: str, path: str, body: dict) -> None:
+        """Parcours simple : erreurs prévisibles en 400 (message lisible), inconnues en 500."""
+        try:
+            self._json(200, FA.route(method, path, body))
+        except FA.NotFound as e:
+            self._json(404, {"error": str(e)})
+        except (ValueError, KeyError, IndexError) as e:
+            self._json(400, {"error": str(e) or type(e).__name__})
+        except Exception as e:
+            traceback.print_exc()
+            self._json(500, {"error": f"{type(e).__name__}: {e}"})
+
     def _file(self, rel: str) -> None:
         base = (ROOT / "assets").resolve()
         target = (ROOT / rel).resolve()
@@ -147,6 +165,8 @@ class Handler(BaseHTTPRequestHandler):
     # ----- POST -----
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/facile"):
+            return self._facile("POST", path, self._body())
         try:
             body = self._body()
             if path == "/api/asset":

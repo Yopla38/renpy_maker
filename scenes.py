@@ -176,14 +176,15 @@ def scene_status(st: dict, assets: dict) -> list[dict]:
     return out
 
 
-def _people_line(plan: dict, sc: dict, info: dict) -> str:
-    """Qui est dans l'image, et de quelle image de référence on le tire."""
+def _people_line(plan: dict, sc: dict, info: dict, assets: dict) -> str:
+    """Qui est dans l'image (genre et âge, jamais le prénom), et de quelle image de référence on le tire."""
     labels = info["labels"]
     parts = []
     for name in plan_characters(sc, plan):
         plain = [lab.replace(" (ajoutée)", "") for lab in labels]
         idx = next((i + 1 for i, lab in enumerate(plain) if lab in (name, f"{name} en tenue")), None)
-        parts.append(f"{name} (image {idx})" if idx else f"{name} (no reference image)")
+        word = PR.person_word(assets, name)
+        parts.append(f"{word} (image {idx})" if idx else f"{word} (no reference image)")
     return "People in this image : " + (", ".join(parts) if parts else "nobody") + "."
 
 
@@ -198,7 +199,7 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     plan = sc["plans"][k]
     info = plan_refs(assets, sc, plan)
     if info["refs"]:
-        order = "; ".join(f"image {i + 1} = {lab}" for i, lab in enumerate(info["labels"]))
+        order = "; ".join(f"image {i + 1} = {PR.anonymize(lab, assets)}" for i, lab in enumerate(info["labels"]))
         refs_line = f"Reference images, by position: {order}."
     else:
         refs_line = "There are no reference images: describe the scene only."
@@ -237,10 +238,11 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
         "Use natural sentences, not tags. No negative terms, no quality words, no text in the image. "
         f"Keep one rendering style only and finish with these words, verbatim: {style}"
     )
-    lines = [f"Scene : {sc['title']} — {sc['summary']}"]
+    names = sc.get("characters", [])
+    lines = [f"Scene : {sc['title']} — {PR.anonymize(sc['summary'], assets, names)}"]
     if sc.get("location"):
         lines.append(f"Location : {sc['location']}")
-    lines.append(_people_line(plan, sc, info))
+    lines.append(_people_line(plan, sc, info, assets))
     if sc.get("decor"):
         lines.append("Background details, scenery only (never a named person): " + ", ".join(sc["decor"]) + ".")
     if has_shot:
@@ -253,30 +255,38 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
         if prev.get("framing") or prev.get("angle"):
             lines.append(f"Previous image shot : framing {prev.get('framing', '?')}, camera {prev.get('angle', '?')}. "
                          "Do not reuse its composition.")
+    # Seules les répliques des personnages visibles décrivent l'image : une réplique de quelqu'un
+    # absent du plan ferait réapparaître cette personne dans le prompt.
+    visible = set(plan_characters(sc, plan)) | {S.NARRATOR}
+    shown = [l for l in plan_lines(sc, k) if l["speaker"] in visible]
+    def who(speaker: str) -> str:
+        return speaker if speaker == S.NARRATOR else PR.person_word(assets, speaker)
+
     expr = {}
-    for line in plan_lines(sc, k):
+    for line in shown:
         expr[line["speaker"]] = line.get("expression", "neutre")
     if expr:
-        lines.append("Expressions to show : " + ", ".join(f"{who} : {e}" for who, e in expr.items()))
+        lines.append("Expressions to show : " + ", ".join(f"{who(n)} : {e}" for n, e in expr.items()))
     lines.append("Dialogue in this image (French, for context) :")
-    lines += [f"- {l['speaker']} : {l['text']}" for l in plan_lines(sc, k)] or ["- (aucune réplique)"]
+    lines += [f"- {who(l['speaker'])} : {PR.anonymize(l['text'], assets, names)}" for l in shown] or ["- (aucune réplique)"]
     if info["refs"]:
         lines.append("Reference descriptions (context only, do not copy them word for word) :")
-        for rid, lab in zip(info["refs"], info["labels"]):
+        for rid, lab in zip(info["refs"], [PR.anonymize(x, assets) for x in info["labels"]]):
             aid, k = split_ref(rid)
             if k is not None:
                 # Image précise : Klein la voit ; le prompt de l'élément ne la décrit pas forcément.
                 lines.append(f"- image {info['refs'].index(rid) + 1} ({lab})")
                 continue
             src = assets.get(aid, {})
-            lines.append(f"- image {info['refs'].index(rid) + 1} ({lab}) : {src.get('prompt') or src.get('description', '')}")
+            text = src.get("prompt") or src.get("description", "")
+            lines.append(f"- image {info['refs'].index(rid) + 1} ({lab}) : {PR.anonymize(text, assets)}")
     return system, "\n".join(lines)
 
 
 def suggest(st: dict, assets_data: dict, sc: dict, k: int, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], sc, k)
     provider = provider or st["settings"]["providers"]["text"]
-    return PR.clean(llm.complete(provider, system, user))
+    return PR.with_style(PR.clean(llm.complete(provider, system, user)), PR.llm_style())
 
 
 DETECT_SYSTEM = """You list the visual elements that a scene needs to be drawn.

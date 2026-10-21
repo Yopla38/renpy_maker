@@ -56,6 +56,11 @@ def create_element(st: dict, data: dict, kind: str, name: str, description: str 
     while aid in assets:
         aid, n = f"{base}_{n}", n + 1
     A.add_asset(data, aid, kind, name, description, parent)
+    if kind == "character":
+        try:
+            data["assets"][aid]["descriptor"] = PR.describe_person(st, name, description)
+        except Exception as e:  # sans descriptif, le prompt parle de « person » : à reprendre
+            _log(f"  genre et âge non déterminés pour « {name} » : {e}")
     try:
         data["assets"][aid]["prompt"] = PR.suggest(st, data, aid)
     except Exception as e:  # le prompt reste vide : l'auteur l'écrit ou réessaie

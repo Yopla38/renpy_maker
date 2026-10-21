@@ -21,6 +21,19 @@ MODEL_BASE = "black-forest-labs/flux-dev"
 MODEL_EDIT = "black-forest-labs/flux-2-klein-9b"
 
 
+def ensure_token() -> None:
+    """Charge REPLICATE_API_TOKEN depuis le fichier de clés, si absent de l'environnement."""
+    import re
+    keyfile = Path.home() / ".config/slapsci/llm_api_keys.txt"
+    if os.environ.get("REPLICATE_API_TOKEN") or not keyfile.exists():
+        return
+    for line in keyfile.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"^\s*(?:export\s+)?REPLICATE_API_TOKEN\s*=\s*(.+?)\s*$", line)
+        if m:
+            os.environ["REPLICATE_API_TOKEN"] = m.group(1).strip("'\"")
+            return
+
+
 def _token() -> str:
     tok = os.environ.get("REPLICATE_API_TOKEN")
     if not tok:

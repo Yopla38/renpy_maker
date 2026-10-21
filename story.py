@@ -32,6 +32,33 @@ PROVIDER_CHOICES = {
 }
 
 
+# Styles visuels proposés au début d'une histoire. Le suffixe est ajouté à chaque prompt d'image.
+STYLES = {
+    "aquarelle": {"label": "Aquarelle", "desc": "Couleurs douces, papier texturé, traits délavés",
+                  "suffix": "watercolor painting, soft wet edges, visible paper texture, delicate pastel colours, "
+                            "hand-painted illustration"},
+    "dessin_anime": {"label": "Dessin animé", "desc": "Contours nets, couleurs vives, aplats",
+                     "suffix": "2D cartoon illustration, clean ink outlines, flat cel shading, vibrant colours"},
+    "huile": {"label": "Peinture à l'huile", "desc": "Touches de pinceau, lumière chaude, matière",
+              "suffix": "oil painting, visible brush strokes, rich warm textures, classical lighting"},
+    "realiste": {"label": "Réaliste 3D", "desc": "Rendu CGI photoréaliste, lumière de cinéma",
+                 "suffix": "photorealistic 3D render, realistic CGI character, soft cinematic lighting, "
+                           "detailed skin texture"},
+}
+
+
+def style_of(story: dict) -> dict | None:
+    """Style choisi pour cette histoire, ou None. Sans choix, l'ancien réglage de config.yaml s'applique."""
+    key = story.get("settings", {}).get("style")
+    if key not in STYLES:
+        return None
+    return {"key": key, "name": STYLES[key]["label"], "positive_suffix": STYLES[key]["suffix"]}
+
+
+def style_choices() -> list[dict]:
+    return [{"key": k, "name": v["label"], "desc": v["desc"], "suffix": v["suffix"]} for k, v in STYLES.items()]
+
+
 def new_story(title: str = "", idea: str = "", total_scenes: int = 6) -> dict:
     return {
         "version": 1,
@@ -41,6 +68,8 @@ def new_story(title: str = "", idea: str = "", total_scenes: int = 6) -> dict:
             "language": "fr",
             "explicit_content": False,          # case à cocher, désactivée par défaut
             "total_scenes": total_scenes,
+            "style": None,                      # clé de STYLES, choisie au début
+            "max_plans": 5,                     # plans (images) maximum par scène
             "providers": {
                 "text": "anthropic",
                 "image_base": "replicate",      # flux-dev

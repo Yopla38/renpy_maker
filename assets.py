@@ -122,7 +122,11 @@ def set_status(data: dict, asset_id: str, index: int, validate: bool) -> None:
 # ---------- génération ----------
 
 def reference_style() -> dict:
-    """Style de référence défini dans config.yaml. Il n'est jamais ajouté automatiquement."""
+    """Style visuel de l'histoire (choisi au début du projet). Sans choix, celui de config.yaml."""
+    import story as S
+    style = S.style_of(S.load())
+    if style:
+        return {"name": style["name"], "positive_suffix": style["positive_suffix"]}
     cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     return cfg["visual_style"]
 

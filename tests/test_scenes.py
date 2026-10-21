@@ -29,8 +29,8 @@ def make(chars=("Eve", "Adrien")):
     sc["plans"] = [{"id": "p1", "from_line": 0, "characters": [], "asset": "scene_s1_p1"}]
     assets = {
         "loc_velvet": asset("location", "Le Velvet"),
-        "char_eve": asset("character", "Eve"),
-        "char_adrien": asset("character", "Adrien"),
+        "char_eve": {**asset("character", "Eve"), "descriptor": "young woman"},
+        "char_adrien": {**asset("character", "Adrien"), "descriptor": "young man"},
         "outfit_robe": asset("outfit", "robe bleue", parent="char_eve"),
         "scene_s1_p1": asset("scene", "Table · image 1", status="draft", prompt=""),
     }
@@ -86,14 +86,15 @@ class SceneTests(unittest.TestCase):
         self.assertIn("image 1 = décor : Le Velvet", system)
         self.assertIn("by its position", system)
         self.assertIn("never more than 100", system)
-        self.assertIn("Eve : défi", user)  # dernière expression du plan
-        self.assertIn("- Eve : Bonsoir.", user)
+        self.assertIn("young woman : défi", user)  # dernière expression du plan
+        self.assertIn("- young woman : Bonsoir.", user)
 
     def test_suggest_with_mocked_llm(self):
         st, sc, data = make()
         with mock.patch.object(llm, "complete", return_value="A candlelit table, two people.") as m:
             text = SC.suggest(st, data, sc, 0)
-        self.assertEqual(text, "A candlelit table, two people.")
+        self.assertTrue(text.startswith("A candlelit table, two people."))
+        self.assertTrue(text.endswith(SC.PR.llm_style()))  # le style du projet termine toujours le prompt
         self.assertEqual(m.call_args[0][0], st["settings"]["providers"]["text"])
 
     def test_several_images_can_share_a_line(self):
@@ -132,8 +133,9 @@ class RefChoiceTests(unittest.TestCase):
         info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
         sc["plans"][0]["refs_extra"] = []
         data["assets"]["char_eve"]["status"] = "validated"
-        line = SC._people_line(sc["plans"][0], sc, {"labels": ["décor : Le Velvet", "Eve (ajoutée)"]})
-        self.assertIn("Eve (image 2)", line)
+        line = SC._people_line(sc["plans"][0], sc, {"labels": ["décor : Le Velvet", "Eve (ajoutée)"]}, data["assets"])
+        self.assertIn("young woman (image 2)", line)
+        self.assertNotIn("Eve", line)
 
     def test_default_people_are_the_speakers_of_the_image(self):
         st, sc, data = make()
@@ -146,9 +148,10 @@ class RefChoiceTests(unittest.TestCase):
     def test_people_line_maps_names_to_reference_numbers(self):
         st, sc, data = make()
         info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
-        line = SC._people_line(sc["plans"][0], sc, info)
-        self.assertIn("Adrien (image", line)
-        self.assertIn("Eve (image", line)
+        line = SC._people_line(sc["plans"][0], sc, info, data["assets"])
+        self.assertIn("young man (image", line)
+        self.assertIn("young woman (image", line)
+        self.assertNotIn("Adrien", line)
 
     def test_extra_ref_adds_previous_image_for_continuity(self):
         st, sc, data = make()
