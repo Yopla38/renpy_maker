@@ -30,16 +30,17 @@ import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
 import renpy_export as RE  # noqa: E402
 import facile as FA  # noqa: E402
+import paths  # noqa: E402
 import pipeline as PL  # noqa: E402
 from prompts import match_asset as _match_asset  # noqa: E402
 import story as S  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("RENPY_MAKER_PORT", "8765"))  # 8765 est souvent pris : RENPY_MAKER_PORT=8766 pour changer
-KEYFILE = Path.home() / ".config/slapsci/llm_api_keys.txt"
 INDEX = Path(__file__).with_name("index.html")
 PLAN_PAGE = Path(__file__).with_name("plan.html")
 FACILE_PAGE = Path(__file__).with_name("facile.html")
+PLAY_PAGE = Path(__file__).with_name("play.html")
 
 _lock = A.LOCK                    # protège game_spec/assets.yaml (partagé avec le pipeline)
 _slock = S.LOCK                   # protège game_spec/story.yaml (partagé avec le pipeline)
@@ -47,14 +48,9 @@ _jobs: dict[str, dict] = {}       # job_id -> {state, message, candidate}
 
 
 def _load_token_from_keyfile() -> None:
-    """Charge REPLICATE_API_TOKEN depuis le fichier de clés, si absent de l'environnement."""
-    if os.environ.get("REPLICATE_API_TOKEN") or not KEYFILE.exists():
-        return
-    for line in KEYFILE.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^\s*(?:export\s+)?REPLICATE_API_TOKEN\s*=\s*(.+?)\s*$", line)
-        if m:
-            os.environ["REPLICATE_API_TOKEN"] = m.group(1).strip("'\"")
-            return
+    """Jeton Replicate : lu par keys.py (fichier de l'appareil), voir image_replicate.ensure_token."""
+    import image_replicate
+    image_replicate.ensure_token()
 
 
 def _snapshot() -> dict:
@@ -111,6 +107,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, FACILE_PAGE.read_bytes(), "text/html; charset=utf-8")
         if path.startswith("/api/facile"):
             return self._facile("GET", path, {})
+        if path in ("/jouer", "/jouer/"):
+            return self._send(200, PLAY_PAGE.read_bytes(), "text/html; charset=utf-8")
         if path in ("/histoire", "/histoire/"):
             return self._send(200, PLAN_PAGE.read_bytes(), "text/html; charset=utf-8")
         if path == "/api/assets":
@@ -155,8 +153,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(500, {"error": f"{type(e).__name__}: {e}"})
 
     def _file(self, rel: str) -> None:
-        base = (ROOT / "assets").resolve()
-        target = (ROOT / rel).resolve()
+        base = paths.ASSETS.resolve()
+        target = (paths.HOME / rel).resolve()
         if base not in target.parents or not target.is_file():
             return self._json(404, {"error": "fichier introuvable"})
         ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
@@ -772,9 +770,14 @@ def _find_scene(ch: dict, sid: str) -> dict:
 
 
 
-def main() -> None:
+def make_server(host: str = HOST, port: int = PORT) -> ThreadingHTTPServer:
+    """Serveur prêt à écouter (utilisé par le bureau et par l'application Android)."""
     _load_token_from_keyfile()
-    srv = ThreadingHTTPServer((HOST, PORT), Handler)
+    return ThreadingHTTPServer((host, port), Handler)
+
+
+def main() -> None:
+    srv = make_server()
     print(f"Registre d'actifs : http://{HOST}:{PORT}", flush=True)
     srv.serve_forever()
 

@@ -15,9 +15,10 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent
-CONFIG = ROOT / "config.yaml"
-KEYFILE = Path.home() / ".config/slapsci/llm_api_keys.txt"
+import keys
+import paths
+
+CONFIG = paths.CODE / "config.yaml"
 
 
 class LLMError(RuntimeError):
@@ -25,17 +26,13 @@ class LLMError(RuntimeError):
 
 
 def _key(name: str) -> str:
-    if os.environ.get(name):
-        return os.environ[name]
-    if KEYFILE.exists():
-        for line in KEYFILE.read_text(encoding="utf-8").splitlines():
-            m = re.match(rf"^\s*(?:export\s+)?{name}\s*=\s*(.+?)\s*$", line)
-            if m:
-                return m.group(1).strip("'\"")
-    raise LLMError(f"Clé {name} introuvable (environnement ou {KEYFILE})")
+    value = keys.get(name)
+    if not value:
+        raise LLMError(f"Clé {name} absente : saisissez-la dans les réglages de l'application")
+    return value
 
 
-MODELS_FILE = ROOT / "game_spec" / "llm_models.yaml"  # modèles choisis dans la page (roue de réglages)
+MODELS_FILE = paths.GAME_SPEC / "llm_models.yaml"  # modèles choisis dans la page (roue de réglages)
 
 
 def provider_settings(name: str) -> dict:
@@ -53,6 +50,8 @@ def provider_settings(name: str) -> dict:
 
 def key_available(name: str) -> bool:
     """Vrai si la clé du fournisseur est trouvée (sans jamais l'afficher)."""
+    if name == "replicate":
+        return keys.present("REPLICATE_API_TOKEN")
     if "api_key_env" not in provider_settings(name):
         return True  # fournisseur local (Ollama) : pas de clé
     try:
@@ -75,6 +74,8 @@ def _post(url: str, headers: dict, payload: dict, timeout: int = 600) -> dict:
 def complete(provider: str, system: str, user: str) -> str:
     """Renvoie le texte produit par le modèle. Lève LLMError en cas d'échec."""
     p = provider_settings(provider)
+    if provider == "replicate":
+        return _replicate_text(p, system, user)
     if provider == "anthropic":
         data = _post(
             "https://api.anthropic.com/v1/messages",
@@ -101,6 +102,25 @@ def complete(provider: str, system: str, user: str) -> str:
         )
         return data["message"]["content"]
     raise LLMError(f"Fournisseur inconnu : {provider}")
+
+
+def _replicate_text(p: dict, system: str, user: str) -> str:
+    """Texte par un modèle de langage hébergé sur Replicate (même compte que les images)."""
+    import time
+
+    import image_replicate as rep
+    body = {"input": {"prompt": user, "system_prompt": system, "max_tokens": p["max_tokens"],
+                      "temperature": p["temperature"]}}
+    data = rep._req("POST", f"https://api.replicate.com/v1/models/{p['model']}/predictions", body, timeout=600)
+    for _ in range(300):  # environ dix minutes au pire
+        if data.get("status") in ("succeeded", "failed", "canceled"):
+            break
+        time.sleep(2)
+        data = rep._req("GET", data["urls"]["get"], timeout=60)
+    if data.get("status") != "succeeded":
+        raise LLMError(f"Replicate : {data.get('error') or data.get('status')}")
+    out = data.get("output")
+    return "".join(out) if isinstance(out, list) else str(out or "")
 
 
 def extract_json(text: str) -> dict:

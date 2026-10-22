@@ -14,3 +14,6 @@ game_project/traceback.txt
 .idea/
 game_project/game/story.rpy
 game_project/game/options.rpy
+
+# Clés saisies dans l application (jamais versionnées)
+secrets.json

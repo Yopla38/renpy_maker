@@ -21,6 +21,8 @@ import uuid
 from pathlib import Path
 
 import assets as A
+import keys
+import paths
 import image_replicate as REP
 import llm
 import pipeline as PL
@@ -30,7 +32,7 @@ import renpy_export as RE
 import scenes as SC
 import story as S
 
-ROOT = Path(__file__).resolve().parent
+ROOT = paths.HOME
 SCENE_COUNTS = (3, 4, 5, 6)
 PLAN_LIMITS = tuple(range(1, 9))
 JOBS: dict[str, dict] = {}
@@ -209,7 +211,10 @@ def _ensure_token() -> None:
 
 # ---------- réglages (roue) ----------
 
-TEXT_LABELS = {"anthropic": "Anthropic (Claude)", "openai": "OpenAI", "ollama": "Ollama (local)"}
+TEXT_LABELS = {"replicate": "Replicate (Llama)", "anthropic": "Anthropic (Claude)", "openai": "OpenAI",
+               "ollama": "Ollama (local)"}
+KIDS_TEXT = ("replicate",)   # application grand public : seul Replicate, même compte que les images
+SECRET_NAMES = ("REPLICATE_API_TOKEN",)
 
 
 def settings_view() -> dict:
@@ -217,10 +222,14 @@ def settings_view() -> dict:
         st = S.load()
     choices = []
     for name, label in TEXT_LABELS.items():
+        if paths.KIDS and name not in KIDS_TEXT:
+            continue
         cfg = llm.provider_settings(name)
         choices.append({"name": name, "label": label, "model": cfg.get("model", ""),
                         "key": llm.key_available(name)})
     return {
+        "kids": paths.KIDS,
+        "replicate_key": keys.present("REPLICATE_API_TOKEN"),
         "text": {"provider": st["settings"]["providers"]["text"], "choices": choices},
         "image": {"provider": st["settings"]["providers"]["image_base"],
                   "choices": [{"name": "replicate", "label": "Replicate (cloud)", "available": True},
@@ -230,9 +239,39 @@ def settings_view() -> dict:
     }
 
 
+def save_secret(name: str, value: str) -> dict:
+    """Enregistre une clé saisie dans l'application, sur l'appareil seulement."""
+    if name not in SECRET_NAMES:
+        raise ValueError("Clé inconnue")
+    if not value.strip():
+        raise ValueError("La clé est vide")
+    keys.set(name, value)
+    return settings_view()
+
+
+def play_view() -> dict:
+    """L'histoire telle que la joue le lecteur : scènes, répliques, images aux bons moments."""
+    with S.LOCK:
+        st = S.load()
+    with A.LOCK:
+        assets = A.load()["assets"]
+    scenes = []
+    for ch in st["chapters"]:
+        for sc in ch["scenes"]:
+            images = []
+            for plan in sorted(sc.get("plans", []), key=lambda p: p["from_line"]):
+                a = assets.get(plan["asset"])
+                url = _url(a, RE.plan_index(plan, a)) if a else None
+                if url:
+                    images.append({"from_line": plan["from_line"], "image": url})
+            scenes.append({"id": sc["id"], "title": sc["title"], "chapter": ch["title"],
+                           "lines": sc.get("dialogue", []), "images": images})
+    return {"title": st.get("title") or "Mon histoire", "scenes": scenes}
+
+
 def save_settings(body: dict) -> dict:
     provider = body.get("text_provider", "")
-    if provider not in TEXT_LABELS:
+    if provider not in TEXT_LABELS or (paths.KIDS and provider not in KIDS_TEXT):
         raise ValueError("Fournisseur d'écriture inconnu")
     if body.get("image_provider", "replicate") != "replicate":
         raise ValueError("ComfyUI n'est pas encore branché au parcours simple : gardez Replicate.")
@@ -305,7 +344,7 @@ def view() -> dict:
     return {
         "style": S.style_of(st), "styles": S.style_choices(),
         "title": st.get("title", ""), "idea": st.get("idea", ""),
-        "explicit": bool(st["settings"].get("explicit_content")),
+        "explicit": bool(st["settings"].get("explicit_content")) and not paths.KIDS, "kids": paths.KIDS,
         "count": st["settings"].get("total_scenes") or SCENE_COUNTS[1], "counts": list(SCENE_COUNTS),
         "max_plans": _max_plans(st), "plan_limits": list(PLAN_LIMITS),
         "written": written, "characters": characters, "locations": locations, "outfits": outfits, "scenes": cards,
@@ -341,6 +380,8 @@ def set_max_plans(n: int) -> dict:
 
 
 def write_story(title: str, idea: str, count: int, explicit: bool) -> dict:
+    if paths.KIDS:
+        explicit = False  # application pour enfants et adolescents : jamais de contenu explicite
     if not idea.strip():
         raise ValueError("Racontez l'histoire en quelques phrases")
     if count not in SCENE_COUNTS:
@@ -356,6 +397,8 @@ def write_story(title: str, idea: str, count: int, explicit: bool) -> dict:
         st["synopsis"] = idea.strip()
         st["settings"]["explicit_content"] = bool(explicit)
         st["settings"]["total_scenes"] = count
+        if paths.KIDS:
+            st["settings"]["providers"]["text"] = "replicate"  # seul fournisseur disponible sur l'application
         S.save(st)
     return _start("Écriture de l'histoire", _write_work, count)
 
@@ -859,6 +902,8 @@ def route(method: str, path: str, body: dict) -> dict:
             return view()
         if path == "/api/facile/settings":
             return settings_view()
+        if path == "/api/facile/play":
+            return play_view()
         if path.startswith("/api/facile/jobs/"):
             job = JOBS.get(path.rsplit("/", 1)[-1])
             if job is None:
@@ -868,6 +913,7 @@ def route(method: str, path: str, body: dict) -> dict:
         routes = {
             "/api/facile/style": lambda: set_style(body["style"]),
             "/api/facile/settings": lambda: save_settings(body),
+            "/api/facile/secret": lambda: save_secret(body.get("name", ""), body.get("value", "")),
             "/api/facile/settings/max-plans": lambda: set_max_plans(int(body["max_plans"])),
             "/api/facile/story": lambda: write_story(body.get("title", ""), body.get("idea", ""),
                                                      int(body.get("count", 4)), bool(body.get("explicit"))),

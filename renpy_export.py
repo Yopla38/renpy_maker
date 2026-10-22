@@ -22,8 +22,10 @@ import yaml
 import assets as A
 import story as S
 
-ROOT = Path(__file__).resolve().parent
-CONFIG = ROOT / "config.yaml"
+import paths
+
+ROOT = paths.HOME
+CONFIG = paths.CODE / "config.yaml"
 DEFAULTS = {"title": "Mon histoire", "width": 1920, "height": 1080}
 
 

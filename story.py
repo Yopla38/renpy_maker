@@ -20,13 +20,13 @@ import threading
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent
+import paths
 LOCK = threading.Lock()  # protège game_spec/story.yaml : partagé par le serveur et le pipeline
-STORY = ROOT / "game_spec" / "story.yaml"
+STORY = paths.GAME_SPEC / "story.yaml"
 PROVIDER_ROLES = ("text", "image_base", "image_edit")
 NARRATOR = "Narration"
 PROVIDER_CHOICES = {
-    "text": {"anthropic", "openai", "ollama"},
+    "text": {"anthropic", "openai", "ollama", "replicate"},
     "image_base": {"replicate", "comfyui"},
     "image_edit": {"replicate", "comfyui"},
 }

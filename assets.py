@@ -26,9 +26,11 @@ import yaml
 
 LOCK = threading.Lock()  # protège game_spec/assets.yaml : partagé par le serveur et le pipeline
 
-ROOT = Path(__file__).resolve().parent
-SPEC = ROOT / "game_spec" / "assets.yaml"
-CONFIG = ROOT / "config.yaml"
+import paths
+
+ROOT = paths.HOME  # fichiers des images (chemins relatifs « assets/… »)
+SPEC = paths.GAME_SPEC / "assets.yaml"
+CONFIG = paths.CODE / "config.yaml"
 KINDS = {"character", "outfit", "location", "scene", "object"}
 DEFAULT_ASPECT = {"character": "2:3", "outfit": "2:3", "location": "16:9", "scene": "16:9", "object": "1:1"}
 

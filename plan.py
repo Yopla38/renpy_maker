@@ -9,6 +9,7 @@ des résumés qui serviront ensuite à l'écriture des dialogues.
 from __future__ import annotations
 
 import llm
+import paths
 import story as S
 
 SCHEMA_HINT = """{
@@ -27,11 +28,13 @@ SCHEMA_HINT = """{
 
 
 def build_prompt(st: dict, chapter_index: int, scene_count: int, guidance: str) -> tuple[str, str]:
-    explicit = bool(st["settings"].get("explicit_content"))
+    explicit = bool(st["settings"].get("explicit_content")) and not paths.KIDS
+    public = ("Public : enfants et adolescents. Aucun contenu sexuel, aucune violence graphique. "
+              if paths.KIDS else "")
     system = (
         "Tu es scénariste de romans visuels Ren'Py. Tu écris en français. "
         "Tu réponds uniquement par un objet JSON valide, sans texte autour. "
-        f"Contenu explicite autorisé : {'oui' if explicit else 'non'}. "
+        f"{public}Contenu explicite autorisé : {'oui' if explicit else 'non'}. "
         f"Schéma attendu :\n{SCHEMA_HINT}"
     )
     lines = [f"Titre : {st.get('title') or '(sans titre)'}", f"Idée : {st.get('idea') or '(vide)'}"]

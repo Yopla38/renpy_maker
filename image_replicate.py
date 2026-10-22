@@ -14,6 +14,8 @@ import mimetypes
 import os
 import time
 import urllib.request
+
+import paths
 from pathlib import Path
 
 API = "https://api.replicate.com/v1"
@@ -22,22 +24,18 @@ MODEL_EDIT = "black-forest-labs/flux-2-klein-9b"
 
 
 def ensure_token() -> None:
-    """Charge REPLICATE_API_TOKEN depuis le fichier de clés, si absent de l'environnement."""
-    import re
-    keyfile = Path.home() / ".config/slapsci/llm_api_keys.txt"
-    if os.environ.get("REPLICATE_API_TOKEN") or not keyfile.exists():
-        return
-    for line in keyfile.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^\s*(?:export\s+)?REPLICATE_API_TOKEN\s*=\s*(.+?)\s*$", line)
-        if m:
-            os.environ["REPLICATE_API_TOKEN"] = m.group(1).strip("'\"")
-            return
+    """Rend le jeton disponible dans l'environnement (lu par _token)."""
+    import keys
+    value = keys.get("REPLICATE_API_TOKEN")
+    if value:
+        os.environ["REPLICATE_API_TOKEN"] = value
 
 
 def _token() -> str:
+    ensure_token()
     tok = os.environ.get("REPLICATE_API_TOKEN")
     if not tok:
-        raise RuntimeError("REPLICATE_API_TOKEN absent de l'environnement")
+        raise RuntimeError("Clé Replicate absente : saisissez-la dans les réglages de l'application")
     return tok
 
 
@@ -52,6 +50,7 @@ def _req(method: str, url: str, body: dict | None = None, timeout: int = 120, re
             method=method,
             headers={
                 "Authorization": f"Bearer {_token()}",
+                "User-Agent": "histoire-ia/0.1",
                 "Content-Type": "application/json",
                 "Prefer": "wait=60",
             },
@@ -82,7 +81,7 @@ def generate(
     megapixels: str = "1",
     output_format: str = "png",
     timeout_s: int = 600,
-    disable_safety_checker: bool = True
+    disable_safety_checker: bool = False  # filtre de sécurité actif par défaut
 ) -> str:
     """Génère (sans images) avec MODEL_BASE, ou édite (avec images) avec MODEL_EDIT.
 
@@ -98,7 +97,7 @@ def generate(
             "megapixels": megapixels,
             "output_format": output_format,
             "images": [_data_uri(p) for p in images],
-            "disable_safety_checker": disable_safety_checker
+            "disable_safety_checker": disable_safety_checker and not paths.KIDS
         }
     else:
         model = MODEL_BASE

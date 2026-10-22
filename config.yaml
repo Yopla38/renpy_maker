@@ -30,6 +30,10 @@ llm:
       base_url: "http://localhost:11434"
       max_tokens: 8000
       temperature: 0.9
+    replicate:                             # textes sur Replicate (même clé que les images)
+      model: "meta/meta-llama-3-70b-instruct"
+      max_tokens: 4000
+      temperature: 0.9
 
 # Contenu du chapitre (ce qui est demandé à l'écrivain).
 story:

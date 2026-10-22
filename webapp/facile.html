@@ -204,6 +204,8 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 .thumb img { width: 86px; height: 52px; object-fit: cover; border-radius: 6px; }
 .thumb.on { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(93, 139, 123, .25); }
 .thumb span { max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.play-cta { text-align: center; margin: 28px 0 10px; }
+.primary.big { display: inline-block; padding: 16px 30px; font-size: 20px; text-decoration: none; border-radius: 18px; }
 @media (max-width: 560px) { .plan { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   body { font-size: 16px; }
@@ -374,11 +376,25 @@ function settingsHtml() {
         oninput="settingsForm.text_model = this.value"></label>
     <p class="notice">Laissez vide pour garder « ${esc(cur.model)} ». Le changement vaut pour les prochaines générations.</p>
     ${keyNote}
+    <div class="field"><span>Clé Replicate</span>
+      <p class="notice">${f.replicate_key ? "Clé enregistrée sur cet appareil." : "Aucune clé : l'écriture et les images ne fonctionneront pas."} Elle reste sur cet appareil, et n'est jamais affichée.</p>
+      <div class="chips"><input type="password" id="rep-key" placeholder="Collez votre clé Replicate" autocomplete="off" style="flex:1;min-width:200px">
+        <button class="ghost small" onclick="saveKey()">Enregistrer la clé</button></div></div>
     <div class="field"><span>Images</span><div class="chips">${imgOpts}</div>
       <p class="notice">${f.image.models.map(esc).join(" · ")}</p></div>
     <div class="actions"><button class="ghost" onclick="toggleSettings()">Fermer</button>
       <div class="right"><button class="primary" onclick="saveSettings()" ${job ? "disabled" : ""}>Enregistrer</button></div></div>
   </div>`;
+}
+
+async function saveKey() {
+  const value = $("rep-key").value;
+  try {
+    const d = await api("POST", "/api/facile/secret", { name: "REPLICATE_API_TOKEN", value });
+    settingsForm = { ...settingsForm, replicate_key: d.replicate_key };
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
 }
 
 async function saveSettings() {
@@ -515,8 +531,8 @@ function bodyIdee() {
         <textarea rows="7" placeholder="Par exemple : Léa et son voisin Noé trouvent une vieille carte au trésor dans le grenier de leur village. Elle les mène jusqu'à une cascade cachée…"
                   oninput="draft.idea = this.value">${esc(draft.idea)}</textarea></label>
       <div class="field"><span>Nombre de scènes</span><div class="seg">${seg}</div></div>
-      <label class="check"><input type="checkbox" ${draft.explicit ? "checked" : ""} onchange="draft.explicit = this.checked">
-        <span>Contenu adulte<small>Autorise un texte explicite. Les images restent soumises aux règles du fournisseur.</small></span></label>`,
+      ${V.kids ? "" : `<label class="check"><input type="checkbox" ${draft.explicit ? "checked" : ""} onchange="draft.explicit = this.checked">
+        <span>Contenu adulte<small>Autorise un texte explicite. Les images restent soumises aux règles du fournisseur.</small></span></label>`}`,
     foot: `<div class="actions"><button class="ghost" onclick="prev()" ${job ? "disabled" : ""}>Retour</button>
       <div class="right"><button class="primary" onclick="writeStory()" ${job ? "disabled" : ""}>Écrire mon histoire</button></div></div>`,
   };
@@ -966,6 +982,15 @@ async function launchGame() {
 function bodyJouer() {
   const busy = job || V.busy;
   const r = gameResult;
+  if (V.kids) {
+    const plans = V.scenes.reduce((n, s) => n + s.plans.length, 0);
+    return {
+      body: `<p class="notice">${V.chapters.length} chapitre(s) · ${V.scenes.length} scène(s) · ${plans} image(s)</p>
+        <div class="play-cta"><a class="primary big" href="/jouer">▶ Lire mon histoire</a></div>
+        <p class="hint">Cliquez ou appuyez pour avancer. Une fois lue, l'histoire reste sur cet appareil.</p>`,
+      foot: `<div class="actions"><button class="link" onclick="reset()" ${busy ? "disabled" : ""}>Recommencer une autre histoire</button><span></span></div>`,
+    };
+  }
   let report = "";
   if (r) {
     const ok = r.lint.ok;
@@ -1043,6 +1068,10 @@ window.addEventListener("load", async () => {
   try {
     await load();
     render();
+    if (V.kids) {
+      const d = await api("GET", "/api/facile/settings");
+      if (!d.replicate_key) toggleSettings();
+    }
   } catch (e) {
     $("stage").innerHTML = `<div class="errbox">Le serveur ne répond pas : ${esc(e.message)}</div>`;
   }
