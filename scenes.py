@@ -288,7 +288,7 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
 def suggest(st: dict, assets_data: dict, sc: dict, k: int, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], sc, k)
     provider = provider or st["settings"]["providers"]["text"]
-    return PR.with_style(PR.clean(llm.complete(provider, system, user)), PR.llm_style())
+    return PR.with_style(PR.clean(llm.complete_task("prompt", system, user, provider)), PR.llm_style())
 
 
 DETECT_SYSTEM = """You list the visual elements that a scene needs to be drawn.
@@ -349,7 +349,7 @@ def detect_elements(st: dict, sc: dict, assets: dict, provider: str | None = Non
         "Répliques :",
     ] + [f"- {l['speaker']} : {l['text']}" for l in sc.get("dialogue", [])])
     provider = provider or st["settings"]["providers"]["text"]
-    raw = llm.extract_json(llm.complete(provider, DETECT_SYSTEM, user))
+    raw = llm.extract_json(llm.complete_task("prompt", DETECT_SYSTEM, user, provider))
     out = []
     for el in raw.get("elements", []):
         name = str(el.get("name", "")).strip()

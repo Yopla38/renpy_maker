@@ -52,6 +52,9 @@ visual_style:
 # ComfyUI : images et vidéos.
 comfy:
   url: "http://127.0.0.1:8188"             # à confirmer (port par défaut ComfyUI)
+  # Libérer la mémoire de ComfyUI avant chaque génération. Dépend de la machine : à activer si la
+  # carte est trop petite pour garder plusieurs modèles chargés (ex. 16 Go). Modifiable dans la roue.
+  free_memory_before_generation: false
   models_dir: "/home/yopla/Applications/SD/comfyui/Comfyui/models"
   image:
     # Modèle image à valider sur cette machine (voir unet/ : zImageTurbo, qwen_image, flux...).
@@ -78,3 +81,28 @@ comfy:
     cfg: 3.5
     # Limite connue : les modèles i2v Wan 2.2 présents ne sont pas des modèles "first-last-frame"
     # entraînés ; la qualité de la fin de plan est à valider par un test.
+
+# Modèle d'écriture par tâche. Vide (null) = fournisseur d'écriture du projet.
+# Un choix fait dans la roue de réglages remplace ces valeurs (game_spec/app_settings.yaml).
+llm_tasks:
+  histoire: {provider: null, model: null}   # plan des chapitres
+  dialogue: {provider: null, model: null}   # répliques
+  prompt:   {provider: null, model: null}   # prompts d'image et découpage en plans
+
+# Moteur d'image par rôle. base : sans référence (« équivalent FLUX 1 »).
+# edit : avec images de référence (« équivalent Klein »). engine : replicate ou comfyui.
+# workflow : fichier de workflow ComfyUI (format API), chemin absolu ou relatif au projet.
+image_engines:
+  base: {engine: replicate, workflow: null}
+  edit: {engine: replicate, workflow: null}
+
+# Nombre d'étapes d'échantillonnage par rôle (ComfyUI). null = valeur du workflow.
+# Plus d'étapes : image plus fine mais plus lente.
+comfy_steps:
+  base: null
+  edit: null
+
+# Workflow ComfyUI proposé par défaut quand on choisit ComfyUI pour un rôle (chemins relatifs au projet).
+comfy_workflows:
+  base: comfy/workflows/FLUX1_API.json                  # FLUX 1, génération sans référence
+  edit: comfy/workflows/FLUX_KLEIN3_EDIT_API.json       # Klein 9B, retouche avec références

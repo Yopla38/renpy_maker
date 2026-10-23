@@ -82,7 +82,7 @@ def generate_chapter(st: dict, scene_count: int, guidance: str = "", provider: s
     chapter_index = len(st["chapters"]) + 1
     first_scene = len(S.all_scenes(st)) + 1
     system, user = build_prompt(st, chapter_index, scene_count, guidance)
-    text = llm.complete(provider, system, user)
+    text = llm.complete_task("histoire", system, user, provider)
     raw = llm.extract_json(text)
     ch = normalize(raw, scene_count, first_scene)
     ch["id"] = f"ch{chapter_index}"
@@ -149,6 +149,9 @@ def normalize_dialogue(raw: dict, characters: list[str]) -> list[dict]:
     return out
 
 
+DIALOGUE_ATTEMPTS = 3  # une réponse avec un mauvais locuteur est redemandée avec la correction
+
+
 def generate_dialogue(st: dict, scene_id: str, provider: str | None = None) -> list[dict]:
     """Écrit les répliques d'une scène. Ne modifie pas l'histoire : renvoie la liste."""
     scenes = S.all_scenes(st)
@@ -158,5 +161,16 @@ def generate_dialogue(st: dict, scene_id: str, provider: str | None = None) -> l
     previous = scenes[idx - 1].get("dialogue", [])[-3:] if idx > 0 else []
     provider = provider or st["settings"]["providers"]["text"]
     system, user = build_dialogue_prompt(st, ch, sc, previous)
-    raw = llm.extract_json(llm.complete(provider, system, user))
-    return normalize_dialogue(raw, sc.get("characters", []))
+    allowed = ", ".join(list(sc.get("characters", [])) + [S.NARRATOR])
+    failure = ""
+    for _ in range(DIALOGUE_ATTEMPTS):
+        # Après un refus, le LLM reçoit l'erreur exacte et la liste des locuteurs autorisés.
+        correction = (f"\n\nTentative précédente refusée : {failure}. Les seuls locuteurs autorisés sont : "
+                      f"{allowed}. Réécris la réponse complète en respectant cette liste."
+                      if failure else "")
+        try:
+            raw = llm.extract_json(llm.complete_task("dialogue", system, user + correction, provider))
+            return normalize_dialogue(raw, sc.get("characters", []))
+        except llm.LLMError as e:
+            failure = str(e)
+    raise llm.LLMError(f"{failure} (après {DIALOGUE_ATTEMPTS} tentatives)")

@@ -115,6 +115,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   display: flex; gap: 14px; align-items: center; background: var(--accent-soft); border-radius: 16px;
   padding: 16px 18px; margin-bottom: 22px; font-weight: 700;
 }
+.job-text { flex: 1; min-width: 0; }
+.stop { flex: none; border-color: var(--danger); color: var(--danger); }
+.bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 8px; }
+.bar span { display: block; height: 100%; background: var(--accent); transition: width .4s ease; }
+.bar-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(196,98,63,.25); border-top-color: var(--accent); animation: turn 0.9s linear infinite; flex: none; }
 @keyframes turn { to { transform: rotate(360deg); } }
 .errbox { background: #f7e3e3; color: var(--danger); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; font-weight: 700; }
@@ -206,6 +211,16 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 .thumb span { max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .play-cta { text-align: center; margin: 28px 0 10px; }
 .primary.big { display: inline-block; padding: 16px 30px; font-size: 20px; text-decoration: none; border-radius: 18px; }
+.task-row { display: grid; grid-template-columns: 1fr; gap: 6px; margin: 6px 0 12px; }
+.task-row .task-label { font-weight: 800; font-size: 14px; }
+.task-row select, .task-row input { width: 100%; }
+.lora-row { display: grid; grid-template-columns: 1fr 90px auto; gap: 8px; align-items: center; }
+.lora-row .lora-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 14px; }
+.lora-row input { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; }
+.lora-add { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.lora-add select { flex: 1; min-width: 200px; }
+.steps-field { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.steps-field input { width: 120px; }
 @media (max-width: 560px) { .plan { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   body { font-size: 16px; }
@@ -312,7 +327,24 @@ function prev() {
 }
 
 function jobHtml() {
-  return job ? `<div class="job toast"><span class="spin"></span><span>${esc(job.message)}</span></div>` : "";
+  if (!job) return "";
+  const pr = job.progress;
+  const pct = pr && pr.max > 0 ? Math.min(100, Math.round((100 * pr.value) / pr.max)) : null;
+  const bar = pct === null ? "" : `<div class="bar"><span style="width:${pct}%"></span></div>
+    <div class="bar-label">Étape ${pr.value} sur ${pr.max} · ${pct} %</div>`;
+  const stop = job.id === "export" ? "" : `<button class="ghost small stop" onclick="cancelJob()">Arrêter</button>`;
+  return `<div class="job toast"><span class="spin"></span><div class="job-text"><span>${esc(job.message)}</span>${bar}</div>${stop}</div>`;
+}
+
+// Arrête la tâche en cours : ComfyUI interrompt la génération, et les lots s'arrêtent entre deux images.
+async function cancelJob() {
+  if (!job) return;
+  try {
+    await api("POST", "/api/facile/job/cancel", { job: job.id });
+    job.message = "Arrêt demandé…";
+    const slot = $("jobslot");
+    if (slot) slot.innerHTML = jobHtml();
+  } catch (e) { err = e.message; render(); }
 }
 
 // Lance une tâche côté serveur et suit son avancement jusqu'à la fin.
@@ -327,6 +359,7 @@ async function runJob(start, onDone) {
       const j = await api("GET", `/api/facile/jobs/${id}`);
       if (j.state === "running") {
         job.message = j.message || job.message;
+        job.progress = j.progress || null;
         const slot = $("jobslot");
         if (slot) slot.innerHTML = jobHtml();  // seule la barre d'état change : les champs restent intacts
         continue;
@@ -348,7 +381,8 @@ async function toggleSettings() {
   if (settingsForm) { settingsForm = null; return render(); }
   try {
     const d = await api("GET", "/api/facile/settings");
-    settingsForm = { ...d, text_provider: d.text.provider, text_model: "" };
+    settingsForm = { ...d, text_provider: d.text.provider, text_model: "",
+      taskRows: d.tasks.map((t) => ({ ...t })), imageRows: d.image_rows.map((r) => ({ ...r })) };
     err = "";
   } catch (e) { err = e.message; }
   render();
@@ -366,8 +400,28 @@ function settingsHtml() {
   const opts = f.text.choices.map((c) => `<button class="chip ${c.name === f.text_provider ? "on" : ""}"
     onclick="pickTextProvider('${c.name}')" ${job ? "disabled" : ""}>${esc(c.label)}</button>`).join("");
   const keyNote = cur.key ? "" : `<p class="warn">Clé absente pour ${esc(cur.label)} : ajoutez-la au fichier de clés, ou choisissez un autre fournisseur.</p>`;
-  const imgOpts = f.image.choices.map((c) => `<button class="chip ${c.name === f.image.provider ? "on" : ""}"
-    ${c.available ? "" : "disabled"} title="${c.available ? "" : "Pas encore branché au parcours simple"}">${esc(c.label)}</button>`).join("");
+  const taskOpts = (cur) => `<option value="">Fournisseur du projet</option>` + f.text.choices.map((c) =>
+    `<option value="${c.name}" ${c.name === cur ? "selected" : ""}>${esc(c.label)}</option>`).join("");
+  const tasks = f.taskRows.map((t, i) => `<div class="task-row">
+      <span class="task-label">${esc(t.label)}</span>
+      <select onchange="settingsForm.taskRows[${i}].provider = this.value; settingsForm.taskRows[${i}].model = ''; render()" ${job ? "disabled" : ""}>${taskOpts(t.provider)}</select>
+      <input type="text" value="${esc(t.model)}" placeholder="modèle par défaut" oninput="settingsForm.taskRows[${i}].model = this.value">
+    </div>`).join("");
+  const engines = Object.entries(f.engine_labels).filter(([k]) => !(f.kids && k !== "replicate"));
+  const images = f.imageRows.map((r, i) => `<div class="task-row">
+      <span class="task-label">${esc(r.label)}</span>
+      <select onchange="settingsForm.imageRows[${i}].engine = this.value;
+        if (this.value === 'comfyui' && !settingsForm.imageRows[${i}].workflow) settingsForm.imageRows[${i}].workflow = settingsForm.comfy_defaults[settingsForm.imageRows[${i}].role];
+        render()" ${job ? "disabled" : ""}>
+        ${engines.map(([k, v]) => `<option value="${k}" ${k === r.engine ? "selected" : ""}>${esc(v)}</option>`).join("")}
+      </select>
+      ${r.engine === "comfyui" ? `<select onchange="settingsForm.imageRows[${i}].workflow = this.value" ${job ? "disabled" : ""}>
+        ${[...new Set([r.workflow, ...r.choices])].filter(Boolean).map((w) => `<option value="${esc(w)}" ${w === r.workflow ? "selected" : ""}>${esc(w.split("/").pop())}</option>`).join("")}
+      </select>
+      <p class="notice">Pour ajouter un workflow, déposez son fichier .json (format API) dans comfy/workflows.</p>
+        <label class="steps-field">Étapes <input type="number" min="1" max="100" step="1" value="${esc(r.steps)}" placeholder="celles du workflow"
+          oninput="settingsForm.imageRows[${i}].steps = this.value"></label>` : ""}
+    </div>`).join("");
   return `<div class="chapform settings">
     <h3>Réglages</h3>
     <div class="field"><span>Écrivain (plans, répliques, prompts)</span><div class="chips">${opts}</div></div>
@@ -380,8 +434,12 @@ function settingsHtml() {
       <p class="notice">${f.replicate_key ? "Clé enregistrée sur cet appareil." : "Aucune clé : l'écriture et les images ne fonctionneront pas."} Elle reste sur cet appareil, et n'est jamais affichée.</p>
       <div class="chips"><input type="password" id="rep-key" placeholder="Collez votre clé Replicate" autocomplete="off" style="flex:1;min-width:200px">
         <button class="ghost small" onclick="saveKey()">Enregistrer la clé</button></div></div>
-    <div class="field"><span>Images</span><div class="chips">${imgOpts}</div>
-      <p class="notice">${f.image.models.map(esc).join(" · ")}</p></div>
+    <div class="field"><span>Modèle par tâche d'écriture</span>
+      <p class="notice">Laissez « Fournisseur du projet » pour utiliser le même modèle partout.</p>${tasks}</div>
+    <div class="field"><span>Images</span>
+      <p class="notice">Dessin de base : sans référence. Retouche : avec images de référence. ComfyUI utilise le workflow indiqué (et les LoRA de chaque image).</p>${images}
+      <label class="check"><input type="checkbox" ${f.comfy_free_memory ? "checked" : ""} onchange="settingsForm.comfy_free_memory = this.checked">
+        <span>Libérer la mémoire de ComfyUI avant chaque génération<small>Utile si la carte est petite (16 Go). Chaque génération démarre un peu plus lentement.</small></span></label></div>
     <div class="actions"><button class="ghost" onclick="toggleSettings()">Fermer</button>
       <div class="right"><button class="primary" onclick="saveSettings()" ${job ? "disabled" : ""}>Enregistrer</button></div></div>
   </div>`;
@@ -400,7 +458,10 @@ async function saveKey() {
 async function saveSettings() {
   try {
     await api("POST", "/api/facile/settings", {
-      text_provider: settingsForm.text_provider, text_model: settingsForm.text_model, image_provider: settingsForm.image.provider,
+      text_provider: settingsForm.text_provider, text_model: settingsForm.text_model,
+      tasks: settingsForm.taskRows.map((t) => ({ task: t.task, provider: t.provider, model: t.model })),
+      images: settingsForm.imageRows.map((r) => ({ role: r.role, engine: r.engine, workflow: r.workflow, steps: r.steps })),
+      comfy_free_memory: !!settingsForm.comfy_free_memory,
     });
     settingsForm = null;
     await load();
@@ -645,7 +706,8 @@ function bodyCards(key, portraitClass, noun) {
       <h2>${esc(it.name)}</h2>
       ${it.parent ? `<p class="notice center">Porté par ${esc(it.parent)}</p>` : ""}
       <div class="row"><button class="ghost small" onclick="redoCard('${it.aid}')" ${busy || !it.aid || it.blocked ? "disabled" : ""}>Refaire l'image</button></div>
-      ${it.aid ? promptBox(it.aid, it.prompt, "card", `redoCard('${it.aid}', true)`) : ""}`,
+      ${it.aid ? promptBox(it.aid, it.prompt, "card", `redoCard('${it.aid}', true)`) : ""}
+      ${it.aid ? loraHtml(it.aid, busy) : ""}`,
     foot: `<div class="actions">
       <button class="ghost" onclick="${i === 0 ? "prev()" : `cardStep('${key}', -1)`}" ${busy ? "disabled" : ""}>${i === 0 ? "Retour" : "← Précédent"}</button>
       <div class="right"><button class="primary" ${!it.ready || busy ? "disabled" : ""}
@@ -864,6 +926,66 @@ function planHtml(s, r, k, busy) {
     </div></div>`;
 }
 
+// --- LoRA d'un élément (personnage, lieu, tenue ou image de scène) : ajout, retrait, force.
+// Utilisés seulement avec ComfyUI. Tout passe par l'identifiant de l'élément (aid).
+let loraDraft = {};  // LoRA en cours d'édition, par identifiant d'élément
+
+function lorasOf(aid) {
+  const pool = [...V.characters, ...V.locations, ...V.outfits, ...V.scenes.flatMap((s) => s.plans)];
+  const item = pool.find((x) => x.aid === aid);
+  return item ? item.loras : [];
+}
+
+function editLora(aid) {
+  if (!loraDraft[aid]) loraDraft[aid] = lorasOf(aid).map((l) => ({ ...l }));
+  return loraDraft[aid];
+}
+
+function addLora(aid) {
+  const name = $("lora-add-" + aid).value;
+  if (!name) return;
+  editLora(aid).push({ name, strength: 1.0, clip: false });
+  render();
+}
+
+function removeLora(aid, i) {
+  editLora(aid).splice(i, 1);
+  render();
+}
+
+function setLoraStrength(aid, i, value) {
+  editLora(aid)[i].strength = Number(value);
+}
+
+async function saveLoras(aid) {
+  try {
+    await api("POST", "/api/facile/asset/loras", { asset: aid, loras: loraDraft[aid] || [] });
+    delete loraDraft[aid];
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+function loraHtml(aid, busy) {
+  const rows = loraDraft[aid] || lorasOf(aid);
+  const list = rows.map((l, i) => `<div class="lora-row">
+      <span class="lora-name">${esc(l.name)}</span>
+      <input type="number" min="-2" max="2" step="0.05" value="${l.strength}" ${busy ? "disabled" : ""}
+        onchange="setLoraStrength('${aid}', ${i}, this.value)">
+      <button class="link" onclick="removeLora('${aid}', ${i})" ${busy ? "disabled" : ""}>Retirer</button>
+    </div>`).join("") || `<span class="notice">Aucun LoRA pour cette image.</span>`;
+  const add = V.lora_names.length
+    ? `<div class="lora-add"><select id="lora-add-${aid}">${V.lora_names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select>
+       <button class="ghost small" onclick="addLora('${aid}')" ${busy ? "disabled" : ""}>Ajouter ce LoRA</button></div>`
+    : `<p class="notice">Aucun LoRA trouvé dans le dossier des modèles ComfyUI.</p>`;
+  const save = loraDraft[aid] ? `<button class="primary small" onclick="saveLoras('${aid}')" ${busy ? "disabled" : ""}>Enregistrer les LoRA</button>` : "";
+  return `<details class="fine" data-key="lora-${aid}">
+    <summary>LoRA (ComfyUI seulement)</summary>
+    <div class="reflist">${list}</div>${add}<div class="prompt-actions">${save}</div>
+  </details>`;
+}
+
 // --- réglage fin : images de référence d'un plan (option, replié par défaut) ---
 function fineHtml(s, vp, busy) {
   if (!vp) return "";
@@ -882,6 +1004,7 @@ function fineHtml(s, vp, busy) {
     <div class="reflist">${auto || `<span class="notice">Aucune</span>`}</div>
     <div class="refs-title">Images ajoutées (cliquez pour ajouter ou retirer)</div>
     <div class="thumbs">${choices || `<span class="notice">Aucune autre image retenue.</span>`}</div>${miss}
+    ${loraHtml(vp.aid, busy)}
   </details>`;
 }
 

@@ -1,0 +1,19 @@
+llm_tasks:
+  histoire:
+    provider: anthropic
+    model: null
+  dialogue:
+    provider: anthropic
+    model: null
+  prompt:
+    provider: anthropic
+    model: null
+image_engines:
+  base:
+    engine: comfyui
+    workflow: comfy/workflows/FLUX_REDCRAFT_RAPIDE_API.json
+  edit:
+    engine: comfyui
+    workflow: comfy/workflows/FLUX_KLEIN3_EDIT_API.json
+comfy_free_memory: true
+comfy_steps: {}

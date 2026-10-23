@@ -67,11 +67,23 @@ def character_names(assets: dict) -> list[str]:
     return [a["name"] for a in assets.values() if a["kind"] == "character" and a.get("name")]
 
 
+GENDER_WORDS = {"woman", "man", "girl", "boy", "female", "male", "lady", "gentleman", "teenager", "child"}
+
+
+def valid_descriptor(text: str | None) -> bool:
+    """Un descriptif vaut quelque chose s'il contient un mot de genre et tient en peu de mots."""
+    if not text:
+        return False
+    words = [w.strip(".,;:!?").lower() for w in text.split()]
+    return 1 <= len(words) <= 5 and any(w in GENDER_WORDS for w in words)
+
+
 def person_word(assets: dict, name: str) -> str:
     """Comment désigner une personne dans un prompt : son genre et son âge, jamais son prénom."""
     chars = {S.norm(a["name"]): k for k, a in assets.items() if a["kind"] == "character"}
     aid = match_asset(assets, {"kind": "character", "name": name, "parent_name": None}, chars)
-    return (assets[aid].get("descriptor") if aid else None) or "person"
+    descriptor = assets[aid].get("descriptor") if aid else None
+    return descriptor if valid_descriptor(descriptor) else "person"
 
 
 def anonymize(text: str, assets: dict, names: list[str] | None = None) -> str:
@@ -86,11 +98,19 @@ def clean_descriptor(text: str) -> str:
     return " ".join(words[:5]) or "person"
 
 
-def describe_person(st: dict, name: str, description: str = "", provider: str | None = None) -> str:
-    """Genre et âge d'un personnage, en quelques mots anglais (une seule fois par personnage)."""
+def describe_person(st: dict, name: str, description: str = "", provider: str | None = None) -> str | None:
+    """Genre et âge d'un personnage, en quelques mots anglais. None si le LLM ne donne rien d'utilisable
+    (on réessaie plus tard, au lieu d'enregistrer une phrase de refus comme descriptif)."""
     provider = provider or st["settings"]["providers"]["text"]
+    story = " ".join(x for x in (st.get("idea"), st.get("synopsis")) if x)
     user = f"Person : {name}\nNotes (French) : {description}" if description else f"Person : {name}"
-    return clean_descriptor(llm.complete(provider, DESCRIBE_SYSTEM, user))
+    if story:
+        user += f"\nStory (French, the person's looks may be described here) : {story}"
+    for extra in ("", "\nAnswer with exactly two words: gender then age group, for example 'young woman'."):
+        raw = clean_descriptor(llm.complete_task("prompt", DESCRIBE_SYSTEM, user + extra, provider))
+        if valid_descriptor(raw):
+            return raw
+    return None
 
 
 def story_context(st: dict, assets: dict, aid: str) -> list[str]:
@@ -146,6 +166,10 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     ]
     if a.get("description"):
         lines.append(f"Notes (French) : {a['description']}")
+    if a["kind"] == "character" and (st.get("synopsis") or st.get("idea")):
+        # L'histoire décrit souvent l'apparence (couleur des yeux, cheveux) : elle doit être lue ici.
+        story = st.get("synopsis") or st.get("idea")
+        lines.append(f"Story (French, describes the people's looks): {anonymize(story, assets)}")
     if a.get("parent"):
         parent = assets.get(a["parent"])
         if parent:
@@ -191,4 +215,4 @@ def with_style(text: str, style: str) -> str:
 def suggest(st: dict, assets_data: dict, aid: str, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], aid)
     provider = provider or st["settings"]["providers"]["text"]
-    return with_style(clean(llm.complete(provider, system, user)), llm_style())
+    return with_style(clean(llm.complete_task("prompt", system, user, provider)), llm_style())

@@ -41,7 +41,7 @@ def fake_shots(st, sc, max_plans):
                       {"from_line": 9, "framing": "close-up", "text": "Hors limite."}]}
 
 
-def fake_generate(aid, refs, prompt, seed, backend="replicate", aspect=None):
+def fake_generate(aid, refs, prompt, seed, backend="replicate", aspect=None, loras=None, on_progress=None, on_submit=None):
     data = A.load()
     a = data["assets"][aid]
     n = len(a["candidates"])
@@ -318,8 +318,6 @@ class Plans(Setup, unittest.TestCase):
             FA.save_settings({"text_provider": "openai", "text_model": "mon-modele", "image_provider": "replicate"})
             self.assertEqual(LLM.provider_settings("openai")["model"], "mon-modele")
             self.assertEqual(S.load()["settings"]["providers"]["text"], "openai")
-            with self.assertRaises(ValueError):
-                FA.save_settings({"text_provider": "openai", "image_provider": "comfyui"})
             with self.assertRaises(ValueError):
                 FA.save_settings({"text_provider": "inconnu"})
 

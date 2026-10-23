@@ -1,2 +1,178 @@
 version: 1
-assets: {}
+assets:
+  char_mathilde:
+    kind: character
+    name: Mathilde
+    description: ''
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/char_mathilde/cand_00.png
+      created: '2026-10-23T14:32:01'
+      backend: comfyui
+      model: comfyui:FLUX_REDCRAFT_RAPIDE_API.json
+      seed: null
+      prompt: A young woman of twenty-one with long, wavy copper-red hair falling
+        over her shoulders and bright green eyes, slender build, fair skin with a
+        few freckles. She wears a simple moss-green linen blouse, a brown leather
+        vest and sturdy walking boots, standing in three-quarter view on a mossy forest
+        path between ancient oaks. Her expression is wary yet curious, head slightly
+        tilted, soft dappled morning light filtering through the leaves. watercolor
+        painting, soft wet edges, visible paper texture, delicate pastel colours,
+        hand-painted illustration
+      refs: []
+      aspect: '2:3'
+      loras: []
+    descriptor: young woman
+    prompt: A young woman of twenty-one with long, wavy copper-red hair falling over
+      her shoulders and bright green eyes, slender build, fair skin with a few freckles.
+      She wears a simple moss-green linen blouse, a brown leather vest and sturdy
+      walking boots, standing in three-quarter view on a mossy forest path between
+      ancient oaks. Her expression is wary yet curious, head slightly tilted, soft
+      dappled morning light filtering through the leaves. watercolor painting, soft
+      wet edges, visible paper texture, delicate pastel colours, hand-painted illustration
+  char_orgrim_le_geant:
+    kind: character
+    name: Orgrim, le géant
+    description: ''
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/char_orgrim_le_geant/cand_00.png
+      created: '2026-10-23T14:32:58'
+      backend: comfyui
+      model: comfyui:FLUX_REDCRAFT_RAPIDE_API.json
+      seed: null
+      prompt: A towering adult giant man, over four metres tall, sits with his broad
+        back against a thousand-year-old oak in a misty forest. He has shaggy chestnut
+        hair streaked with grey, a braided beard, and warm deep-set brown eyes with
+        a shy, kindly gaze. He wears a patched moss-green wool tunic and worn leather
+        vest, one huge hand holding two fist-sized dice. Dappled light, three-quarter
+        portrait. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs: []
+      aspect: '2:3'
+      loras: []
+    descriptor: adult man
+    prompt: A towering adult giant man, over four metres tall, sits with his broad
+      back against a thousand-year-old oak in a misty forest. He has shaggy chestnut
+      hair streaked with grey, a braided beard, and warm deep-set brown eyes with
+      a shy, kindly gaze. He wears a patched moss-green wool tunic and worn leather
+      vest, one huge hand holding two fist-sized dice. Dappled light, three-quarter
+      portrait. watercolor painting, soft wet edges, visible paper texture, delicate
+      pastel colours, hand-painted illustration
+  loc_foret_de_broceliande_sentier_de_mousse:
+    kind: location
+    name: Forêt de Brocéliande, sentier de mousse
+    description: 'Mathilde quitte le chemin balisé pour suivre un sentier couvert
+      de mousse, bercée par le chant des oiseaux. Elle repense à la lettre de la banque
+      qu''elle a laissée sur sa table et à la dette qui pèse sur sa famille. Peu à
+      peu, le silence de la forêt devient étrange : les oiseaux se taisent et le sol
+      tremble légèrement.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/loc_foret_de_broceliande_sentier_de_mousse/cand_00.png
+      created: '2026-10-23T14:33:52'
+      backend: comfyui
+      model: comfyui:FLUX_REDCRAFT_RAPIDE_API.json
+      seed: null
+      prompt: A wide establishing view of an ancient forest, where a narrow winding
+        path carpeted in thick emerald moss leads between gnarled oak trunks draped
+        with ferns and lichen. Pale green light filters through the high canopy, forming
+        soft mist low over the ground. The air feels hushed and uncanny, with faintly
+        rippling puddles and scattered fallen leaves, and the path vanishes into silvery
+        shadows far ahead. No people anywhere. watercolor painting, soft wet edges,
+        visible paper texture, delicate pastel colours, hand-painted illustration
+      refs: []
+      aspect: '16:9'
+      loras: []
+    prompt: A wide establishing view of an ancient forest, where a narrow winding
+      path carpeted in thick emerald moss leads between gnarled oak trunks draped
+      with ferns and lichen. Pale green light filters through the high canopy, forming
+      soft mist low over the ground. The air feels hushed and uncanny, with faintly
+      rippling puddles and scattered fallen leaves, and the path vanishes into silvery
+      shadows far ahead. No people anywhere. watercolor painting, soft wet edges,
+      visible paper texture, delicate pastel colours, hand-painted illustration
+  loc_clairiere_aux_chenes_millenaires:
+    kind: location
+    name: Clairière aux chênes millénaires
+    description: Au détour d'un tournant, Mathilde se retrouve face à un géant de
+      plus de quatre mètres, assis contre un chêne millénaire. Elle recule, effrayée,
+      mais il s'excuse d'une voix grave et timide, expliquant qu'il n'a pas parlé
+      à un humain depuis des siècles. Fascinée par son regard bienveillant, elle se
+      laisse apprivoiser peu à peu et se présente.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/loc_clairiere_aux_chenes_millenaires/cand_00.png
+      created: '2026-10-23T14:34:42'
+      backend: comfyui
+      model: comfyui:FLUX_REDCRAFT_RAPIDE_API.json
+      seed: null
+      prompt: A wide establishing view of a quiet forest clearing ringed by enormous,
+        ancient oak trees whose gnarled trunks are thick as houses and covered in
+        moss and curling roots. One vast oak at the centre has a hollow base worn
+        smooth, like a giant's seat, with a flattened patch of grass before it. Soft
+        golden light filters through the dense canopy, dappling the ferns and wildflowers.
+        A narrow path bends into the glade. watercolor painting, soft wet edges, visible
+        paper texture, delicate pastel colours, hand-painted illustration
+      refs: []
+      aspect: '16:9'
+      loras: []
+    prompt: A wide establishing view of a quiet forest clearing ringed by enormous,
+      ancient oak trees whose gnarled trunks are thick as houses and covered in moss
+      and curling roots. One vast oak at the centre has a hollow base worn smooth,
+      like a giant's seat, with a flattened patch of grass before it. Soft golden
+      light filters through the dense canopy, dappling the ferns and wildflowers.
+      A narrow path bends into the glade. watercolor painting, soft wet edges, visible
+      paper texture, delicate pastel colours, hand-painted illustration
+  outfit_veste_en_toile_verte_pull_creme_jean_bru:
+    kind: outfit
+    name: Veste en toile verte, pull crème, jean brut et bottines de marche usées,
+      cheveux roux attachés en tresse lâche
+    description: ''
+    parent: char_mathilde
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_veste_en_toile_verte_pull_creme_jean_bru/cand_00.png
+      created: '2026-10-23T14:36:14'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: 'Keep the woman from image 1 exactly as she is: her face, body, pose
+        and framing. Change her outfit: dress her in a green canvas jacket over a
+        cream knit sweater, raw dark denim jeans, and worn leather walking boots.
+        Her red hair is gathered into a loose braid. Remove any other garment or accessory.
+        watercolor painting, soft wet edges, visible paper texture, delicate pastel
+        colours, hand-painted illustration'
+      refs:
+      - char_mathilde
+      aspect: '2:3'
+      loras: []
+    prompt: 'Keep the woman from image 1 exactly as she is: her face, body, pose and
+      framing. Change her outfit: dress her in a green canvas jacket over a cream
+      knit sweater, raw dark denim jeans, and worn leather walking boots. Her red
+      hair is gathered into a loose braid. Remove any other garment or accessory.
+      watercolor painting, soft wet edges, visible paper texture, delicate pastel
+      colours, hand-painted illustration'
+  outfit_grande_tunique_de_laine_brune_rapiecee_c:
+    kind: outfit
+    name: Grande tunique de laine brune rapiécée, ceinture de corde épaisse, pieds
+      nus, barbe grise tressée
+    description: ''
+    parent: char_orgrim_le_geant
+    status: draft
+    validated_candidate: null
+    candidates: []
+    prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+      and framing. Dress him in a large patched brown wool tunic with a loose fit,
+      tied at the waist with a thick rope belt, and leave his feet bare. Remove any
+      other garment or accessory. Give him a long grey braided beard. watercolor painting,
+      soft wet edges, visible paper texture, delicate pastel colours, hand-painted
+      illustration'

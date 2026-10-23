@@ -58,7 +58,9 @@ def create_element(st: dict, data: dict, kind: str, name: str, description: str 
     A.add_asset(data, aid, kind, name, description, parent)
     if kind == "character":
         try:
-            data["assets"][aid]["descriptor"] = PR.describe_person(st, name, description)
+            descriptor = PR.describe_person(st, name, description)
+            if descriptor:
+                data["assets"][aid]["descriptor"] = descriptor
         except Exception as e:  # sans descriptif, le prompt parle de « person » : à reprendre
             _log(f"  genre et âge non déterminés pour « {name} » : {e}")
     try:

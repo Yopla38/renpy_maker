@@ -8,7 +8,11 @@ Usage (test) :
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import os
+import socket
+import struct
 import time
 import urllib.parse
 import urllib.request
@@ -110,28 +114,155 @@ def set_input(api: dict, dotted: str, value) -> None:
     api[node_id]["inputs"][name] = value
 
 
-def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800) -> list[dict]:
-    """Envoie le graphe et renvoie la liste des fichiers produits (dict nom/subfolder/type)."""
+class WebSocketConnection:
+    """Client WebSocket minimal (bibliothèque standard) pour le canal /ws de ComfyUI.
+
+    Il ne lit que les messages du serveur (texte JSON : avancement, états) et répond aux pings.
+    """
+
+    def __init__(self, sock: socket.socket):
+        self.sock = sock
+        self.buf = b""
+
+    @classmethod
+    def open(cls, base: str, client_id: str, timeout: float = 10.0) -> "WebSocketConnection":
+        u = urllib.parse.urlparse(base)
+        port = u.port or 80
+        sock = socket.create_connection((u.hostname, port), timeout=timeout)
+        key = base64.b64encode(os.urandom(16)).decode()
+        sock.sendall((f"GET /ws?clientId={client_id} HTTP/1.1\r\nHost: {u.hostname}:{port}\r\n"
+                      "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                      f"Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n").encode())
+        head = b""
+        while b"\r\n\r\n" not in head:
+            chunk = sock.recv(1024)
+            if not chunk:
+                sock.close()
+                raise ConnectionError("WebSocket fermé pendant la poignée de main")
+            head += chunk
+        header, _, rest = head.partition(b"\r\n\r\n")
+        if b" 101 " not in header.split(b"\r\n")[0]:
+            sock.close()
+            raise ConnectionError("Connexion WebSocket refusée par ComfyUI")
+        conn = cls(sock)
+        conn.buf = rest
+        return conn
+
+    def _read(self, n: int) -> bytes:
+        while len(self.buf) < n:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise ConnectionError("WebSocket fermé")
+            self.buf += chunk
+        data, self.buf = self.buf[:n], self.buf[n:]
+        return data
+
+    def recv(self, timeout: float) -> tuple[int, bytes] | None:
+        """Prochain message (opcode, données), ou None si rien n'arrive pendant « timeout » secondes."""
+        self.sock.settimeout(timeout)
+        try:
+            if not self.buf:
+                chunk = self.sock.recv(65536)
+                if not chunk:
+                    raise ConnectionError("WebSocket fermé")
+                self.buf += chunk
+        except socket.timeout:
+            return None
+        self.sock.settimeout(60)
+        opcode = self._read(1)[0] & 0x0F
+        length = self._read(1)[0] & 0x7F
+        if length == 126:
+            length = struct.unpack(">H", self._read(2))[0]
+        elif length == 127:
+            length = struct.unpack(">Q", self._read(8))[0]
+        payload = self._read(length)
+        if opcode == 9:  # ping : le serveur attend un pong (masqué, côté client)
+            self._send_frame(10, payload)
+            return self.recv(timeout)
+        if opcode == 8:
+            raise ConnectionError("WebSocket fermé par ComfyUI")
+        return opcode, payload
+
+    def _send_frame(self, opcode: int, payload: bytes) -> None:
+        mask = os.urandom(4)
+        header = bytes([0x80 | opcode])
+        n = len(payload)
+        if n < 126:
+            header += bytes([0x80 | n])
+        else:
+            header += bytes([0x80 | 126]) + struct.pack(">H", n)
+        masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+        self.sock.sendall(header + mask + masked)
+
+    def close(self) -> None:
+        try:
+            self.sock.close()
+        except OSError:
+            pass
+
+
+def interrupt(base: str = DEFAULT_URL, prompt_id: str | None = None) -> None:
+    """Arrête la génération en cours et retire la génération demandée de la file d'attente."""
+    _post("/interrupt", {}, base)
+    if prompt_id:
+        _post("/queue", {"delete": [prompt_id]}, base)
+
+
+def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800, on_progress=None, on_submit=None) -> list[dict]:
+    """Envoie le graphe et renvoie la liste des fichiers produits (dict nom/subfolder/type).
+
+    on_progress(valeur, maximum) est appelé à chaque étape d'échantillonnage, si le canal WebSocket
+    est disponible. Sans lui, la génération reste suivie par interrogation, comme avant.
+    """
     client_id = str(uuid.uuid4())
-    resp = _post("/prompt", {"prompt": api, "client_id": client_id}, base)
-    if "error" in resp or resp.get("node_errors"):
-        raise RuntimeError(f"Refus du serveur : {resp}")
-    pid = resp["prompt_id"]
-    t0 = time.time()
-    while time.time() - t0 < timeout_s:
-        hist = _get(f"/history/{pid}", base)
-        if pid in hist:
-            status = hist[pid].get("status", {})
-            if status.get("status_str") == "error":
-                raise RuntimeError(f"Erreur d'exécution : {status}")
-            files = []
-            for out in hist[pid].get("outputs", {}).values():
-                for key in ("images", "gifs", "videos"):
-                    files.extend(out.get(key, []))
-            if files:
-                return files
-        time.sleep(2)
-    raise TimeoutError(f"Pas de résultat après {timeout_s}s pour {pid}")
+    ws = None
+    try:
+        ws = WebSocketConnection.open(base, client_id)
+    except OSError:
+        ws = None  # pas de suivi en direct, mais la génération se fait quand même
+    try:
+        resp = _post("/prompt", {"prompt": api, "client_id": client_id}, base)
+        if "error" in resp or resp.get("node_errors"):
+            raise RuntimeError(f"Refus du serveur : {resp}")
+        pid = resp["prompt_id"]
+        if on_submit is not None:
+            on_submit(pid)  # permet d'arrêter cette génération précise
+        t0 = time.time()
+        while time.time() - t0 < timeout_s:
+            if ws is not None:
+                try:
+                    while True:
+                        message = ws.recv(timeout=0.5)
+                        if message is None:
+                            break
+                        opcode, payload = message
+                        if opcode != 1:
+                            continue  # images d'aperçu (binaire) : ignorées
+                        event = json.loads(payload)
+                        if event.get("type") == "progress" and on_progress is not None:
+                            data = event.get("data", {})
+                            if data.get("prompt_id", pid) == pid:
+                                on_progress(int(data.get("value", 0)), int(data.get("max", 0)))
+                except (ConnectionError, OSError, ValueError):
+                    ws.close()
+                    ws = None
+            hist = _get(f"/history/{pid}", base)
+            if pid in hist:
+                status = hist[pid].get("status", {})
+                if status.get("status_str") == "error":
+                    raise RuntimeError(f"Erreur d'exécution : {status}")
+                files = []
+                for out in hist[pid].get("outputs", {}).values():
+                    for key in ("images", "gifs", "videos"):
+                        files.extend(out.get(key, []))
+                if files:
+                    return files
+            if ws is None:
+                time.sleep(2)
+        raise TimeoutError(f"Pas de résultat après {timeout_s}s pour {pid}")
+    finally:
+        if ws is not None:
+            ws.close()
 
 
 def upload_image(path: Path, base: str = DEFAULT_URL, overwrite: bool = True) -> str:

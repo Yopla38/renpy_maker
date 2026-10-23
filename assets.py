@@ -165,12 +165,16 @@ def ref_path(ref: str, data: dict) -> Path:
 
 
 def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int | None,
-                       backend: str = "replicate", aspect: str | None = None) -> int:
+                       backend: str | None = None, aspect: str | None = None,
+                       loras: list[dict] | None = None, on_progress=None, on_submit=None) -> int:
     """Génère un candidat SANS garder le verrou pendant l'appel réseau (qui peut durer plusieurs minutes).
 
+    Le moteur vient de la roue de réglages : sans référence, le rôle « base » ; avec références, « edit ».
+    Les LoRA (propres à l'élément, ou passés en paramètre) ne servent qu'avec ComfyUI.
     Le verrou ne protège que la lecture et l'écriture du fichier de registre.
     """
     import uuid
+    import appsettings
     import image_replicate as rep
 
     if not prompt or not prompt.strip():
@@ -180,10 +184,20 @@ def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int
         a = _get(data, asset_id)
         refs = [ref_path(r, data) for r in ref_ids]
         aspect = aspect or DEFAULT_ASPECT[a["kind"]]
+        loras = list(a.get("loras", []) if loras is None else loras)
+    choice = appsettings.image_for("edit" if refs else "base")
     folder = ROOT / "assets" / asset_id
     folder.mkdir(parents=True, exist_ok=True)
-    tmp = folder / f"tmp_{uuid.uuid4().hex[:8]}.png"
-    model = rep.generate(prompt, tmp, images=refs or None, seed=seed, aspect_ratio=aspect)
+    tmp = folder / f"tmp_{uuid.uuid4().hex[:8].lower()}.png"
+    if choice["engine"] == "comfyui":
+        import comfy_image
+        steps = appsettings.steps_for("edit" if refs else "base")
+        model = comfy_image.generate(choice["workflow"], prompt, refs, loras, aspect, tmp, seed=seed, steps=steps,
+                                     on_progress=on_progress, on_submit=on_submit)
+        backend = "comfyui"
+    else:
+        model = rep.generate(prompt, tmp, images=refs or None, seed=seed, aspect_ratio=aspect)
+        backend = "replicate"
     with LOCK:
         data = load()
         a = _get(data, asset_id)
@@ -192,7 +206,7 @@ def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int
         tmp.replace(final)
         idx = add_candidate(data, asset_id, f"assets/{asset_id}/cand_{n:02d}.png", {
             "backend": backend, "model": model, "seed": seed, "prompt": prompt,
-            "refs": ref_ids, "aspect": aspect,
+            "refs": ref_ids, "aspect": aspect, "loras": loras,
         })
         save(data)
     return idx

@@ -71,9 +71,12 @@ def _post(url: str, headers: dict, payload: dict, timeout: int = 600) -> dict:
         raise LLMError(f"HTTP {e.code} : {body[:500]}") from None
 
 
-def complete(provider: str, system: str, user: str) -> str:
-    """Renvoie le texte produit par le modèle. Lève LLMError en cas d'échec."""
+def complete(provider: str, system: str, user: str, model: str | None = None) -> str:
+    """Renvoie le texte produit par le modèle. Lève LLMError en cas d'échec.
+    model : modèle choisi pour cette tâche (sinon celui de config.yaml ou de la roue de réglages)."""
     p = provider_settings(provider)
+    if model:
+        p = {**p, "model": model}
     if provider == "replicate":
         return _replicate_text(p, system, user)
     if provider == "anthropic":
@@ -102,6 +105,13 @@ def complete(provider: str, system: str, user: str) -> str:
         )
         return data["message"]["content"]
     raise LLMError(f"Fournisseur inconnu : {provider}")
+
+
+def complete_task(task: str, system: str, user: str, story_provider: str | None = None) -> str:
+    """Appel LLM pour une tâche (histoire, dialogue, prompt), avec le fournisseur et le modèle choisis."""
+    import appsettings
+    provider, model = appsettings.llm_for(task, story_provider or "anthropic")
+    return complete(provider, system, user, model or None)
 
 
 def _replicate_text(p: dict, system: str, user: str) -> str:

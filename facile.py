@@ -21,6 +21,7 @@ import uuid
 from pathlib import Path
 
 import assets as A
+import appsettings
 import keys
 import paths
 import image_replicate as REP
@@ -132,7 +133,8 @@ def _element_card(assets: dict, kind: str, name: str, parent: str | None = None)
     if a and kind == "outfit":
         blocked = assets.get(a.get("parent") or "", {}).get("validated_candidate") is None
     return {"name": name, "aid": aid, "image": _url(a, idx) if a else None, "ready": idx is not None,
-            "prompt": a.get("prompt", "") if a else "", "blocked": blocked, "parent": parent or ""}
+            "prompt": a.get("prompt", "") if a else "", "blocked": blocked, "parent": parent or "",
+            "loras": list(a.get("loras", [])) if a else []}
 
 
 def apply_continuity(sc: dict, assets: dict) -> bool:
@@ -181,6 +183,7 @@ def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
     a = assets.get(plan["asset"], {})
     return {"id": plan["id"], "aid": plan["asset"], "from_line": plan["from_line"],
             "candidate": RE.plan_index(plan, a) if a else None,
+            "loras": list(a.get("loras", [])) if a else [],
             "refs": _refs_view(sc, plan, assets),
             "continuity": bool(plan.get("continuity", True)),
             "characters": SC.plan_characters(sc, plan),
@@ -193,7 +196,8 @@ def _ensure_descriptors(st: dict) -> None:
     """Genre et âge de chaque personnage, pour les prompts (complète les anciennes histoires)."""
     with A.LOCK:
         data = A.load()
-    missing = [k for k, a in data["assets"].items() if a["kind"] == "character" and not a.get("descriptor")]
+    missing = [k for k, a in data["assets"].items()
+               if a["kind"] == "character" and not PR.valid_descriptor(a.get("descriptor"))]
     if not missing:
         return
     found = {k: PR.describe_person(st, data["assets"][k]["name"], data["assets"][k].get("description", ""))
@@ -201,8 +205,40 @@ def _ensure_descriptors(st: dict) -> None:
     with A.LOCK:
         data = A.load()
         for k, word in found.items():
-            data["assets"][k]["descriptor"] = word
+            if word:  # un descriptif invalide reste absent : il sera redemandé
+                data["assets"][k]["descriptor"] = word
         A.save(data)
+
+
+def available_loras() -> list[str]:
+    """Fichiers LoRA du dossier des modèles ComfyUI (vide si ComfyUI n'est pas installé ici)."""
+    if paths.KIDS:
+        return []  # application enfants : pas de ComfyUI, donc pas de LoRA
+    cfg = appsettings.config().get("comfy", {})
+    folder = Path(cfg.get("models_dir", "")) / "loras"
+    if not cfg.get("models_dir") or not folder.is_dir():
+        return []
+    return sorted(p.name for p in folder.iterdir() if p.suffix == ".safetensors")
+
+
+def set_asset_loras(aid: str, loras: list[dict]) -> dict:
+    """LoRA ajoutés à une image (réglage fin). Utilisés seulement quand le moteur est ComfyUI."""
+    clean = []
+    for item in loras:
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+        strength = float(item.get("strength", 1.0))
+        if not -2.0 <= strength <= 2.0:
+            raise ValueError("La force d'un LoRA doit être entre -2 et 2")
+        clean.append({"name": name, "strength": strength, "clip": bool(item.get("clip", False))})
+    with A.LOCK:
+        data = A.load()
+        if aid not in data["assets"]:
+            raise ValueError("Élément inconnu")
+        data["assets"][aid]["loras"] = clean
+        A.save(data)
+    return {"ok": True, "loras": clean}
 
 
 def _ensure_token() -> None:
@@ -231,6 +267,12 @@ def settings_view() -> dict:
         "kids": paths.KIDS,
         "replicate_key": keys.present("REPLICATE_API_TOKEN"),
         "text": {"provider": st["settings"]["providers"]["text"], "choices": choices},
+        "tasks": _tasks_view(st),
+        "image_rows": _images_view(),
+        "comfy_free_memory": appsettings.comfy_free_memory(),
+        "comfy_defaults": {role: appsettings.default_comfy_workflow(role) for role in appsettings.ROLES},
+        "engine_labels": ENGINE_LABELS,
+        "loras": available_loras(),
         "image": {"provider": st["settings"]["providers"]["image_base"],
                   "choices": [{"name": "replicate", "label": "Replicate (cloud)", "available": True},
                               {"name": "comfyui", "label": "ComfyUI (local), bientôt", "available": False}],
@@ -269,12 +311,87 @@ def play_view() -> dict:
     return {"title": st.get("title") or "Mon histoire", "scenes": scenes}
 
 
+TASK_LABELS = {"histoire": "Histoire (plan des chapitres)", "dialogue": "Dialogue (répliques)",
+               "prompt": "Prompts d'image et découpage"}
+ENGINE_LABELS = {"replicate": "Replicate (cloud)", "comfyui": "ComfyUI (local)"}
+
+
+def _tasks_view(st: dict) -> list[dict]:
+    rows = []
+    default_provider = st["settings"]["providers"]["text"]
+    for task, label in TASK_LABELS.items():
+        provider, model = appsettings.llm_for(task, default_provider)
+        rows.append({"task": task, "label": label, "provider": provider, "model": model})
+    return rows
+
+
+def _images_view() -> list[dict]:
+    rows = []
+    for role, label in (("base", "Dessin de base (sans référence)"), ("edit", "Retouche (avec références)")):
+        choice = appsettings.image_for(role)
+        workflow = choice["workflow"] or ""
+        if workflow.startswith(str(paths.CODE) + "/"):
+            workflow = workflow[len(str(paths.CODE)) + 1:]  # chemin relatif, comme dans la liste
+        rows.append({"role": role, "label": label, "engine": choice["engine"], "workflow": workflow,
+                     "steps": appsettings.steps_for(role) or "", "choices": appsettings.available_workflows()})
+    return rows
+
+
+def save_settings_tasks(body: dict) -> None:
+    """Enregistre les choix par tâche et par moteur d'image (game_spec/app_settings.yaml)."""
+    data = appsettings.load()
+    tasks = body.get("tasks")
+    if tasks is not None:
+        chosen = {}
+        for row in tasks:
+            task = row.get("task")
+            if task not in appsettings.TASKS:
+                raise ValueError("Tâche inconnue")
+            provider = row.get("provider") or ""
+            if provider and provider not in TEXT_LABELS:
+                raise ValueError("Fournisseur d'écriture inconnu")
+            if provider and paths.KIDS and provider not in KIDS_TEXT:
+                raise ValueError("Fournisseur non disponible dans cette application")
+            chosen[task] = {"provider": provider or None, "model": str(row.get("model") or "").strip() or None}
+        data["llm_tasks"] = chosen
+    engines = body.get("images")
+    if engines is not None:
+        chosen = {}
+        for row in engines:
+            role = row.get("role")
+            if role not in appsettings.ROLES:
+                raise ValueError("Rôle d'image inconnu")
+            engine = row.get("engine") or "replicate"
+            if engine not in appsettings.ENGINES:
+                raise ValueError("Moteur d'image inconnu")
+            if paths.KIDS and engine != "replicate":
+                raise ValueError("Cette application utilise Replicate pour les images")
+            workflow = str(row.get("workflow") or "").strip() or None
+            if engine == "comfyui":
+                if not workflow:
+                    workflow = appsettings.default_comfy_workflow(role)
+                wf = Path(workflow) if Path(workflow).is_absolute() else paths.CODE / workflow
+                if not wf.is_file():
+                    raise ValueError(f"Fichier de workflow introuvable : {workflow}")
+            chosen[role] = {"engine": engine, "workflow": workflow}
+        data["image_engines"] = chosen
+        steps = {}
+        for row in engines:
+            value = str(row.get("steps") or "").strip()
+            if value:
+                if not value.isdigit() or not 1 <= int(value) <= 100:
+                    raise ValueError("Le nombre d'étapes doit être entre 1 et 100")
+                steps[row["role"]] = int(value)
+        data["comfy_steps"] = steps  # vide : on garde le nombre d'étapes du workflow
+    if "comfy_free_memory" in body:
+        data["comfy_free_memory"] = bool(body["comfy_free_memory"])
+    appsettings.save(data)
+
+
 def save_settings(body: dict) -> dict:
     provider = body.get("text_provider", "")
     if provider not in TEXT_LABELS or (paths.KIDS and provider not in KIDS_TEXT):
         raise ValueError("Fournisseur d'écriture inconnu")
-    if body.get("image_provider", "replicate") != "replicate":
-        raise ValueError("ComfyUI n'est pas encore branché au parcours simple : gardez Replicate.")
     model = str(body.get("text_model", "")).strip()
     if model:
         overrides = {}
@@ -286,6 +403,7 @@ def save_settings(body: dict) -> dict:
         st = S.load()
         st["settings"]["providers"]["text"] = provider
         S.save(st)
+    save_settings_tasks(body)
     return {"ok": True, **settings_view()}
 
 
@@ -295,7 +413,8 @@ def _start(label: str, work, *args) -> dict:
     if not _busy.acquire(blocking=False):
         raise ValueError("Une création est déjà en cours : elle apparaîtra dès qu'elle sera terminée.")
     job_id = uuid.uuid4().hex[:12]
-    JOBS[job_id] = {"state": "running", "label": label, "message": "", "error": None}
+    JOBS[job_id] = {"state": "running", "label": label, "message": "", "error": None, "progress": None,
+                    "cancel_requested": False, "comfy_prompt": None}
 
     def run():
         try:
@@ -303,8 +422,11 @@ def _start(label: str, work, *args) -> dict:
             work(job_id, *args)
             JOBS[job_id]["state"] = "done"
         except Exception as e:  # le message est montré à l'utilisateur, la trace reste dans le journal serveur
-            traceback.print_exc()
-            JOBS[job_id].update(state="error", error=f"{type(e).__name__}: {e}")
+            if JOBS[job_id]["cancel_requested"]:
+                JOBS[job_id].update(state="cancelled", message="Génération arrêtée")
+            else:
+                traceback.print_exc()
+                JOBS[job_id].update(state="error", error=f"{type(e).__name__}: {e}")
         finally:
             _busy.release()
 
@@ -314,6 +436,47 @@ def _start(label: str, work, *args) -> dict:
 
 def _say(job_id: str, message: str) -> None:
     JOBS[job_id]["message"] = message
+    JOBS[job_id]["progress"] = None  # une nouvelle étape repart de zéro
+
+
+class Cancelled(Exception):
+    """Arrêt demandé par l'auteur : la tâche s'arrête entre deux images."""
+
+
+def _check_cancel(job_id: str) -> None:
+    if JOBS[job_id]["cancel_requested"]:
+        raise Cancelled("arrêtée")
+
+
+def _submit(job_id: str):
+    """Mémorise l'identifiant ComfyUI de la génération en cours, pour pouvoir l'arrêter."""
+    def remember(prompt_id: str) -> None:
+        JOBS[job_id]["comfy_prompt"] = prompt_id
+    return remember
+
+
+def cancel_job(job_id: str) -> dict:
+    """Arrête une tâche en cours. ComfyUI n'est interrompu que si cette tâche a une génération en cours là-bas."""
+    job = JOBS.get(job_id)
+    if job is None or job["state"] != "running":
+        raise ValueError("Cette tâche n'est plus en cours")
+    job["cancel_requested"] = True
+    if job.get("comfy_prompt"):
+        import comfy_client as CC
+        import comfy_image
+        try:
+            CC.interrupt(comfy_image.base_url(), job["comfy_prompt"])
+        except OSError:
+            pass  # ComfyUI injoignable : la tâche s'arrête à l'étape suivante
+    return {"ok": True}
+
+
+def _progress(job_id: str):
+    """Callback d'avancement de ComfyUI pour une tâche : étape courante sur le total."""
+    def update(value: int, maximum: int) -> None:
+        if job_id in JOBS and maximum > 0:
+            JOBS[job_id]["progress"] = {"value": value, "max": maximum}
+    return update
 
 
 # ---------- vue ----------
@@ -349,6 +512,7 @@ def view() -> dict:
         "max_plans": _max_plans(st), "plan_limits": list(PLAN_LIMITS),
         "written": written, "characters": characters, "locations": locations, "outfits": outfits, "scenes": cards,
         "chapters": [{"title": ch["title"], "scenes": len(ch["scenes"])} for ch in st["chapters"]],
+        "lora_names": available_loras(),
         "ref_choices": [{"ref": aid, "label": a.get("name", aid), "image": _url(a, a["validated_candidate"])}
                         for aid, a in assets.items() if a.get("validated_candidate") is not None],
         "done": done, "busy": _busy.locked(),
@@ -538,7 +702,9 @@ def _card_work(job_id: str, aid: str, prompt: str | None = None) -> None:
         data["assets"][aid]["prompt"] = prompt
         A.save(data)
     _say(job_id, f"Dessin de « {a['name']} » (une à deux minutes)…")
-    idx = A.generate_candidate(aid, refs, prompt, None, "replicate", None)
+    _check_cancel(job_id)
+    idx = A.generate_candidate(aid, refs, prompt, None, "replicate", None, on_progress=_progress(job_id),
+                               on_submit=_submit(job_id))
     with A.LOCK:
         data = A.load()
         A.set_status(data, aid, idx, True)
@@ -568,7 +734,7 @@ def _ask_shots(st: dict, sc: dict, max_plans: int) -> dict:
             f"Characters : {', '.join(sc.get('characters', []))}\n"
             "Dialogue :\n" + "\n".join(lines))
     provider = st["settings"]["providers"]["text"]
-    return llm.extract_json(llm.complete(provider, SHOT_SYSTEM.replace("{max}", str(max_plans)), user))
+    return llm.extract_json(llm.complete_task("prompt", SHOT_SYSTEM.replace("{max}", str(max_plans)), user, provider))
 
 
 def normalize_shots(raw, n_lines: int, max_plans: int) -> list[dict]:
@@ -730,7 +896,13 @@ def make_all_plans() -> dict:
     if not todo:
         raise ValueError("Tous les plans ont déjà leur image" if any(sc.get("plans") for sc in S.all_scenes(st))
                          else "Proposez d'abord le découpage des scènes")
-    return _start("Images des plans", lambda job_id: [_plan_work(job_id, sid, pid) for sid, pid in todo])
+    return _start("Images des plans", _all_plans_work, todo)
+
+
+def _all_plans_work(job_id: str, todo: list) -> None:
+    for sid, pid in todo:
+        _check_cancel(job_id)
+        _plan_work(job_id, sid, pid)
 
 
 def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> None:
@@ -759,7 +931,9 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
         prompt = SC.suggest(st, data, sc, k)
     prompt = prompt.strip()
     _say(job_id, f"Scène {sid}, plan {pid} : dessin (plusieurs minutes possibles)…")
-    idx = A.generate_candidate(plan["asset"], info["refs"], prompt, None, "replicate", None)
+    _check_cancel(job_id)
+    idx = A.generate_candidate(plan["asset"], info["refs"], prompt, None, "replicate", None,
+                               on_progress=_progress(job_id), on_submit=_submit(job_id))
     with A.LOCK:
         data = A.load()
         data["assets"][plan["asset"]]["prompt"] = prompt
@@ -914,6 +1088,8 @@ def route(method: str, path: str, body: dict) -> dict:
             "/api/facile/style": lambda: set_style(body["style"]),
             "/api/facile/settings": lambda: save_settings(body),
             "/api/facile/secret": lambda: save_secret(body.get("name", ""), body.get("value", "")),
+            "/api/facile/asset/loras": lambda: set_asset_loras(body["asset"], body.get("loras", [])),
+            "/api/facile/job/cancel": lambda: cancel_job(body.get("job", "")),
             "/api/facile/settings/max-plans": lambda: set_max_plans(int(body["max_plans"])),
             "/api/facile/story": lambda: write_story(body.get("title", ""), body.get("idea", ""),
                                                      int(body.get("count", 4)), bool(body.get("explicit"))),
