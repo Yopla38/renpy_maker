@@ -55,6 +55,9 @@ comfy:
   # Libérer la mémoire de ComfyUI avant chaque génération. Dépend de la machine : à activer si la
   # carte est trop petite pour garder plusieurs modèles chargés (ex. 16 Go). Modifiable dans la roue.
   free_memory_before_generation: false
+  # Mémoire partagée entre Ollama (LLM local) et ComfyUI : à régler selon la machine (roue de réglages).
+  unload_ollama_before_comfy: true     # décharger les modèles Ollama avant une génération ComfyUI
+  free_comfy_before_ollama: false      # libérer ComfyUI avant un appel Ollama (ralentit la génération suivante)
   models_dir: "/home/yopla/Applications/SD/comfyui/Comfyui/models"
   image:
     # Modèle image à valider sur cette machine (voir unet/ : zImageTurbo, qwen_image, flux...).
@@ -88,6 +91,7 @@ llm_tasks:
   histoire: {provider: null, model: null}   # plan des chapitres
   dialogue: {provider: null, model: null}   # répliques
   prompt:   {provider: null, model: null}   # prompts d'image et découpage en plans
+  decision: {provider: null, model: null}   # oui/non : le texte d'un plan change-t-il une tenue ? (modèle léger conseillé)
 
 # Moteur d'image par rôle. base : sans référence (« équivalent FLUX 1 »).
 # edit : avec images de référence (« équivalent Klein »). engine : replicate ou comfyui.

@@ -167,12 +167,598 @@ assets:
       nus, barbe grise tressée
     description: ''
     parent: char_orgrim_le_geant
-    status: draft
-    validated_candidate: null
-    candidates: []
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/outfit_grande_tunique_de_laine_brune_rapiecee_c/cand_00.png
+      created: '2026-10-23T14:37:45'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
+        and framing. Dress him in a large patched brown wool tunic with a loose fit,
+        tied at the waist with a thick rope belt, and leave his feet bare. Remove
+        any other garment or accessory. Give him a long grey braided beard. watercolor
+        painting, soft wet edges, visible paper texture, delicate pastel colours,
+        hand-painted illustration'
+      refs:
+      - char_orgrim_le_geant
+      aspect: '2:3'
+      loras: []
     prompt: 'Keep the man from image 1 exactly as he is: his face, hair, body, pose
       and framing. Dress him in a large patched brown wool tunic with a loose fit,
       tied at the waist with a thick rope belt, and leave his feet bare. Remove any
       other garment or accessory. Give him a long grey braided beard. watercolor painting,
       soft wet edges, visible paper texture, delicate pastel colours, hand-painted
       illustration'
+  scene_s1_b040a8:
+    kind: scene
+    name: Le sentier oublié · plan 1
+    description: 'Mathilde quitte le chemin balisé pour suivre un sentier couvert
+      de mousse, bercée par le chant des oiseaux. Elle repense à la lettre de la banque
+      qu''elle a laissée sur sa table et à la dette qui pèse sur sa famille. Peu à
+      peu, le silence de la forêt devient étrange : les oiseaux se taisent et le sol
+      tremble légèrement.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_b040a8/cand_00.png
+      created: '2026-10-23T14:40:11'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Wide shot from a low angle behind and slightly to the side, placing
+        the camera among the ferns at the edge of the trail, with the woman small
+        in the middle distance and the whole mossy path and oak trunks in sharp focus.
+        Use the forest from image 1 only for the look of the place. Keep the woman
+        from image 2 exactly as she is, with her outfit. She steps off the marked
+        trail onto the moss, glancing back over her shoulder with a weary smile, calm
+        and resigned. Pale green light filters through the canopy and gilds her hair,
+        with low mist around her boots. watercolor painting, soft wet edges, visible
+        paper texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      aspect: '16:9'
+      loras: []
+    prompt: Wide shot from a low angle behind and slightly to the side, placing the
+      camera among the ferns at the edge of the trail, with the woman small in the
+      middle distance and the whole mossy path and oak trunks in sharp focus. Use
+      the forest from image 1 only for the look of the place. Keep the woman from
+      image 2 exactly as she is, with her outfit. She steps off the marked trail onto
+      the moss, glancing back over her shoulder with a weary smile, calm and resigned.
+      Pale green light filters through the canopy and gilds her hair, with low mist
+      around her boots. watercolor painting, soft wet edges, visible paper texture,
+      delicate pastel colours, hand-painted illustration
+  scene_s1_be1b0b:
+    kind: scene
+    name: Le sentier oublié · plan 2
+    description: 'Mathilde quitte le chemin balisé pour suivre un sentier couvert
+      de mousse, bercée par le chant des oiseaux. Elle repense à la lettre de la banque
+      qu''elle a laissée sur sa table et à la dette qui pèse sur sa famille. Peu à
+      peu, le silence de la forêt devient étrange : les oiseaux se taisent et le sol
+      tremble légèrement.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_be1b0b/cand_00.png
+      created: '2026-10-23T14:41:26'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Close-up at eye level, framed from the shoulders up, with the camera
+        facing the woman from image 2 slightly from the front-left. Her face is in
+        sharp focus, while the mossy path and oak trunks from image 1 melt into a
+        soft green blur behind her. Keep the woman from image 2 exactly as she is,
+        with her outfit. She stands still on the moss, her gaze drifting off to the
+        side and downward, her lips closed, with a melancholy expression as her green
+        eyes grow distant. A few ferns brush the edge of the frame. Pale green light
+        filters through the canopy and softly touches her cheek, with faint mist behind
+        her. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_b040a8
+      aspect: '16:9'
+      loras: []
+    prompt: Close-up at eye level, framed from the shoulders up, with the camera facing
+      the woman from image 2 slightly from the front-left. Her face is in sharp focus,
+      while the mossy path and oak trunks from image 1 melt into a soft green blur
+      behind her. Keep the woman from image 2 exactly as she is, with her outfit.
+      She stands still on the moss, her gaze drifting off to the side and downward,
+      her lips closed, with a melancholy expression as her green eyes grow distant.
+      A few ferns brush the edge of the frame. Pale green light filters through the
+      canopy and softly touches her cheek, with faint mist behind her. watercolor
+      painting, soft wet edges, visible paper texture, delicate pastel colours, hand-painted
+      illustration
+  scene_s1_509631:
+    kind: scene
+    name: Le sentier oublié · plan 3
+    description: 'Mathilde quitte le chemin balisé pour suivre un sentier couvert
+      de mousse, bercée par le chant des oiseaux. Elle repense à la lettre de la banque
+      qu''elle a laissée sur sa table et à la dette qui pèse sur sa famille. Peu à
+      peu, le silence de la forêt devient étrange : les oiseaux se taisent et le sol
+      tremble légèrement.'
+    parent: null
+    status: validated
+    validated_candidate: 2
+    candidates:
+    - file: assets/scene_s1_509631/cand_00.png
+      created: '2026-10-23T14:43:45'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: woman is fully nude
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_be1b0b
+      aspect: '16:9'
+      loras:
+      - name: Flux2-Klein-9b-Nude-v1.safetensors
+        strength: 1.0
+        clip: false
+    - file: assets/scene_s1_509631/cand_01.png
+      created: '2026-10-23T14:45:08'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: woman is fully nude.  watercolor painting, soft wet edges, visible paper
+        texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_be1b0b
+      aspect: '16:9'
+      loras:
+      - name: Flux2-Klein-9b-Nude-v1.safetensors
+        strength: 1.0
+        clip: false
+    - file: assets/scene_s1_509631/cand_02.png
+      created: '2026-10-23T14:49:36'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Extreme close-up from a slightly high angle on the right, cropped tight
+        on the eyes and brow of the woman from image 2, with the mossy path from image
+        1 as a soft green blur behind her. In sharp focus, a faint memory vignette
+        of a folded bank letter with blank lines, lying on a wooden kitchen table,
+        floats in the lower frame. Keep the woman from image 2 exactly as she is,
+        with her outfit. She holds still, eyes wide and wary, brows slightly raised
+        in sudden surprise, lips parted. Pale green light and low mist. watercolor
+        painting, soft wet edges, visible paper texture, delicate pastel colours,
+        hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_be1b0b
+      aspect: '16:9'
+      loras: []
+    loras: []
+    prompt: Extreme close-up from a slightly high angle on the right, cropped tight
+      on the eyes and brow of the woman from image 2, with the mossy path from image
+      1 as a soft green blur behind her. In sharp focus, a faint memory vignette of
+      a folded bank letter with blank lines, lying on a wooden kitchen table, floats
+      in the lower frame. Keep the woman from image 2 exactly as she is, with her
+      outfit. She holds still, eyes wide and wary, brows slightly raised in sudden
+      surprise, lips parted. Pale green light and low mist. watercolor painting, soft
+      wet edges, visible paper texture, delicate pastel colours, hand-painted illustration
+  scene_s1_50baa5:
+    kind: scene
+    name: Le sentier oublié · plan 4
+    description: 'Mathilde quitte le chemin balisé pour suivre un sentier couvert
+      de mousse, bercée par le chant des oiseaux. Elle repense à la lettre de la banque
+      qu''elle a laissée sur sa table et à la dette qui pèse sur sa famille. Peu à
+      peu, le silence de la forêt devient étrange : les oiseaux se taisent et le sol
+      tremble légèrement.'
+    parent: null
+    status: validated
+    validated_candidate: 5
+    candidates:
+    - file: assets/scene_s1_50baa5/cand_00.png
+      created: '2026-10-23T14:46:10'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium shot from a low angle near the ground on the mossy path, the
+        woman from image 2 standing motionless in the middle distance, while a twig
+        leaps and leaves tremble sharply in the foreground. Keep the woman from image
+        2 with the same face and hair, and the path from image 1 as the look of the
+        place. She wears a simple modest travel dress and cloak, hands clenched at
+        her chest, eyes wide, lips tight with contained fear. Pale green light, low
+        mist. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_509631
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s1_50baa5/cand_01.png
+      created: '2026-10-23T14:50:32'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium shot from a low angle near the ground on the mossy path, the
+        woman from image 2 standing motionless in the middle distance, while a twig
+        leaps and leaves tremble sharply in the foreground. Keep the woman from image
+        2 with the same face and hair, and the path from image 1 as the look of the
+        place. She wears a simple modest travel dress and cloak, hands clenched at
+        her chest, eyes wide, lips tight with contained fear. Pale green light, low
+        mist. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_509631
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s1_50baa5/cand_02.png
+      created: '2026-10-23T14:51:51'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium shot from a low angle near the ground on the mossy path, the
+        woman from image 2 standing motionless in the middle distance, while a twig
+        leaps and leaves tremble sharply in the foreground. Keep the woman from image
+        2 with the same face and hair, and the path from image 1 as the look of the
+        place. She wears a simple modest travel dress and cloak, hands clenched at
+        her chest, eyes wide, lips tight with contained fear. Pale green light, low
+        mist. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      - scene_s1_509631
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s1_50baa5/cand_03.png
+      created: '2026-10-23T15:00:00'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium shot from a low angle near the ground on the mossy path, the
+        woman from image 2 standing motionless in the middle distance, while a twig
+        leaps and leaves tremble sharply in the foreground. Keep the woman from image
+        2 with the same face and hair, and the path from image 1 as the look of the
+        place. She wears a simple modest travel dress and cloak, hands clenched at
+        her chest, eyes wide, lips tight with contained fear. Pale green light, low
+        mist. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      - scene_s1_509631
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s1_50baa5/cand_04.png
+      created: '2026-10-23T15:01:08'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium shot from a low angle near the ground on the mossy path, the
+        woman from image 2 standing motionless in the middle distance, while a twig
+        leaps and leaves tremble sharply in the foreground. Keep the woman from image
+        2 with the same face and hair, and the path from image 1 as the look of the
+        place. She wears a simple modest travel dress and cloak, hands clenched at
+        her chest, eyes wide, lips tight with contained fear. Pale green light, low
+        mist. watercolor painting, soft wet edges, visible paper texture, delicate
+        pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s1_50baa5/cand_05.png
+      created: '2026-10-23T15:02:27'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium shot at eye level, the camera a few metres in front of her along
+        the path, with the woman from image 2 and the twig leaping on the moss in
+        front of her in sharp focus, the misty oaks softly blurred behind. Keep the
+        woman from image 2 exactly as she is, with her outfit, and keep the forest
+        from image 1 as the look of the place. She stands motionless in the centre
+        of the mossy trail, shoulders tense, eyes wide with contained fear, lips pressed
+        together, while leaves tremble and a small twig jumps near her boots. Pale
+        green light filters softly through the canopy. watercolor painting, soft wet
+        edges, visible paper texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      aspect: '16:9'
+      loras: []
+    prompt: Medium shot at eye level, the camera a few metres in front of her along
+      the path, with the woman from image 2 and the twig leaping on the moss in front
+      of her in sharp focus, the misty oaks softly blurred behind. Keep the woman
+      from image 2 exactly as she is, with her outfit, and keep the forest from image
+      1 as the look of the place. She stands motionless in the centre of the mossy
+      trail, shoulders tense, eyes wide with contained fear, lips pressed together,
+      while leaves tremble and a small twig jumps near her boots. Pale green light
+      filters softly through the canopy. watercolor painting, soft wet edges, visible
+      paper texture, delicate pastel colours, hand-painted illustration
+  scene_s1_e834be:
+    kind: scene
+    name: Le sentier oublié · plan 5
+    description: 'Mathilde quitte le chemin balisé pour suivre un sentier couvert
+      de mousse, bercée par le chant des oiseaux. Elle repense à la lettre de la banque
+      qu''elle a laissée sur sa table et à la dette qui pèse sur sa famille. Peu à
+      peu, le silence de la forêt devient étrange : les oiseaux se taisent et le sol
+      tremble légèrement.'
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s1_e834be/cand_00.png
+      created: '2026-10-23T15:03:19'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium close-up from slightly below shoulder height, the camera off
+        to her left in three-quarter profile, with the woman from image 2 in sharp
+        focus and the mossy oaks of image 1 softly blurred behind. Keep the woman
+        from image 2 exactly as she is, with her outfit, and keep the forest from
+        image 1 as the look of the place. She grips her bag strap with one tightened
+        hand, lips slightly parted, wide eyes fixed on a huge dark shadow between
+        the trunks at the right of the frame, her expression full of apprehension.
+        Pale green light filters through the canopy, with low silvery mist. watercolor
+        painting, soft wet edges, visible paper texture, delicate pastel colours,
+        hand-painted illustration
+      refs:
+      - loc_foret_de_broceliande_sentier_de_mousse
+      - scene_s1_50baa5
+      aspect: '16:9'
+      loras: []
+    prompt: Medium close-up from slightly below shoulder height, the camera off to
+      her left in three-quarter profile, with the woman from image 2 in sharp focus
+      and the mossy oaks of image 1 softly blurred behind. Keep the woman from image
+      2 exactly as she is, with her outfit, and keep the forest from image 1 as the
+      look of the place. She grips her bag strap with one tightened hand, lips slightly
+      parted, wide eyes fixed on a huge dark shadow between the trunks at the right
+      of the frame, her expression full of apprehension. Pale green light filters
+      through the canopy, with low silvery mist. watercolor painting, soft wet edges,
+      visible paper texture, delicate pastel colours, hand-painted illustration
+  scene_s2_ec25d3:
+    kind: scene
+    name: L'ombre entre les chênes · plan 1
+    description: Au détour d'un tournant, Mathilde se retrouve face à un géant de
+      plus de quatre mètres, assis contre un chêne millénaire. Elle recule, effrayée,
+      mais il s'excuse d'une voix grave et timide, expliquant qu'il n'a pas parlé
+      à un humain depuis des siècles. Fascinée par son regard bienveillant, elle se
+      laisse apprivoiser peu à peu et se présente.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_ec25d3/cand_00.png
+      created: '2026-10-23T15:04:49'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Wide shot from a low angle at the edge of the glade, slightly behind
+        and to the left of the young woman, with both figures and the whole clearing
+        in sharp focus. Use the clearing from image 1 for the look of the place only.
+        Keep the woman from image 2 exactly as she is, with her outfit. Keep the man
+        from image 3 exactly as he is, with his outfit. She stands small at the lower
+        left, frozen mid-step, eyes wide and lips parted in stupefaction. The giant,
+        over four metres tall, sits against the central oak with his hands resting
+        on his knees. Soft golden light filters through the canopy. watercolor painting,
+        soft wet edges, visible paper texture, delicate pastel colours, hand-painted
+        illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      - outfit_grande_tunique_de_laine_brune_rapiecee_c
+      aspect: '16:9'
+      loras: []
+    prompt: Wide shot from a low angle at the edge of the glade, slightly behind and
+      to the left of the young woman, with both figures and the whole clearing in
+      sharp focus. Use the clearing from image 1 for the look of the place only. Keep
+      the woman from image 2 exactly as she is, with her outfit. Keep the man from
+      image 3 exactly as he is, with his outfit. She stands small at the lower left,
+      frozen mid-step, eyes wide and lips parted in stupefaction. The giant, over
+      four metres tall, sits against the central oak with his hands resting on his
+      knees. Soft golden light filters through the canopy. watercolor painting, soft
+      wet edges, visible paper texture, delicate pastel colours, hand-painted illustration
+  scene_s2_1f83ec:
+    kind: scene
+    name: L'ombre entre les chênes · plan 2
+    description: Au détour d'un tournant, Mathilde se retrouve face à un géant de
+      plus de quatre mètres, assis contre un chêne millénaire. Elle recule, effrayée,
+      mais il s'excuse d'une voix grave et timide, expliquant qu'il n'a pas parlé
+      à un humain depuis des siècles. Fascinée par son regard bienveillant, elle se
+      laisse apprivoiser peu à peu et se présente.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s2_1f83ec/cand_00.png
+      created: '2026-10-23T16:19:18'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Close-up at eye level from the front, framing the woman from image 2
+        from the shoulders up, her face in sharp focus while the mossy oak trunks
+        of the clearing from image 1 blur softly behind her. Keep the woman from image
+        2 exactly as she is, with her outfit. She leans back mid-step, chin lifted,
+        eyes wide and fixed on something enormous beyond the frame, lips trembling
+        as she whispers in terrified disbelief. Soft golden light filters through
+        the canopy onto her cheeks. watercolor painting, soft wet edges, visible paper
+        texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - scene_s2_ec25d3
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s2_1f83ec/cand_01.png
+      created: '2026-10-23T16:21:08'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Close-up at eye level from the front, framing the woman from image 2
+        from the shoulders up, her face in sharp focus while the mossy oak trunks
+        of the clearing from image 1 blur softly behind her. Keep the woman from image
+        2 exactly as she is, with her outfit. She leans back mid-step, chin lifted,
+        eyes wide and fixed on something enormous beyond the frame, lips trembling
+        as she whispers in terrified disbelief. Soft golden light filters through
+        the canopy onto her cheeks. watercolor painting, soft wet edges, visible paper
+        texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - scene_s2_ec25d3
+      - scene_s1_e834be
+      aspect: '16:9'
+      loras: []
+    prompt: Close-up at eye level from the front, framing the woman from image 2 from
+      the shoulders up, her face in sharp focus while the mossy oak trunks of the
+      clearing from image 1 blur softly behind her. Keep the woman from image 2 exactly
+      as she is, with her outfit. She leans back mid-step, chin lifted, eyes wide
+      and fixed on something enormous beyond the frame, lips trembling as she whispers
+      in terrified disbelief. Soft golden light filters through the canopy onto her
+      cheeks. watercolor painting, soft wet edges, visible paper texture, delicate
+      pastel colours, hand-painted illustration
+  scene_s2_8ee0ef:
+    kind: scene
+    name: L'ombre entre les chênes · plan 3
+    description: Au détour d'un tournant, Mathilde se retrouve face à un géant de
+      plus de quatre mètres, assis contre un chêne millénaire. Elle recule, effrayée,
+      mais il s'excuse d'une voix grave et timide, expliquant qu'il n'a pas parlé
+      à un humain depuis des siècles. Fascinée par son regard bienveillant, elle se
+      laisse apprivoiser peu à peu et se présente.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_8ee0ef/cand_00.png
+      created: '2026-10-23T16:22:21'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Close-up from a low three-quarter angle, slightly below eye level, with
+        the man from image 2 in sharp focus, his face and open hands filling most
+        of the frame, while the oak clearing from image 1 softens behind him. Keep
+        the man from image 2 exactly as he is, with his outfit, and the young woman
+        from image 3 exactly as she is, with her outfit. He sits against the great
+        oak, head bowed, brows raised shyly, both palms open toward her. She stands
+        small in the lower left, in three-quarter profile, lips parted in surprise.
+        Soft golden light dapples through the canopy. watercolor painting, soft wet
+        edges, visible paper texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - outfit_grande_tunique_de_laine_brune_rapiecee_c
+      - scene_s2_1f83ec
+      aspect: '16:9'
+      loras: []
+    prompt: Close-up from a low three-quarter angle, slightly below eye level, with
+      the man from image 2 in sharp focus, his face and open hands filling most of
+      the frame, while the oak clearing from image 1 softens behind him. Keep the
+      man from image 2 exactly as he is, with his outfit, and the young woman from
+      image 3 exactly as she is, with her outfit. He sits against the great oak, head
+      bowed, brows raised shyly, both palms open toward her. She stands small in the
+      lower left, in three-quarter profile, lips parted in surprise. Soft golden light
+      dapples through the canopy. watercolor painting, soft wet edges, visible paper
+      texture, delicate pastel colours, hand-painted illustration
+  scene_s2_acb11a:
+    kind: scene
+    name: L'ombre entre les chênes · plan 4
+    description: Au détour d'un tournant, Mathilde se retrouve face à un géant de
+      plus de quatre mètres, assis contre un chêne millénaire. Elle recule, effrayée,
+      mais il s'excuse d'une voix grave et timide, expliquant qu'il n'a pas parlé
+      à un humain depuis des siècles. Fascinée par son regard bienveillant, elle se
+      laisse apprivoiser peu à peu et se présente.
+    parent: null
+    status: validated
+    validated_candidate: 1
+    candidates:
+    - file: assets/scene_s2_acb11a/cand_00.png
+      created: '2026-10-23T16:23:54'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium wide shot from the side, slightly above eye level, in sharp focus
+        on the giant's huge hands closing around the woman's waist, with the clearing
+        from image 1 softly blurred behind. Keep the man from image 2 and the woman
+        from image 2 exactly as they are, with their outfits. He sits against the
+        great oak, lifting her gently in front of him with a hopeful look. She hangs
+        lightly, hands resting on his thumbs, with a hesitant smile. Soft golden light
+        dapples through the canopy. watercolor painting, soft wet edges, visible paper
+        texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - scene_s2_8ee0ef
+      aspect: '16:9'
+      loras: []
+    - file: assets/scene_s2_acb11a/cand_01.png
+      created: '2026-10-23T16:28:30'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium wide shot from the side, slightly above eye level, in sharp focus
+        on the giant's huge hands closing around the woman's waist, with the clearing
+        from image 1 softly blurred behind. Keep the man from image 2 and the woman
+        from image 2 exactly as they are, with their outfits. He sits against the
+        great oak, lifting her gently in front of him with a hopeful look. She hangs
+        lightly, hands resting on his thumbs, with a hesitant smile. Soft golden light
+        dapples through the canopy. watercolor painting, soft wet edges, visible paper
+        texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - scene_s2_8ee0ef
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      aspect: '16:9'
+      loras: []
+    prompt: Medium wide shot from the side, slightly above eye level, in sharp focus
+      on the giant's huge hands closing around the woman's waist, with the clearing
+      from image 1 softly blurred behind. Keep the man from image 2 and the woman
+      from image 2 exactly as they are, with their outfits. He sits against the great
+      oak, lifting her gently in front of him with a hopeful look. She hangs lightly,
+      hands resting on his thumbs, with a hesitant smile. Soft golden light dapples
+      through the canopy. watercolor painting, soft wet edges, visible paper texture,
+      delicate pastel colours, hand-painted illustration
+  scene_s2_649e2b:
+    kind: scene
+    name: L'ombre entre les chênes · plan 5
+    description: Au détour d'un tournant, Mathilde se retrouve face à un géant de
+      plus de quatre mètres, assis contre un chêne millénaire. Elle recule, effrayée,
+      mais il s'excuse d'une voix grave et timide, expliquant qu'il n'a pas parlé
+      à un humain depuis des siècles. Fascinée par son regard bienveillant, elle se
+      laisse apprivoiser peu à peu et se présente.
+    parent: null
+    status: validated
+    validated_candidate: 0
+    candidates:
+    - file: assets/scene_s2_649e2b/cand_00.png
+      created: '2026-10-23T16:27:20'
+      backend: comfyui
+      model: comfyui:FLUX_KLEIN3_EDIT_API.json
+      seed: null
+      prompt: Medium close-up from slightly below eye level, three-quarter angle,
+        sharp focus on the woman from image 2, with the oak clearing from image 1
+        softly blurred behind her and a vast mossy trunk filling the background. Keep
+        the woman from image 2 exactly as she is, with her outfit. She stands on the
+        flattened grass, gazing upward past the frame with an amused smile, one hand
+        relaxed at her side, as if mid-sentence. A huge soft shadow falls across the
+        ferns beside her. Warm golden light dapples through the canopy, echoing the
+        gentle mood of image 3. watercolor painting, soft wet edges, visible paper
+        texture, delicate pastel colours, hand-painted illustration
+      refs:
+      - loc_clairiere_aux_chenes_millenaires
+      - outfit_veste_en_toile_verte_pull_creme_jean_bru
+      - outfit_grande_tunique_de_laine_brune_rapiecee_c
+      - scene_s2_acb11a
+      aspect: '16:9'
+      loras:
+      - name: Flux2-Klein-9b-Nude-v1.safetensors
+        strength: 1.0
+        clip: false
+    prompt: The camera is positioned at eye level with the woman, capturing her from
+      a low angle as she stands before the giant seated against the ancient oak tree
+      in the clearing, with both figures sharp and clear. Keep the woman from image
+      2 exactly as she is, with her outfit of green jacket and red braid. Change her
+      expression to one of shocked surprise as she stumbles back, her eyes wide and
+      fixed on the unexpected sight before her, with the giant's form dwarfing everything
+      around him in the dappled light of the forest glade. The lighting remains soft
+      and natural, filtering through the leaves onto their figures. watercolor painting,
+      soft wet edges, visible paper texture, delicate pastel colours, hand-painted
+      illustration
+    loras:
+    - name: Flux2-Klein-9b-Nude-v1.safetensors
+      strength: 1.0
+      clip: false

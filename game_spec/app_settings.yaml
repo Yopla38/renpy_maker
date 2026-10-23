@@ -6,8 +6,11 @@ llm_tasks:
     provider: anthropic
     model: null
   prompt:
-    provider: anthropic
-    model: null
+    provider: ollama
+    model: cydonia:latest
+  decision:
+    provider: ollama
+    model: cydonia:latest
 image_engines:
   base:
     engine: comfyui
@@ -16,4 +19,5 @@ image_engines:
     engine: comfyui
     workflow: comfy/workflows/FLUX_KLEIN3_EDIT_API.json
 comfy_free_memory: true
-comfy_steps: {}
+comfy_steps:
+  edit: 4

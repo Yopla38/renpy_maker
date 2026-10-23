@@ -221,6 +221,27 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 .lora-add select { flex: 1; min-width: 200px; }
 .steps-field { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
 .steps-field input { width: 120px; }
+.top-actions { display: flex; gap: 10px; align-items: center; }
+.catalog-btn { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 9px 18px; font: 800 14px Nunito, sans-serif; color: var(--ink); }
+.catalog-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cat-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 20px; }
+.cat-tab { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 8px 15px; font: 800 14px Nunito, sans-serif; }
+.cat-tab span { font-weight: 600; color: var(--muted); margin-left: 6px; font-size: 13px; }
+.cat-tab.on { background: var(--sage); border-color: var(--sage); color: #fff; }
+.cat-tab.on span { color: rgba(255, 255, 255, .85); }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+.cat-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: 0 1px 2px rgba(70, 45, 20, .06); transition: transform .15s ease, box-shadow .15s ease; }
+.cat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(70, 45, 20, .12); }
+.cat-card.todo { border-style: dashed; }
+.cat-media { position: relative; width: 100%; background: var(--card); }
+.cat-media.portrait { aspect-ratio: 2 / 3; }
+.cat-media.land { aspect-ratio: 16 / 9; }
+.cat-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cat-empty { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 12px; text-align: center; color: var(--muted); font-weight: 700; font-size: 14px; background: repeating-linear-gradient(45deg, transparent 0 10px, rgba(128, 110, 90, .06) 10px 20px); }
+.cat-caption { padding: 11px 13px 13px; }
+.cat-caption b { display: block; font: 700 16px/1.25 Fraunces, Georgia, serif; }
+.cat-caption small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+@media (max-width: 560px) { .cat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .cat-caption b { font-size: 15px; } }
 @media (max-width: 560px) { .plan { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   body { font-size: 16px; }
@@ -235,7 +256,10 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 <body>
 <header class="top">
   <h1 class="brand">Mon histoire<small>Créez votre jeu, étape par étape</small></h1>
-  <button class="gear" title="Réglages : modèles et fournisseurs" onclick="toggleSettings()" aria-label="Réglages">⚙</button>
+  <div class="top-actions">
+    <button class="catalog-btn" onclick="toggleCatalog()">Catalogue</button>
+    <button class="gear" title="Réglages : modèles et fournisseurs" onclick="toggleSettings()" aria-label="Réglages">⚙</button>
+  </div>
 </header>
 <nav class="steps" id="steps"></nav>
 <main><section class="stage" id="stage"><p class="notice">Chargement…</p></section></main>
@@ -270,7 +294,11 @@ let draft = null;      // brouillon du formulaire d'idée (survit aux rafraîchi
 let planDraft = {};    // découpage modifié, par scène, pas encore enregistré
 let gameResult = null; // résultat de la dernière création du jeu
 let chapterForm = null; // formulaire « nouveau chapitre » ouvert : {count, guidance}
-let busyPrompt = {};   // suggestion de prompt en cours, par identifiant
+let promptDraft = {}; // suggestion de prompt pas encore générée, par identifiant (affichée dans le champ)
+let catalogOpen = false;     // vue « catalogue » : toutes les images, par onglet
+let catalogTab = "personnages";
+const CATALOG_TABS = [["personnages", "Personnages", "characters"], ["lieux", "Lieux", "locations"],
+                      ["tenues", "Tenues", "outfits"], ["scenes", "Scènes", null]];
 let settingsForm = null; // panneau de réglages ouvert : {text, image, explicit, text_provider, text_model}
 const CHAPTER_STEPS = ["idee", "images", "histoire", "jouer"];
 const autoTried = {};  // cartes déjà lancées automatiquement
@@ -311,6 +339,7 @@ function renderSteps() {
 
 function go(id) {
   if (job) return;
+  catalogOpen = false;
   step = id;
   err = "";
   render();
@@ -332,13 +361,14 @@ function jobHtml() {
   const pct = pr && pr.max > 0 ? Math.min(100, Math.round((100 * pr.value) / pr.max)) : null;
   const bar = pct === null ? "" : `<div class="bar"><span style="width:${pct}%"></span></div>
     <div class="bar-label">Étape ${pr.value} sur ${pr.max} · ${pct} %</div>`;
-  const stop = job.id === "export" ? "" : `<button class="ghost small stop" onclick="cancelJob()">Arrêter</button>`;
-  return `<div class="job toast"><span class="spin"></span><div class="job-text"><span>${esc(job.message)}</span>${bar}</div>${stop}</div>`;
+  const stop = !job.id || job.id === "export" || job.id === "local" ? "" : `<button class="ghost small stop" onclick="cancelJob()">Arrêter</button>`;
+  const see = catalogOpen ? "" : `<button class="ghost small" onclick="toggleCatalog()">Catalogue</button>`;
+  return `<div class="job toast"><span class="spin"></span><div class="job-text"><span>${esc(job.message)}</span>${bar}</div>${see}${stop}</div>`;
 }
 
 // Arrête la tâche en cours : ComfyUI interrompt la génération, et les lots s'arrêtent entre deux images.
 async function cancelJob() {
-  if (!job) return;
+  if (!job || !job.id) return;
   try {
     await api("POST", "/api/facile/job/cancel", { job: job.id });
     job.message = "Arrêt demandé…";
@@ -350,9 +380,12 @@ async function cancelJob() {
 // Lance une tâche côté serveur et suit son avancement jusqu'à la fin.
 async function runJob(start, onDone) {
   err = "";
+  // Retour immédiat : la bulle apparaît au clic, avant la réponse du serveur.
+  job = { id: null, message: "Demande envoyée…", progress: null };
+  render();
   try {
     const { job: id } = await start();
-    job = { id, message: "Démarrage…" };
+    job = { id, message: "Démarrage…", progress: null };
     render();
     for (;;) {
       await sleep(1200);
@@ -360,6 +393,11 @@ async function runJob(start, onDone) {
       if (j.state === "running") {
         job.message = j.message || job.message;
         job.progress = j.progress || null;
+        if (catalogOpen) {
+          await load();  // le catalogue suit les images qui se terminent
+          render();
+          continue;
+        }
         const slot = $("jobslot");
         if (slot) slot.innerHTML = jobHtml();  // seule la barre d'état change : les champs restent intacts
         continue;
@@ -374,6 +412,67 @@ async function runJob(start, onDone) {
   await load();
   if (!err && onDone) onDone();
   render();
+}
+
+// --- catalogue : toutes les images du projet, par onglet ---
+function toggleCatalog() {
+  catalogOpen = !catalogOpen;
+  settingsForm = null;
+  if (catalogOpen) load().then(render); else render();
+}
+
+function setCatalogTab(tab) {
+  catalogTab = tab;
+  render();
+}
+
+function catalogItems(tab) {
+  if (tab === "scenes") {
+    return V.scenes.flatMap((s) => s.plans.map((p, k) => ({
+      name: `${s.title} · plan ${k + 1}`, sub: `Scène ${V.scenes.indexOf(s) + 1}`,
+      image: p.image, ready: !!p.image, aid: p.aid, sid: s.id, pid: p.id, kind: "plan" })));
+  }
+  const key = CATALOG_TABS.find((t) => t[0] === tab)[2];
+  return V[key].map((it) => ({
+    name: it.name, sub: it.parent ? `Porté par ${it.parent}` : "",
+    image: it.image, ready: !!it.image, aid: it.aid, kind: "card" }));
+}
+
+function catalogCard(it, tab) {
+  const shape = tab === "lieux" || tab === "scenes" ? "land" : "portrait";
+  const canDraw = it.aid && !(job || V.busy) && !it.blocked;
+  const draw = it.kind === "plan"
+    ? `planImage('${it.sid}', '${it.pid}', '${it.aid}')`
+    : `redoCard('${it.aid}')`;
+  const media = it.image
+    ? `<img class="zoomable" src="${esc(it.image)}" alt="${esc(it.name)}">`
+    : `<div class="cat-empty"><span>${it.blocked ? "En attente du personnage" : "Pas encore dessinée"}</span>
+        ${canDraw ? `<button class="ghost small" onclick="${draw}">Dessiner</button>` : ""}</div>`;
+  return `<article class="cat-card ${it.ready ? "" : "todo"}">
+    <div class="cat-media ${shape}">${media}</div>
+    <div class="cat-caption"><b>${esc(it.name)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</div>
+  </article>`;
+}
+
+function catalogHtml() {
+  const tabs = CATALOG_TABS.map(([id, label]) => {
+    const items = catalogItems(id);
+    const done = items.filter((x) => x.ready).length;
+    return `<button class="cat-tab ${id === catalogTab ? "on" : ""}" onclick="setCatalogTab('${id}')">${label}<span>${done}/${items.length}</span></button>`;
+  }).join("");
+  const items = catalogItems(catalogTab);
+  const grid = items.length
+    ? `<div class="cat-grid">${items.map((it) => catalogCard(it, catalogTab)).join("")}</div>`
+    : `<p class="notice">Rien à afficher ici pour l'instant.</p>`;
+  const errBox = err ? `<div class="errbox toast" onclick="err = ''; render()" title="Cliquer pour fermer">${esc(err)}</div>` : "";
+  return `
+    <p class="kicker">Catalogue</p>
+    <h1>Vos images</h1>
+    <p class="lead">Les images apparaissent ici au fur et à mesure qu'elles sont terminées. Cliquez une image pour l'agrandir.</p>
+    <div id="jobslot">${jobHtml()}</div>${errBox}
+    <div class="cat-tabs">${tabs}</div>
+    ${grid}
+    <div class="actions"><span></span><div class="right"><button class="primary" onclick="toggleCatalog()">Revenir à l'éditeur</button></div></div>`;
 }
 
 // --- réglages (roue) : fournisseur et modèle d'écriture, fournisseur d'images ---
@@ -439,7 +538,11 @@ function settingsHtml() {
     <div class="field"><span>Images</span>
       <p class="notice">Dessin de base : sans référence. Retouche : avec images de référence. ComfyUI utilise le workflow indiqué (et les LoRA de chaque image).</p>${images}
       <label class="check"><input type="checkbox" ${f.comfy_free_memory ? "checked" : ""} onchange="settingsForm.comfy_free_memory = this.checked">
-        <span>Libérer la mémoire de ComfyUI avant chaque génération<small>Utile si la carte est petite (16 Go). Chaque génération démarre un peu plus lentement.</small></span></label></div>
+        <span>Libérer la mémoire de ComfyUI avant chaque génération<small>Utile si la carte est petite (16 Go). Chaque génération démarre un peu plus lentement.</small></span></label>
+      <label class="check"><input type="checkbox" ${f.unload_ollama_before_comfy ? "checked" : ""} onchange="settingsForm.unload_ollama_before_comfy = this.checked">
+        <span>Décharger Ollama avant une génération ComfyUI<small>Libère la carte pour ComfyUI quand un modèle local est chargé.</small></span></label>
+      <label class="check"><input type="checkbox" ${f.free_comfy_before_ollama ? "checked" : ""} onchange="settingsForm.free_comfy_before_ollama = this.checked">
+        <span>Libérer ComfyUI avant un appel Ollama<small>Pour écrire avec un modèle local pendant que ComfyUI tourne. La génération ComfyUI suivante recharge ses modèles (plus lente).</small></span></label></div>
     <div class="actions"><button class="ghost" onclick="toggleSettings()">Fermer</button>
       <div class="right"><button class="primary" onclick="saveSettings()" ${job ? "disabled" : ""}>Enregistrer</button></div></div>
   </div>`;
@@ -462,6 +565,8 @@ async function saveSettings() {
       tasks: settingsForm.taskRows.map((t) => ({ task: t.task, provider: t.provider, model: t.model })),
       images: settingsForm.imageRows.map((r) => ({ role: r.role, engine: r.engine, workflow: r.workflow, steps: r.steps })),
       comfy_free_memory: !!settingsForm.comfy_free_memory,
+      unload_ollama_before_comfy: !!settingsForm.unload_ollama_before_comfy,
+      free_comfy_before_ollama: !!settingsForm.free_comfy_before_ollama,
     });
     settingsForm = null;
     await load();
@@ -632,8 +737,9 @@ function namesIn(text) {
   return V.characters.map((c) => c.name).filter((n) => n && new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}])`, "iu").test(text));
 }
 
-function promptBox(aid, text, suggestKind, redoJs) {
+function promptBox(aid, saved, suggestKind, redoJs) {
   const busy = job || V.busy;
+  const text = promptDraft[aid] !== undefined ? promptDraft[aid] : saved;
   const hits = namesIn(text || "");
   const style = V.style ? V.style.positive_suffix : "";
   const noStyle = !!text && !!style && !text.includes(style);
@@ -647,21 +753,21 @@ function promptBox(aid, text, suggestKind, redoJs) {
     ${text ? "" : `<p class="notice">Pas encore de prompt : il sera rédigé à partir du texte du plan.</p>`}
     <textarea id="pr-${aid}" rows="4">${esc(text)}</textarea>
     <div class="prompt-actions">
-      <button class="ghost small" onclick="suggestPrompt('${suggestKind}', '${aid}')" ${busy || busyPrompt[aid] ? "disabled" : ""}>${busyPrompt[aid] ? "Rédaction en cours… (quelques secondes)" : "Proposer un autre prompt"}</button>
+      <button class="ghost small" onclick="suggestPrompt('${suggestKind}', '${aid}')" ${busy ? "disabled" : ""}>Proposer un autre prompt</button>
       <button class="primary small" onclick="${redoJs}" ${busy ? "disabled" : ""}>Refaire avec ce prompt</button>
     </div></details>`;
 }
 
 async function suggestPrompt(kind, id) {
-  busyPrompt[id] = true;
+  // Même bulle que les générations : on voit que ça travaille, en bas de l'écran.
+  job = { id: "local", message: "Rédaction du prompt en cours (quelques secondes)…", progress: null };
   render();
   try {
     const r = await api("POST", "/api/facile/prompt/suggest", { kind, id });
-    const ta = $("pr-" + id);
-    if (ta) ta.value = r.prompt;
+    promptDraft[id] = r.prompt;  // la suggestion reste dans le champ jusqu'à la génération
     err = "";
   } catch (e) { err = e.message; }
-  delete busyPrompt[id];
+  job = null;
   render();
 }
 
@@ -670,7 +776,8 @@ async function redoCard(aid, useText) {
   if (!aid) return;
   autoTried[aid] = true;
   const prompt = useText ? $("pr-" + aid).value : undefined;
-  await runJob(() => api("POST", "/api/facile/card", { aid, prompt }));
+  // Le brouillon reste affiché pendant la génération, et devient le prompt enregistré si elle réussit.
+  await runJob(() => api("POST", "/api/facile/card", { aid, prompt }), () => { if (useText) delete promptDraft[aid]; });
 }
 
 function currentCard() {
@@ -888,7 +995,7 @@ async function planImage(sid, pid, aid, useText) {
   await runJob(async () => {
     await saveDraftIfAny(sid);
     return api("POST", "/api/facile/plan/image", { scene: sid, plan: pid, prompt });
-  });
+  }, () => { if (useText) delete promptDraft[aid]; });
 }
 
 async function allPlanImages() {
@@ -1140,6 +1247,10 @@ function bodyJouer() {
 function render() {
   if (!V) return;
   renderSteps();
+  if (catalogOpen) {
+    $("stage").innerHTML = catalogHtml();
+    return;
+  }
   const s = STEPS.find((x) => x.id === step);
   const i = stepIndex(step);
   const parts = {

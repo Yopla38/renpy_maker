@@ -1,11 +1,13 @@
 """Images de scène : références, plans, préparation, prompt (aucun appel réel au LLM)."""
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import appsettings
 import llm  # noqa: E402
 import scenes as SC  # noqa: E402
 import story as S  # noqa: E402
@@ -89,6 +91,7 @@ class SceneTests(unittest.TestCase):
         self.assertIn("young woman : défi", user)  # dernière expression du plan
         self.assertIn("- young woman : Bonsoir.", user)
 
+    @mock.patch.object(appsettings, "FILE", Path(tempfile.mkdtemp()) / "app_settings.yaml")
     def test_suggest_with_mocked_llm(self):
         st, sc, data = make()
         with mock.patch.object(llm, "complete", return_value="A candlelit table, two people.") as m:

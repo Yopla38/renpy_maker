@@ -9,7 +9,7 @@ settings:
   style: aquarelle
   max_plans: 5
   providers:
-    text: anthropic
+    text: ollama
     image_base: replicate
     image_edit: replicate
 synopsis: Une jeune femme de 21 ans, rousse au yeux vert très jolie, se promene dans
@@ -80,7 +80,84 @@ chapters:
       text: Mathilde serre la bandoulière de son sac, le cœur battant, et ne parvient
         pas à détourner les yeux de l'ombre immense qui se dessine entre les troncs.
       expression: appréhension
-    plans: []
+    plans:
+    - id: p1
+      from_line: 0
+      asset: scene_s1_b040a8
+      characters:
+      - Mathilde
+      shot:
+        framing: wide shot
+        angle: ''
+        note: Mathilde, aux cheveux roux dorés par la lumière, quitte le chemin balisé
+          et s'avance sur le sentier de mousse de la forêt de Brocéliande.
+    - id: p2
+      from_line: 2
+      asset: scene_s1_be1b0b
+      characters:
+      - Mathilde
+      shot:
+        framing: close-up
+        angle: ''
+        note: Gros plan sur Mathilde, dont les yeux verts se voilent en repensant
+          à la lettre de la banque.
+      refs_extra:
+      - scene_s1_b040a8
+      continuity_ref: scene_s1_b040a8
+      refs_exclude:
+      - tenue:mathilde
+      continuity_excluded:
+      - tenue:mathilde
+    - id: p3
+      from_line: 3
+      asset: scene_s1_509631
+      characters: []
+      shot:
+        framing: extreme close-up
+        angle: ''
+        note: 'Détail : la lettre de la banque, restée sur la table de cuisine.'
+      refs_extra:
+      - scene_s1_be1b0b
+      continuity_ref: scene_s1_be1b0b
+      refs_exclude:
+      - tenue:mathilde
+      continuity_excluded:
+      - tenue:mathilde
+    - id: p4
+      from_line: 7
+      asset: scene_s1_50baa5
+      characters:
+      - Mathilde
+      shot:
+        framing: medium shot
+        angle: ''
+        note: 'Le sol tremble : les feuilles frissonnent et une brindille saute sur
+          le sentier devant Mathilde immobile.'
+      refs_extra: []
+      continuity_ref: null
+      refs_exclude: []
+      continuity_excluded: []
+      manual_refs:
+        decor: false
+        tenue:mathilde: false
+      continuity: false
+    - id: p5
+      from_line: 9
+      asset: scene_s1_e834be
+      characters:
+      - Mathilde
+      shot:
+        framing: medium close-up
+        angle: ''
+        note: Gros plan sur Mathilde, qui serre la bandoulière de son sac, le cœur
+          battant, les yeux fixés sur l'ombre immense entre les troncs.
+      refs_extra:
+      - scene_s1_50baa5
+      continuity_ref: scene_s1_50baa5
+      refs_exclude:
+      - tenue:mathilde
+      continuity_excluded:
+      - tenue:mathilde
     decor: []
   - id: s2
     title: L'ombre entre les chênes
@@ -145,7 +222,91 @@ chapters:
       text: Orgrim laisse échapper un rire sourd et surpris, qui fait s'envoler quelques
         oiseaux des branches. Pour la première fois depuis longtemps, il a l'air heureux.
       expression: joie
-    plans: []
+    plans:
+    - id: p1
+      from_line: 0
+      characters:
+      - Mathilde
+      asset: scene_s2_ec25d3
+      shot:
+        framing: wide shot
+        angle: ''
+        note: Mathilde s'arrête net à l'orée de la clairière, face au géant assis
+          contre un chêne millénaire.
+      outfit_change:
+        hash: 39d7bf600b31511c
+        change: false
+    - id: p2
+      from_line: 1
+      characters:
+      - Mathilde
+      asset: scene_s2_1f83ec
+      shot:
+        framing: close-up
+        angle: ''
+        note: Gros plan sur Mathilde, qui murmure, effrayée et incrédule.
+      outfit_change:
+        hash: 59a97cd087a5af3e
+        change: false
+      refs_extra:
+      - scene_s2_ec25d3
+      continuity_ref: scene_s2_ec25d3
+      refs_exclude:
+      - tenue:mathilde
+      continuity_excluded:
+      - tenue:mathilde
+    - id: p3
+      from_line: 3
+      characters: []
+      asset: scene_s2_8ee0ef
+      shot:
+        framing: close-up
+        angle: ''
+        note: Gros plan sur Orgrim, qui s'excuse timidement, les paumes ouvertes.
+      outfit_change:
+        hash: b651000771fc8cc2
+        change: false
+      refs_extra:
+      - scene_s2_1f83ec
+      continuity_ref: scene_s2_1f83ec
+      refs_exclude:
+      - tenue:mathilde
+      continuity_excluded:
+      - tenue:mathilde
+    - id: p4
+      from_line: 6
+      characters: []
+      asset: scene_s2_acb11a
+      shot:
+        framing: ''
+        angle: ''
+        note: Le géant attrape par la taille la jeune femme avec ses grosses mains
+      outfit_change:
+        hash: dcf4590a6d0bda6d
+        change: false
+      refs_extra:
+      - scene_s2_8ee0ef
+      continuity_ref: scene_s2_8ee0ef
+      refs_exclude:
+      - tenue:mathilde
+      - tenue:orgrim, le géant
+      continuity_excluded:
+      - tenue:mathilde
+      - tenue:orgrim, le géant
+    - id: p5
+      from_line: 9
+      characters: []
+      asset: scene_s2_649e2b
+      shot:
+        framing: ''
+        angle: ''
+        note: le géant sort son sexe géant, la femme est affolée
+      outfit_change:
+        hash: 8222a2a8a36f9d71
+        change: true
+      refs_extra:
+      - scene_s2_acb11a
+      continuity_ref: scene_s2_acb11a
     decor: []
   - id: s3
     title: La partie de dés

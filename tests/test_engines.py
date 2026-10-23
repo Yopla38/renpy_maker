@@ -288,6 +288,149 @@ class DialogueRetryTests(unittest.TestCase):
         self.assertIn("tentatives", str(cm.exception))
 
 
+class ContinuityChoiceTests(unittest.TestCase):
+    def _plans(self, second_text="Gros plan sur Léa, sourire"):
+        sc = {"characters": ["Léa"], "outfits": {"Léa": "Robe verte"},
+              "plans": [{"id": "p1", "from_line": 0, "asset": "a1", "characters": ["Léa"], "shot": {"note": "Plan large"}},
+                        {"id": "p2", "from_line": 1, "asset": "a2", "characters": ["Léa"],
+                         "shot": {"note": second_text}}]}
+        assets = {"a1": {"validated_candidate": 0}, "a2": {"validated_candidate": 0}}
+        return sc, assets
+
+    def test_manual_inclusion_beats_continuity(self):
+        import facile as FA2
+        sc, assets = self._plans()
+        sc["plans"][1]["manual_refs"] = {"tenue:léa": False}  # l'auteur a remis la tenue à la main
+        FA2.apply_continuity(sc, assets)
+        self.assertNotIn("tenue:léa", sc["plans"][1].get("refs_exclude", []))
+
+    def test_manual_exclusion_is_kept(self):
+        import facile as FA2
+        sc, assets = self._plans()
+        sc["plans"][1]["manual_refs"] = {"tenue:léa": True}
+        sc["plans"][1]["refs_exclude"] = ["tenue:léa"]
+        FA2.apply_continuity(sc, assets)
+        self.assertIn("tenue:léa", sc["plans"][1]["refs_exclude"])
+
+    def test_outfit_change_decision_keeps_the_outfit_reference(self):
+        import facile as FA2
+        sc, assets = self._plans("Léa retire sa veste, les manches retroussées")
+        sc["plans"][1]["outfit_change"] = {"hash": FA2._text_hash(sc["plans"][1]["shot"]["note"]), "change": True}
+        FA2.apply_continuity(sc, assets)
+        self.assertNotIn("tenue:léa", sc["plans"][1].get("refs_exclude", []))
+        self.assertEqual(sc["plans"][1]["refs_extra"], ["a1"])  # la continuité reste utile pour l'identité
+
+    def test_stale_decision_is_ignored(self):
+        import facile as FA2
+        sc, assets = self._plans("Léa retire sa veste")
+        sc["plans"][1]["outfit_change"] = {"hash": "ancien-texte", "change": True}  # le texte a changé depuis
+        FA2.apply_continuity(sc, assets)
+        self.assertIn("tenue:léa", sc["plans"][1].get("refs_exclude", []))
+
+    def test_model_decision_is_parsed_and_cached(self):
+        import facile as FA2
+        st = {"settings": {"providers": {"text": "anthropic"}}, "chapters": []}
+        sc = {"characters": ["Léa"], "plans": []}
+        plans = [{"shot": {"note": "Léa retire sa veste"}}]
+        calls = []
+
+        def fake(task, system, user, provider=None):
+            calls.append(task)
+            return '{"change": true}'
+
+        with mock.patch.object(llm, "complete_task", side_effect=fake):
+            FA2.refresh_outfit_decisions(st, sc, plans)
+            FA2.refresh_outfit_decisions(st, sc, plans)  # même texte : pas de nouvel appel
+        self.assertEqual(calls, ["decision"])
+        self.assertTrue(FA2._changes_outfit(plans[0]))
+
+    def test_unclear_answer_is_not_cached(self):
+        import facile as FA2
+        st = {"settings": {"providers": {"text": "anthropic"}}, "chapters": []}
+        plans = [{"shot": {"note": "Léa sourit"}}]
+        with mock.patch.object(llm, "complete_task", return_value="peut-être"):
+            FA2.refresh_outfit_decisions(st, {"characters": ["Léa"]}, plans)
+        self.assertNotIn("outfit_change", plans[0])
+
+    def test_decision_task_is_configurable(self):
+        import tempfile
+        with mock.patch.object(appsettings, "FILE", Path(tempfile.mkdtemp()) / "app_settings.yaml"):
+            appsettings.save({"llm_tasks": {"decision": {"provider": "ollama", "model": "qwen3:14b"}}})
+            self.assertEqual(appsettings.llm_for("decision", "anthropic"), ("ollama", "qwen3:14b"))
+
+
+class OllamaUnloadTests(unittest.TestCase):
+    def test_running_ollama_models_are_unloaded_with_keep_alive_zero(self):
+        import json as j
+        import llm as L
+        sent = []
+
+        class Resp:
+            def __init__(self, body): self.body = body
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return self.body
+
+        def fake_urlopen(req, timeout=0):
+            url = req if isinstance(req, str) else req.full_url
+            if url.endswith("/api/ps"):
+                return Resp(j.dumps({"models": [{"name": "cydonia:latest"}]}).encode())
+            sent.append(j.loads(req.data))
+            return Resp(b"{}")
+
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            self.assertEqual(L.unload_ollama_models("http://localhost:11434"), ["cydonia:latest"])
+        self.assertEqual(sent, [{"model": "cydonia:latest", "keep_alive": 0}])
+
+    def test_no_ollama_is_not_an_error(self):
+        import llm as L
+        with mock.patch("urllib.request.urlopen", side_effect=OSError("refusé")):
+            self.assertEqual(L.unload_ollama_models("http://localhost:11434"), [])
+
+
+class MemorySharingTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.patch = mock.patch.object(appsettings, "FILE", Path(tempfile.mkdtemp()) / "app_settings.yaml")
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+
+    def test_defaults_unload_ollama_but_do_not_free_comfy(self):
+        self.assertTrue(appsettings.unload_ollama_before_comfy())
+        self.assertFalse(appsettings.free_comfy_before_ollama())
+
+    def test_setting_can_be_changed_in_the_panel(self):
+        FA.save_settings_tasks({"unload_ollama_before_comfy": False, "free_comfy_before_ollama": True})
+        self.assertFalse(appsettings.unload_ollama_before_comfy())
+        self.assertTrue(appsettings.free_comfy_before_ollama())
+
+    def test_ollama_call_frees_comfy_only_when_enabled(self):
+        calls = []
+        with mock.patch.object(comfy_image, "free_memory", side_effect=lambda base: calls.append(base)), \
+                mock.patch("urllib.request.urlopen", side_effect=OSError("pas de réseau")):
+            appsettings.save({"free_comfy_before_ollama": False})
+            with self.assertRaises(Exception):
+                llm.complete("ollama", "s", "u")
+            self.assertEqual(calls, [])
+            appsettings.save({"free_comfy_before_ollama": True})
+            with self.assertRaises(Exception):
+                llm.complete("ollama", "s", "u")
+            self.assertEqual(len(calls), 1)
+
+    def test_comfy_generation_unloads_ollama_only_when_enabled(self):
+        calls = []
+        with mock.patch("llm.unload_ollama_models", side_effect=lambda *a, **k: calls.append(1) or []), \
+                mock.patch.object(CC, "load_workflow", side_effect=ValueError("arrêt volontaire")):
+            appsettings.save({"unload_ollama_before_comfy": False})
+            with self.assertRaises(ValueError):
+                comfy_image.generate("wf.json", "scène", [], [], "2:3", Path(tempfile.mkdtemp()) / "o.png")
+            self.assertEqual(calls, [])
+            appsettings.save({"unload_ollama_before_comfy": True})
+            with self.assertRaises(ValueError):
+                comfy_image.generate("wf.json", "scène", [], [], "2:3", Path(tempfile.mkdtemp()) / "o.png")
+            self.assertEqual(calls, [1])
+
+
 class AnchorLoraTests(unittest.TestCase):
     def test_anchor_cards_show_their_loras(self):
         assets = {"char_lea": {"kind": "character", "name": "Léa", "status": "validated", "validated_candidate": 0,

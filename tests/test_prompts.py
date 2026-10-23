@@ -1,11 +1,13 @@
 """Suggestion de prompt image : requête, nettoyage, appel LLM simulé (aucun appel réel)."""
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import appsettings
 import llm  # noqa: E402
 import prompts as PR  # noqa: E402
 import story as S  # noqa: E402
@@ -50,6 +52,7 @@ class PromptTests(unittest.TestCase):
         with self.assertRaises(llm.LLMError):
             PR.clean("   ")
 
+    @mock.patch.object(appsettings, "FILE", Path(tempfile.mkdtemp()) / "app_settings.yaml")
     def test_suggest_uses_text_provider_and_returns_cleaned_prompt(self):
         st, data = sample()
         with mock.patch.object(llm, "complete", return_value="A young woman in a short dark blue dress.") as m:

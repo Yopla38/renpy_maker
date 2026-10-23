@@ -10,6 +10,7 @@ gros plan sur un personnage, détail…). Le découpage est proposé par le LLM,
 
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import threading
@@ -137,10 +138,49 @@ def _element_card(assets: dict, kind: str, name: str, parent: str | None = None)
             "loras": list(a.get("loras", [])) if a else []}
 
 
+def _text_hash(text: str) -> str:
+    return hashlib.sha1((text or "").encode("utf-8")).hexdigest()[:16]
+
+
+def _changes_outfit(plan: dict) -> bool:
+    """Décision mise en cache pour le texte actuel du plan (vrai seulement si elle est à jour)."""
+    cached = plan.get("outfit_change") or {}
+    note = (plan.get("shot") or {}).get("note", "")
+    return bool(cached.get("change")) and cached.get("hash") == _text_hash(note)
+
+
+def _ask_outfit_change(st: dict, sc: dict, text: str) -> bool | None:
+    """Le modèle répond : le texte décrit-il un changement de vêtement ou d'apparence ? None si pas de réponse claire."""
+    system = ('Tu lis la description d\'un plan de bande dessinée. Réponds uniquement par du JSON : '
+              '{"change": true} ou {"change": false}. "change" vaut true si la description indique qu\'un personnage '
+              "enlève, retire, ouvre, défait ou change un vêtement ou son apparence (par exemple « Léa sans sa veste », "
+              "« chemise ouverte », « pieds nus »). Sinon false.")
+    user = f"Personnages de la scène : {', '.join(sc.get('characters', [])) or 'aucun'}\nDescription du plan : {text}"
+    try:
+        raw = llm.extract_json(llm.complete_task("decision", system, user, st["settings"]["providers"]["text"]))
+    except (llm.LLMError, ValueError):
+        return None
+    value = raw.get("change") if isinstance(raw, dict) else None
+    return value if isinstance(value, bool) else None
+
+
+def refresh_outfit_decisions(st: dict, sc: dict, plans: list[dict]) -> None:
+    """Met à jour la décision de chaque plan dont le texte a changé. Appelé hors des verrous (appel réseau)."""
+    for plan in plans:
+        text = (plan.get("shot") or {}).get("note", "")
+        digest = _text_hash(text)
+        if (plan.get("outfit_change") or {}).get("hash") == digest:
+            continue
+        value = False if not text.strip() else _ask_outfit_change(st, sc, text)
+        if value is not None:
+            plan["outfit_change"] = {"hash": digest, "change": value}
+
+
 def apply_continuity(sc: dict, assets: dict) -> bool:
-    """Continuité : à partir du deuxième plan, l'image du plan précédent est la référence principale.
-    Elle montre l'état réel des personnages (veste retirée, cheveux défaits). Les tenues des personnages
-    présents dans les deux plans sont alors mises de côté. Renvoie True si le découpage a changé."""
+    """Continuité : à partir du deuxième plan, l'image du plan précédent est une référence (état réel des
+    personnages). Sauf si le texte du plan décrit un changement de tenue, la tenue de référence des
+    personnages présents dans les deux plans est alors mise de côté.
+    Les choix faits à la main (plan["manual_refs"]) ne sont jamais modifiés. Renvoie True si le découpage a changé."""
     changed = False
     prev = None
     for plan in sc.get("plans", []):
@@ -154,13 +194,16 @@ def apply_continuity(sc: dict, assets: dict) -> bool:
             plan["refs_extra"] = extra
             plan["continuity_ref"] = want_ref
             changed = True
+        manual = plan.get("manual_refs", {})
         want_excl = []
-        if use:
+        if use and not _changes_outfit(plan):
             shared = set(SC.plan_characters(sc, prev)) & set(SC.plan_characters(sc, plan))
             want_excl = [f"tenue:{S.norm(n)}" for n in sorted(shared) if n in sc.get("outfits", {})]
         old_excl = plan.get("continuity_excluded", [])
+        want_excl = [k for k in want_excl if k not in manual]
         if sorted(old_excl) != sorted(want_excl):
-            excl = [k for k in plan.get("refs_exclude", []) if k not in old_excl]
+            # les exclusions choisies à la main restent telles quelles
+            excl = [k for k in plan.get("refs_exclude", []) if k not in old_excl or k in manual]
             plan["refs_exclude"] = excl + [k for k in want_excl if k not in excl]
             plan["continuity_excluded"] = want_excl
             changed = True
@@ -270,6 +313,8 @@ def settings_view() -> dict:
         "tasks": _tasks_view(st),
         "image_rows": _images_view(),
         "comfy_free_memory": appsettings.comfy_free_memory(),
+        "unload_ollama_before_comfy": appsettings.unload_ollama_before_comfy(),
+        "free_comfy_before_ollama": appsettings.free_comfy_before_ollama(),
         "comfy_defaults": {role: appsettings.default_comfy_workflow(role) for role in appsettings.ROLES},
         "engine_labels": ENGINE_LABELS,
         "loras": available_loras(),
@@ -312,7 +357,7 @@ def play_view() -> dict:
 
 
 TASK_LABELS = {"histoire": "Histoire (plan des chapitres)", "dialogue": "Dialogue (répliques)",
-               "prompt": "Prompts d'image et découpage"}
+               "prompt": "Prompts d'image et découpage", "decision": "Décisions (changement de tenue)"}
 ENGINE_LABELS = {"replicate": "Replicate (cloud)", "comfyui": "ComfyUI (local)"}
 
 
@@ -385,6 +430,10 @@ def save_settings_tasks(body: dict) -> None:
         data["comfy_steps"] = steps  # vide : on garde le nombre d'étapes du workflow
     if "comfy_free_memory" in body:
         data["comfy_free_memory"] = bool(body["comfy_free_memory"])
+    if "unload_ollama_before_comfy" in body:
+        data["unload_ollama_before_comfy"] = bool(body["unload_ollama_before_comfy"])
+    if "free_comfy_before_ollama" in body:
+        data["free_comfy_before_ollama"] = bool(body["free_comfy_before_ollama"])
     appsettings.save(data)
 
 
@@ -798,6 +847,7 @@ def _replace_plans(sid: str, items: list[dict]) -> None:
                           "characters": shot_characters(it.get("text", ""), sc, framing),
                           "shot": {"framing": framing, "angle": "", "note": it.get("text", "")}})
         A.save(data)
+    refresh_outfit_decisions(st, sc, plans)
     with S.LOCK:
         st = S.load()
         target = _find_scene(st, sid)
@@ -864,6 +914,7 @@ def save_plans(sid: str, items: list[dict]) -> dict:
             characters = c["characters"] or shot_characters(c["text"], sc, shot["framing"])
             plans.append({"id": pid, "from_line": c["from_line"], "characters": characters, "asset": asset_id, "shot": shot})
         A.save(data)
+    refresh_outfit_decisions(st, sc, plans)
     with S.LOCK:
         st = S.load()
         target = _find_scene(st, sid)
@@ -914,6 +965,7 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
     k, plan = _find_plan(sc, pid)
     with A.LOCK:
         data = A.load()
+    refresh_outfit_decisions(st, sc, sc.get("plans", []))
     if apply_continuity(sc, data["assets"]):
         with S.LOCK:
             cur = S.load()
@@ -930,6 +982,10 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
         _say(job_id, f"Scène {sid}, plan {pid} : description de l'image…")
         prompt = SC.suggest(st, data, sc, k)
     prompt = prompt.strip()
+    with A.LOCK:  # le prompt utilisé est enregistré tout de suite, comme pour les ancres
+        data = A.load()
+        data["assets"][plan["asset"]]["prompt"] = prompt
+        A.save(data)
     _say(job_id, f"Scène {sid}, plan {pid} : dessin (plusieurs minutes possibles)…")
     _check_cancel(job_id)
     idx = A.generate_candidate(plan["asset"], info["refs"], prompt, None, "replicate", None,
@@ -969,6 +1025,9 @@ def save_refs(sid: str, pid: str, exclude: list, extra: list) -> dict:
         _, plan = _find_plan(sc, pid)
         plan["refs_exclude"] = [str(k) for k in exclude]
         plan["refs_extra"] = [r for r in extra if r != plan["asset"]]
+        # Chaque référence automatique a désormais une décision explicite, qui prime sur la continuité.
+        info = SC.plan_refs(A.load()["assets"], sc, plan)
+        plan["manual_refs"] = {a["key"]: (a["key"] in plan["refs_exclude"]) for a in info["auto"] if a.get("key")}
         S.save(st)
     return {"ok": True}
 

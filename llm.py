@@ -77,6 +77,11 @@ def complete(provider: str, system: str, user: str, model: str | None = None) ->
     p = provider_settings(provider)
     if model:
         p = {**p, "model": model}
+    if provider == "ollama":
+        import appsettings
+        if appsettings.free_comfy_before_ollama():
+            import comfy_image
+            comfy_image.free_memory(comfy_image.base_url())  # la VRAM de ComfyUI laisse place à Ollama
     if provider == "replicate":
         return _replicate_text(p, system, user)
     if provider == "anthropic":
@@ -105,6 +110,28 @@ def complete(provider: str, system: str, user: str, model: str | None = None) ->
         )
         return data["message"]["content"]
     raise LLMError(f"Fournisseur inconnu : {provider}")
+
+
+def unload_ollama_models(base_url: str | None = None) -> list[str]:
+    """Décharge de la mémoire les modèles Ollama en cours (libère la VRAM pour ComfyUI).
+    Sans effet si Ollama n'est pas lancé. Renvoie les modèles déchargés."""
+    import json as _json
+    base = (base_url or provider_settings("ollama").get("base_url", "http://localhost:11434")).rstrip("/")
+    try:
+        with urllib.request.urlopen(base + "/api/ps", timeout=5) as r:
+            running = [m["name"] for m in _json.loads(r.read()).get("models", [])]
+    except (OSError, ValueError, KeyError):
+        return []
+    for name in running:
+        payload = _json.dumps({"model": name, "keep_alive": 0}).encode()
+        req = urllib.request.Request(base + "/api/generate", data=payload,
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=60):
+                pass
+        except OSError:
+            pass
+    return running
 
 
 def complete_task(task: str, system: str, user: str, story_provider: str | None = None) -> str:

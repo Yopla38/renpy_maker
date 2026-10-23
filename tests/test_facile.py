@@ -77,6 +77,7 @@ class Setup:
             mock.patch.object(PR, "suggest", side_effect=lambda st, data, aid, provider=None: f"prompt de {aid}"),
             mock.patch.object(SC, "suggest", side_effect=lambda st, data, sc, k, provider=None: "scene prompt"),
             mock.patch.object(FA, "_ensure_token", lambda: None),
+            mock.patch.object(FA, "_ask_outfit_change", return_value=False),
             mock.patch.object(FA, "_ask_shots", side_effect=fake_shots),
             mock.patch.object(PR, "describe_person", side_effect=lambda st, name, desc="", provider=None:
                               "young woman" if name == "Léa" else "young man"),

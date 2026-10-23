@@ -53,6 +53,9 @@ def generate(workflow: str | None, prompt: str, refs: list[Path], loras: list[di
     if not workflow:
         raise ValueError("Aucun workflow ComfyUI choisi pour ce rôle : choisissez-le dans la roue de réglages")
     base = base_url()
+    if appsettings.unload_ollama_before_comfy():
+        import llm
+        llm.unload_ollama_models()  # un modèle Ollama chargé occuperait la VRAM dont ComfyUI a besoin
     if appsettings.comfy_free_memory():
         free_memory(base)
     graph = CC.load_workflow(Path(workflow), base)

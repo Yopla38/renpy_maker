@@ -17,7 +17,7 @@ import yaml
 import paths
 
 FILE = paths.GAME_SPEC / "app_settings.yaml"
-TASKS = ("histoire", "dialogue", "prompt")
+TASKS = ("histoire", "dialogue", "prompt", "decision")
 ROLES = ("base", "edit")
 ENGINES = ("replicate", "comfyui")
 
@@ -101,6 +101,23 @@ def steps_for(role: str) -> int | None:
     if not 1 <= value <= 100:
         raise ValueError("Le nombre d'étapes doit être entre 1 et 100")
     return value
+
+
+def _comfy_flag(key: str, default: bool) -> bool:
+    chosen = load().get(key)
+    if chosen is not None:
+        return bool(chosen)
+    return bool((config().get("comfy") or {}).get(key, default))
+
+
+def unload_ollama_before_comfy() -> bool:
+    """Décharger les modèles Ollama avant une génération ComfyUI."""
+    return _comfy_flag("unload_ollama_before_comfy", True)
+
+
+def free_comfy_before_ollama() -> bool:
+    """Libérer la mémoire ComfyUI avant un appel Ollama."""
+    return _comfy_flag("free_comfy_before_ollama", False)
 
 
 def comfy_free_memory() -> bool:
