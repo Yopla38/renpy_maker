@@ -1,16 +1,14 @@
 """Histoires multiples : création, ouverture, renommage, suppression (sur un dossier temporaire)."""
 
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import paths  # noqa: E402
-import projects as PJ  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import paths  # noqa: E402
+from renpy_maker import projects as PJ  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 
 class ProjectsTests(unittest.TestCase):
@@ -133,7 +131,7 @@ class ProjectsTests(unittest.TestCase):
         self.assertFalse(paths.chosen())
 
     def test_each_project_exports_to_its_own_renpy_folder(self):
-        import renpy_export as RE
+        from renpy_maker import renpy_export as RE
         pid = PJ.create("Alpha")
         self.assertNotEqual(RE.project_dir(), paths.PROJECTS / pid / "renpy")
         PJ.open_project(pid, busy=False)

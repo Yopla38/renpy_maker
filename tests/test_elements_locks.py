@@ -1,12 +1,9 @@
 """Éléments de l'histoire, correspondance avec le registre, et verrouillage."""
 
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import story as S  # noqa: E402
-from webapp import server as SRV  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
+from renpy_maker.webapp import server as SRV  # noqa: E402
 
 
 def sample():

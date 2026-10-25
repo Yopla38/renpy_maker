@@ -4,28 +4,26 @@ Aucun appel réel : le LLM, Replicate et les fichiers du projet sont remplacés 
 """
 
 import copy
-import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import assets as A  # noqa: E402
-import llm  # noqa: E402
-import appsettings
-import paths  # noqa: E402
-import facile as FA  # noqa: E402
-import facile_base as FB  # noqa: E402
-import facile_elements as FE  # noqa: E402
-import facile_jobs as FJ  # noqa: E402
-import facile_plans as FP  # noqa: E402
-import facile_settings as FS  # noqa: E402
-import plan as P  # noqa: E402
-import prompts as PR  # noqa: E402
-import scenes as SC  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import assets as A  # noqa: E402
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import appsettings
+from renpy_maker import paths  # noqa: E402
+from renpy_maker import facile as FA  # noqa: E402
+from renpy_maker import facile_base as FB  # noqa: E402
+from renpy_maker import facile_elements as FE  # noqa: E402
+from renpy_maker import facile_jobs as FJ  # noqa: E402
+from renpy_maker import facile_plans as FP  # noqa: E402
+from renpy_maker import facile_settings as FS  # noqa: E402
+from renpy_maker import plan as P  # noqa: E402
+from renpy_maker import prompts as PR  # noqa: E402
+from renpy_maker import scenes as SC  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 CHAPTER = {
     "id": "ch1", "title": "La carte", "summary": "Une carte au trésor.",
@@ -205,6 +203,29 @@ class FacileFlow(Setup, unittest.TestCase):
             FA.redo_dialogue("s99")
 
 
+class LineCandidatesTests(unittest.TestCase):
+    def test_candidates_go_from_scene_to_chapter_to_story(self):
+        from renpy_maker.facile_base import line_candidates
+        st = {"chapters": [
+            {"id": "c1", "scenes": [{"id": "s1", "characters": ["Léa", "Victor"]}]},
+            {"id": "c2", "scenes": [{"id": "s2", "characters": ["Léa", "Camille"]},
+                                    {"id": "s3", "characters": ["Homme"]}]}]}
+        got = line_candidates(st, st["chapters"][1]["scenes"][0])
+        self.assertEqual([(c["name"], c["group"]) for c in got],
+                         [("Léa", "scene"), ("Camille", "scene"), ("Homme", "chapter"), ("Victor", "story")])
+
+    def test_a_character_from_the_story_joins_the_scene_when_tagged(self):
+        st = {"chapters": [{"id": "c1", "scenes": [
+            {"id": "s1", "characters": ["Léa"], "dialogue": [{"speaker": "Léa", "text": "Bonjour."}]},
+            {"id": "s2", "characters": ["Homme"], "dialogue": []}]}]}
+        with mock.patch.object(FB, "_characters", return_value=["Léa", "Homme"]), \
+                mock.patch.object(FP, "_locations", return_value=[]), \
+                mock.patch.object(FP, "_outfits", return_value=[]), \
+                mock.patch.object(S, "load", return_value=st), mock.patch.object(S, "save"):
+            FP.set_line_tags("s1", 0, ["Léa", "Homme"], "", {})
+        self.assertEqual(st["chapters"][0]["scenes"][0]["characters"], ["Léa", "Homme"])
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -272,7 +293,7 @@ class Plans(Setup, unittest.TestCase):
             FP.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": []}])
 
     def test_prompt_does_not_mention_absent_speaker(self):
-        import scenes as SC_
+        from renpy_maker import scenes as SC_
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
@@ -352,7 +373,7 @@ class Plans(Setup, unittest.TestCase):
 
     def test_settings_change_text_provider_and_model_only(self):
         import tempfile
-        import llm as LLM
+        from renpy_maker import llm as LLM
         tmp = Path(tempfile.mkdtemp()) / "llm_models.yaml"
         with mock.patch.object(paths, "llm_models_file", lambda: tmp):
             FS.save_settings({"text_provider": "openai", "text_model": "mon-modele", "image_provider": "replicate"})
@@ -584,7 +605,7 @@ class Plans(Setup, unittest.TestCase):
                             {"id": None, "from_line": 1, "text": "gros plan"}])
         plans = FB._find_scene(S.load(), sid)["plans"]
         self.assertEqual(sum(1 for p in plans if p.get("pause")), 1)
-        with mock.patch.multiple("facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile", _url=lambda *a, **k: "img.png"):  # les plans n'ont pas encore d'image
+        with mock.patch.multiple("renpy_maker.facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile", _url=lambda *a, **k: "img.png"):  # les plans n'ont pas encore d'image
             scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
             self.assertEqual([l.get("pause", False) for l in scene["lines"]], [False, True, False])
             starts = [i["from_line"] for i in scene["images"]]
@@ -612,7 +633,7 @@ class Plans(Setup, unittest.TestCase):
         S.save(st)
         FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
                             {"id": None, "from_line": 2, "text": "fin", "pause": True}])
-        with mock.patch.multiple("facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile", _url=lambda *a, **k: "img.png"):
+        with mock.patch.multiple("renpy_maker.facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile", _url=lambda *a, **k: "img.png"):
             scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
         self.assertEqual([l.get("pause", False) for l in scene["lines"]], [False, False, True])
         self.assertEqual([i["from_line"] for i in scene["images"]], [0, 2])
@@ -630,7 +651,7 @@ class Plans(Setup, unittest.TestCase):
                             {"id": None, "from_line": 1, "text": "silence", "pause": True,
                              "speaker": "Léa", "speech": "Je ne sais pas."},
                             {"id": None, "from_line": 1, "text": "réplique"}])
-        with mock.patch.multiple("facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile", _url=lambda *a, **k: "img.png"):
+        with mock.patch.multiple("renpy_maker.facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("renpy_maker.facile", _url=lambda *a, **k: "img.png"):
             scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
         self.assertEqual(scene["lines"][1], {"speaker": "Léa", "text": "Je ne sais pas."})
         self.assertFalse(scene["lines"][1].get("pause", False))

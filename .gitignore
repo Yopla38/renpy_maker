@@ -26,3 +26,10 @@ projects/
 
 # Données de l histoire (ne jamais versionner)
 game_spec/
+
+# Application Android (copie de l étape 1 : build et fichiers propres à la machine)
+android/**/build/
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/app/src/main/python/

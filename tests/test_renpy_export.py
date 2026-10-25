@@ -1,12 +1,10 @@
 """Export Ren'Py : texte généré et refus des histoires incomplètes (sans lancer Ren'Py)."""
 
-import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import renpy_export as RE  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import renpy_export as RE  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "image_test.png"

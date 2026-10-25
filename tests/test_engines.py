@@ -2,23 +2,21 @@
 
 import copy
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import appsettings  # noqa: E402
-import assets as A  # noqa: E402
-import facile_elements as FE  # noqa: E402
-import facile_jobs as FJ  # noqa: E402
-import facile_plans as FP  # noqa: E402
-import facile_settings as FS  # noqa: E402
-import comfy_client as CC  # noqa: E402
-import comfy_image  # noqa: E402
-import llm  # noqa: E402
-import paths  # noqa: E402
+from renpy_maker import appsettings  # noqa: E402
+from renpy_maker import assets as A  # noqa: E402
+from renpy_maker import facile_elements as FE  # noqa: E402
+from renpy_maker import facile_jobs as FJ  # noqa: E402
+from renpy_maker import facile_plans as FP  # noqa: E402
+from renpy_maker import facile_settings as FS  # noqa: E402
+from renpy_maker import comfy_client as CC  # noqa: E402
+from renpy_maker import comfy_image  # noqa: E402
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import paths  # noqa: E402
 from test_comfy_graph import flux_like, with_reference_chain  # noqa: E402
 
 
@@ -140,7 +138,7 @@ class CreationTests(unittest.TestCase):
              "settings": {"providers": {"text": "anthropic"}}, "chapters": []}
 
     def test_valid_descriptor_needs_a_gender_word(self):
-        import prompts as PR
+        from renpy_maker import prompts as PR
         self.assertTrue(PR.valid_descriptor("young woman"))
         self.assertTrue(PR.valid_descriptor("adult man"))
         self.assertFalse(PR.valid_descriptor("i can't tell from the"))
@@ -148,12 +146,12 @@ class CreationTests(unittest.TestCase):
         self.assertFalse(PR.valid_descriptor(None))
 
     def test_refusal_is_not_stored_as_descriptor(self):
-        import prompts as PR
+        from renpy_maker import prompts as PR
         with mock.patch.object(llm, "complete_task", return_value="I can't tell from the story"):
             self.assertIsNone(PR.describe_person(self.STORY, "Mara", ""))
 
     def test_story_is_sent_when_describing_the_person(self):
-        import prompts as PR
+        from renpy_maker import prompts as PR
         sent = []
 
         def fake(task, system, user, provider=None):
@@ -165,14 +163,14 @@ class CreationTests(unittest.TestCase):
         self.assertIn("yeux verts", sent[0])
 
     def test_character_request_contains_the_story_looks(self):
-        import prompts as PR
+        from renpy_maker import prompts as PR
         assets = {"char_mara": {"kind": "character", "name": "Mara", "description": "", "prompt": "",
                                 "descriptor": "young woman", "parent": None}}
         _, user = PR.build_request(self.STORY, assets, "char_mara")
         self.assertIn("yeux verts", user)
 
     def test_invalid_descriptor_falls_back_to_person(self):
-        import prompts as PR
+        from renpy_maker import prompts as PR
         assets = {"char_mara": {"kind": "character", "name": "Mara", "descriptor": "i can't tell from the"}}
         self.assertEqual(PR.person_word(assets, "Mara"), "person")
 
@@ -237,7 +235,7 @@ class WorkflowChoiceTests(unittest.TestCase):
 
 class StopTests(unittest.TestCase):
     def test_stop_interrupts_comfyui_and_marks_the_job_cancelled(self):
-        import facile as FA2
+        from renpy_maker import facile as FA2
         calls = []
         job_id = "stop-test"
         FA2.JOBS[job_id] = {"state": "running", "label": "x", "message": "", "error": None, "progress": None,
@@ -248,7 +246,7 @@ class StopTests(unittest.TestCase):
         self.assertTrue(FA2.JOBS[job_id]["cancel_requested"])
 
     def test_batch_stops_before_the_next_image(self):
-        import facile as FA2
+        from renpy_maker import facile as FA2
         job_id = "batch-test"
         FA2.JOBS[job_id] = {"state": "running", "label": "x", "message": "", "error": None, "progress": None,
                             "cancel_requested": True, "comfy_prompt": None}
@@ -258,7 +256,7 @@ class StopTests(unittest.TestCase):
 
 class DialogueRetryTests(unittest.TestCase):
     def _story(self):
-        import plan as P2
+        from renpy_maker import plan as P2
         st = {"title": "T", "idea": "i", "synopsis": "", "settings": {"providers": {"text": "anthropic"}},
               "chapters": [{"id": "ch1", "title": "C", "summary": "s", "scene_count": 1, "locked": False,
                             "scenes": [{"id": "s1", "title": "S", "summary": "x", "characters": ["Lina"],
@@ -359,7 +357,7 @@ class ContinuityChoiceTests(unittest.TestCase):
 class OllamaUnloadTests(unittest.TestCase):
     def test_running_ollama_models_are_unloaded_with_keep_alive_zero(self):
         import json as j
-        import llm as L
+        from renpy_maker import llm as L
         sent = []
 
         class Resp:
@@ -380,7 +378,7 @@ class OllamaUnloadTests(unittest.TestCase):
         self.assertEqual(sent, [{"model": "cydonia:latest", "keep_alive": 0}])
 
     def test_no_ollama_is_not_an_error(self):
-        import llm as L
+        from renpy_maker import llm as L
         with mock.patch("urllib.request.urlopen", side_effect=OSError("refusé")):
             self.assertEqual(L.unload_ollama_models("http://localhost:11434"), [])
 
@@ -416,7 +414,7 @@ class MemorySharingTests(unittest.TestCase):
 
     def test_comfy_generation_unloads_ollama_only_when_enabled(self):
         calls = []
-        with mock.patch("llm.unload_ollama_models", side_effect=lambda *a, **k: calls.append(1) or []), \
+        with mock.patch("renpy_maker.llm.unload_ollama_models", side_effect=lambda *a, **k: calls.append(1) or []), \
                 mock.patch.object(CC, "load_workflow", side_effect=ValueError("arrêt volontaire")):
             appsettings.save({"unload_ollama_before_comfy": False})
             with self.assertRaises(ValueError):

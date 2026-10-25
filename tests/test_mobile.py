@@ -3,20 +3,18 @@
 Aucun appel réseau : les requêtes Replicate sont simulées, les fichiers d'appareil sont temporaires."""
 
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import facile as FA  # noqa: E402
-import facile_settings as FS  # noqa: E402
-import image_replicate as REP  # noqa: E402
-import keys  # noqa: E402
-import llm  # noqa: E402
-import appsettings
-import paths  # noqa: E402
+from renpy_maker import facile as FA  # noqa: E402
+from renpy_maker import facile_settings as FS  # noqa: E402
+from renpy_maker import image_replicate as REP  # noqa: E402
+from renpy_maker import keys  # noqa: E402
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import appsettings
+from renpy_maker import paths  # noqa: E402
 from test_facile import Setup  # noqa: E402
 
 
