@@ -5,6 +5,7 @@ Aucun appel réel : le LLM, Replicate et les fichiers du projet sont remplacés 
 
 import copy
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -73,7 +74,9 @@ class Setup:
     def setUp(self):
         self.story = {"story": S.new_story()}
         self.registry = {"data": {"version": 1, "assets": {}}}
+        home = Path(tempfile.mkdtemp())  # réglages de test : jamais le vrai dossier de l'application
         patches = [
+            mock.patch.object(paths, "data_root", lambda: home),
             mock.patch.object(S, "load", side_effect=lambda *a, **k: copy.deepcopy(self.story["story"])),
             mock.patch.object(S, "save", side_effect=lambda st, *a, **k: self.story.update(story=copy.deepcopy(st))),
             mock.patch.object(A, "load", side_effect=lambda *a, **k: copy.deepcopy(self.registry["data"])),

@@ -23,7 +23,9 @@ from test_facile import Setup  # noqa: E402
 class KeysTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp()) / "secrets.json"
+        home = Path(tempfile.mkdtemp())  # histoire de test : jamais le vrai dossier de l'application
         for patch in (mock.patch.object(paths, "SECRETS", self.tmp),
+                      mock.patch.object(paths, "data_root", lambda: home),
                       mock.patch.object(keys, "LEGACY", Path(tempfile.mkdtemp()) / "absent.txt"),
                       mock.patch.dict(os.environ, {}, clear=False)):
             patch.start()
