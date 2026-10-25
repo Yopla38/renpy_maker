@@ -16,7 +16,6 @@ import yaml
 
 import paths
 
-FILE = paths.GAME_SPEC / "app_settings.yaml"
 TASKS = ("histoire", "dialogue", "prompt", "decision")
 ROLES = ("base", "edit")
 ENGINES = ("replicate", "comfyui")
@@ -27,12 +26,13 @@ def config() -> dict:
 
 
 def load() -> dict:
-    if not FILE.exists():
+    if not paths.app_settings_file().exists():
         return {}
-    return yaml.safe_load(FILE.read_text(encoding="utf-8")) or {}
+    return yaml.safe_load(paths.app_settings_file().read_text(encoding="utf-8")) or {}
 
 
 def save(data: dict) -> None:
+    FILE = paths.app_settings_file()
     FILE.parent.mkdir(parents=True, exist_ok=True)
     FILE.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 

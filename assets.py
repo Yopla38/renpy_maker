@@ -28,8 +28,6 @@ LOCK = threading.Lock()  # protège game_spec/assets.yaml : partagé par le serv
 
 import paths
 
-ROOT = paths.HOME  # fichiers des images (chemins relatifs « assets/… »)
-SPEC = paths.GAME_SPEC / "assets.yaml"
 CONFIG = paths.CODE / "config.yaml"
 KINDS = {"character", "outfit", "location", "scene", "object"}
 DEFAULT_ASPECT = {"character": "2:3", "outfit": "2:3", "location": "16:9", "scene": "16:9", "object": "1:1"}
@@ -37,13 +35,15 @@ DEFAULT_ASPECT = {"character": "2:3", "outfit": "2:3", "location": "16:9", "scen
 
 # ---------- lecture / écriture ----------
 
-def load(path: Path = SPEC) -> dict:
+def load(path: Path | None = None) -> dict:
+    path = path or paths.assets_file()
     if not path.exists():
         return {"version": 1, "assets": {}}
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {"version": 1, "assets": {}}
 
 
-def save(data: dict, path: Path = SPEC) -> None:
+def save(data: dict, path: Path | None = None) -> None:
+    path = path or paths.assets_file()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
@@ -64,7 +64,7 @@ def validated_path(asset_id: str, data: dict | None = None) -> Path:
     if a.get("status") != "validated" or a.get("validated_candidate") is None:
         raise ValueError(f"Actif non validé : {asset_id} (statut {a.get('status')})")
     cand = a["candidates"][a["validated_candidate"]]
-    return ROOT / cand["file"]
+    return paths.data_root() / cand["file"]
 
 
 def check(data: dict | None = None) -> list[str]:
@@ -75,7 +75,7 @@ def check(data: dict | None = None) -> list[str]:
         if a.get("kind") not in KINDS:
             problems.append(f"{aid}: kind invalide ({a.get('kind')})")
         for i, c in enumerate(a.get("candidates", [])):
-            if not (ROOT / c["file"]).exists():
+            if not (paths.data_root() / c["file"]).exists():
                 problems.append(f"{aid}[{i}]: fichier absent {c['file']}")
         if a.get("status") == "validated" and a.get("validated_candidate") is None:
             problems.append(f"{aid}: statut validé sans candidat choisi")
@@ -161,7 +161,7 @@ def ref_path(ref: str, data: dict) -> Path:
     a = _get(data, aid)
     if not 0 <= k < len(a["candidates"]):
         raise ValueError(f"Candidat {k} inconnu pour {aid}")
-    return ROOT / a["candidates"][k]["file"]
+    return paths.data_root() / a["candidates"][k]["file"]
 
 
 def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int | None,
@@ -186,7 +186,7 @@ def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int
         aspect = aspect or DEFAULT_ASPECT[a["kind"]]
         loras = list(a.get("loras", []) if loras is None else loras)
     choice = appsettings.image_for("edit" if refs else "base")
-    folder = ROOT / "assets" / asset_id
+    folder = paths.data_root() / "assets" / asset_id
     folder.mkdir(parents=True, exist_ok=True)
     tmp = folder / f"tmp_{uuid.uuid4().hex[:8].lower()}.png"
     if choice["engine"] == "comfyui":
@@ -221,7 +221,7 @@ def generate(data: dict, asset_id: str, ref_ids: list[str], prompt: str, seed: i
     refs = [ref_path(r, data) for r in ref_ids]
     n = len(a["candidates"])
     out_rel = f"assets/{asset_id}/cand_{n:02d}.png"
-    out_abs = ROOT / out_rel
+    out_abs = paths.data_root() / out_rel
 
     if backend != "replicate":
         raise NotImplementedError(f"Backend '{backend}' pas encore branché (ComfyUI : phase P4)")

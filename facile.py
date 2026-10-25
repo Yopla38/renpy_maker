@@ -25,6 +25,7 @@ import assets as A
 import appsettings
 import keys
 import paths
+import projects as PJ
 import image_replicate as REP
 import llm
 import pipeline as PL
@@ -34,7 +35,7 @@ import renpy_export as RE
 import scenes as SC
 import story as S
 
-ROOT = paths.HOME
+
 SCENE_COUNTS = (3, 4, 5, 6)
 PLAN_LIMITS = (0, *range(1, 9))  # 0 : autant que l'on veut (pour les propositions de l'IA)
 PROPOSAL_CAP = 12  # plafond de sécurité quand l'IA propose « autant que l'on veut »
@@ -332,7 +333,7 @@ def create_outfit(character_aid: str, name: str, description: str, scene_ids: li
 def _url(asset: dict, idx: int | None) -> str | None:
     if idx is None or not 0 <= idx < len(asset.get("candidates", [])):
         return None
-    return "/files/" + asset["candidates"][idx]["file"]
+    return paths.file_url(asset["candidates"][idx]["file"])
 
 
 def _element_card(assets: dict, kind: str, name: str, parent: str | None = None) -> dict:
@@ -436,11 +437,15 @@ def _refs_view(sc: dict, plan: dict, assets: dict) -> dict:
 
 def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
     a = assets.get(plan["asset"], {})
+    refs = _refs_view(sc, plan, assets)
+    # Les LoRA ne s'appliquent qu'avec ComfyUI : le rôle (base ou edit) dépend des références du plan.
+    used = refs["extra"] or any(not r["excluded"] for r in refs["auto"])
     return {"id": plan["id"], "aid": plan["asset"], "from_line": plan["from_line"], "pause": bool(plan.get("pause")),
             "speaker": plan.get("speaker", ""), "speech": plan.get("speech", ""),
             "candidate": RE.plan_index(plan, a) if a else None,
             "loras": list(a.get("loras", [])) if a else [],
-            "refs": _refs_view(sc, plan, assets),
+            "comfy": appsettings.image_for("edit" if used else "base")["engine"] == "comfyui",
+            "refs": refs,
             "continuity": bool(plan.get("continuity", True)),
             "characters": SC.plan_characters(sc, plan),
             "text": (plan.get("shot") or {}).get("note", ""),
@@ -681,10 +686,10 @@ def save_settings(body: dict) -> dict:
     model = str(body.get("text_model", "")).strip()
     if model:
         overrides = {}
-        if llm.MODELS_FILE.exists():
-            overrides = yaml.safe_load(llm.MODELS_FILE.read_text(encoding="utf-8")) or {}
+        if paths.llm_models_file().exists():
+            overrides = yaml.safe_load(paths.llm_models_file().read_text(encoding="utf-8")) or {}
         overrides.setdefault(provider, {})["model"] = model
-        llm.MODELS_FILE.write_text(yaml.safe_dump(overrides, allow_unicode=True), encoding="utf-8")
+        paths.llm_models_file().write_text(yaml.safe_dump(overrides, allow_unicode=True), encoding="utf-8")
     with S.LOCK:
         st = S.load()
         st["settings"]["providers"]["text"] = provider
@@ -1432,11 +1437,11 @@ def copy_plan_image(sid: str, pid: str, source: str, candidate: int) -> dict:
     if src is None or not 0 <= candidate < len(src.get("candidates", [])):
         raise ValueError("Image introuvable")
     cand = dict(src["candidates"][candidate])
-    origin = ROOT / cand["file"]
+    origin = paths.data_root() / cand["file"]
     if not origin.exists():
         raise ValueError("Fichier de l'image introuvable")
     new_id = f"scene_{sid}_{uuid.uuid4().hex[:6]}"
-    folder = ROOT / "assets" / new_id
+    folder = paths.data_root() / "assets" / new_id
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(origin, folder / "cand_00.png")
     cand["file"] = f"assets/{new_id}/cand_00.png"
@@ -1501,15 +1506,15 @@ def reset() -> dict:
     if _busy.locked():
         raise ValueError("Une création est en cours : attendez qu'elle se termine.")
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    backup = ROOT / "work" / "backups" / f"facile-{stamp}"
+    backup = paths.data_root() / "work" / "backups" / f"facile-{stamp}"
     backup.mkdir(parents=True, exist_ok=True)
     with S.LOCK:
-        if S.STORY.exists():
-            shutil.copy(S.STORY, backup / "story.yaml")
+        if paths.story_file().exists():
+            shutil.copy(paths.story_file(), backup / "story.yaml")
         S.save(S.new_story())
     with A.LOCK:
-        if A.SPEC.exists():
-            shutil.copy(A.SPEC, backup / "assets.yaml")
+        if paths.assets_file().exists():
+            shutil.copy(paths.assets_file(), backup / "assets.yaml")
         A.save({"version": 1, "assets": {}})
     return {"ok": True, "backup": str(backup)}
 
@@ -1524,6 +1529,8 @@ def route(method: str, path: str, body: dict) -> dict:
             return settings_view()
         if path == "/api/facile/play":
             return play_view()
+        if path == "/api/facile/projects":
+            return {"projects": PJ.list_projects(), "current": PJ.current()}
         if path.startswith("/api/facile/jobs/"):
             job = JOBS.get(path.rsplit("/", 1)[-1])
             if job is None:
@@ -1532,6 +1539,10 @@ def route(method: str, path: str, body: dict) -> dict:
     elif method == "POST":
         routes = {
             "/api/facile/style": lambda: set_style(body["style"]),
+            "/api/facile/projects/create": lambda: PJ.open_project(PJ.create(body.get("name", ""), body.get("idea", "")), _busy.locked()),
+            "/api/facile/projects/open": lambda: PJ.open_project(body.get("id", ""), _busy.locked()),
+            "/api/facile/projects/rename": lambda: PJ.rename(body.get("id", ""), body.get("name", "")),
+            "/api/facile/projects/delete": lambda: PJ.delete(body.get("id", "")),
             "/api/facile/settings": lambda: save_settings(body),
             "/api/facile/secret": lambda: save_secret(body.get("name", ""), body.get("value", "")),
             "/api/facile/asset/loras": lambda: set_asset_loras(body["asset"], body.get("loras", [])),

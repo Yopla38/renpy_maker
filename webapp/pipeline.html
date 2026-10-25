@@ -156,7 +156,7 @@ function anchorCard(a) {
   const prompt = state.drafts[a.id] ?? a.prompt ?? "";
   const thumbs = a.candidates.map((c) => `
     <div class="t ${c.retained ? "ret" : ""}">
-      <img src="/files/${esc(c.file)}" alt="" onclick="window.open(this.src)">
+      <img src="${esc(c.url)}" alt="" onclick="window.open(this.src)">
       <div>#${c.index} · ${c.retained ? '<b class="ok">retenue</b>' : "non retenue"}
         <div class="row" style="margin-top:4px;gap:6px">
           ${c.retained ? "" : `<button class="primary" style="padding:3px 8px" onclick="retain('${esc(a.id)}', ${c.index})">Retenir</button>`}

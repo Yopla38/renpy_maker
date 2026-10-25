@@ -12,6 +12,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import assets as A  # noqa: E402
+import paths  # noqa: E402
 import facile as FA  # noqa: E402
 import plan as P  # noqa: E402
 import prompts as PR  # noqa: E402
@@ -287,7 +288,7 @@ class Plans(Setup, unittest.TestCase):
         data["assets"][plans[0]["aid"]]["candidates"] = [{"file": f"assets/{plans[0]['aid']}/cand_00.png"}]
         data["assets"][plans[0]["aid"]]["validated_candidate"] = 0
         A.save(data)
-        with mock.patch.object(FA, "ROOT", tmp):
+        with mock.patch.object(paths, "data_root", lambda: tmp):
             FA.copy_plan_image("s1", plans[1]["id"], plans[0]["aid"], 0)
         after = FA.view()["scenes"][0]["plans"]
         self.assertNotEqual(after[1]["aid"], plans[1]["aid"])
@@ -343,7 +344,7 @@ class Plans(Setup, unittest.TestCase):
         import tempfile
         import llm as LLM
         tmp = Path(tempfile.mkdtemp()) / "llm_models.yaml"
-        with mock.patch.object(LLM, "MODELS_FILE", tmp):
+        with mock.patch.object(paths, "llm_models_file", lambda: tmp):
             FA.save_settings({"text_provider": "openai", "text_model": "mon-modele", "image_provider": "replicate"})
             self.assertEqual(LLM.provider_settings("openai")["model"], "mon-modele")
             self.assertEqual(S.load()["settings"]["providers"]["text"], "openai")

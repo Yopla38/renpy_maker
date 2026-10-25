@@ -30,6 +30,7 @@ import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
 import renpy_export as RE  # noqa: E402
 import facile as FA  # noqa: E402
+import projects as PJ  # noqa: E402
 import paths  # noqa: E402
 import pipeline as PL  # noqa: E402
 from prompts import match_asset as _match_asset  # noqa: E402
@@ -38,6 +39,7 @@ import story as S  # noqa: E402
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("RENPY_MAKER_PORT", "8765"))  # 8765 est souvent pris : RENPY_MAKER_PORT=8766 pour changer
 INDEX = Path(__file__).with_name("index.html")
+PROJECTS_PAGE = Path(__file__).with_name("projects.html")
 PLAN_PAGE = Path(__file__).with_name("plan.html")
 FACILE_PAGE = Path(__file__).with_name("facile.html")
 PLAY_PAGE = Path(__file__).with_name("play.html")
@@ -70,7 +72,7 @@ def _asset_view(aid: str, a: dict) -> dict:
         "status": a["status"],
         "validated_candidate": a.get("validated_candidate"),
         "candidates": [
-            {"index": i, **c, "url": "/files/" + c["file"]}
+            {"index": i, **c, "url": paths.file_url(c["file"])}
             for i, c in enumerate(a.get("candidates", []))
         ],
     }
@@ -104,7 +106,11 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             return self._send(200, INDEX.read_bytes(), "text/html; charset=utf-8")
         if path in ("/facile", "/facile/"):
+            if not paths.chosen():  # rien d'ouvert depuis le démarrage : on choisit l'histoire d'abord
+                return self._redirect("/projets")
             return self._send(200, FACILE_PAGE.read_bytes(), "text/html; charset=utf-8")
+        if path in ("/projets", "/projets/"):
+            return self._send(200, PROJECTS_PAGE.read_bytes(), "text/html; charset=utf-8")
         if path.startswith("/api/facile"):
             return self._facile("GET", path, {})
         if path in ("/jouer", "/jouer/"):
@@ -136,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/jobs/"):
             job = _jobs.get(path.rsplit("/", 1)[-1])
             return self._json(200, job) if job else self._json(404, {"error": "job inconnu"})
-        if path.startswith("/files/assets/"):
+        if path.startswith("/files/"):
             return self._file(path[len("/files/"):])
         self._json(404, {"error": "introuvable"})
 
@@ -152,9 +158,21 @@ class Handler(BaseHTTPRequestHandler):
             traceback.print_exc()
             self._json(500, {"error": f"{type(e).__name__}: {e}"})
 
+    def _redirect(self, location: str) -> None:
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def _file(self, rel: str) -> None:
-        base = paths.ASSETS.resolve()
-        target = (paths.HOME / rel).resolve()
+        # /files/p/<id>/assets/… : une autre histoire ; /files/assets/… : l'histoire d'origine
+        m = re.fullmatch(r"p/([a-z0-9_-]+)/(assets/.+)", rel)
+        root = paths.PROJECTS / m.group(1) if m else paths.HOME
+        rel = m.group(2) if m else rel
+        if not rel.startswith("assets/"):
+            return self._json(404, {"error": "fichier introuvable"})
+        base = (root / "assets").resolve()
+        target = (root / rel).resolve()
         if base not in target.parents or not target.is_file():
             return self._json(404, {"error": "fichier introuvable"})
         ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
@@ -715,10 +733,10 @@ def _backup_story(reason: str) -> None:
     """Copie de l'histoire avant une modification des répliques (work/backups/, 50 dernières)."""
     import shutil
     from datetime import datetime
-    src = S.STORY
+    src = paths.story_file()
     if not src.exists():
         return
-    dst_dir = ROOT / "work" / "backups"
+    dst_dir = paths.work_dir() / "backups"
     dst_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     shutil.copyfile(src, dst_dir / f"story-{stamp}.yaml")
@@ -777,6 +795,7 @@ def make_server(host: str = HOST, port: int = PORT) -> ThreadingHTTPServer:
 
 
 def main() -> None:
+    PJ.restore_last()  # reprend la dernière histoire ouverte (la page « Mes histoires » reste accessible)
     srv = make_server()
     print(f"Registre d'actifs : http://{HOST}:{PORT}", flush=True)
     srv.serve_forever()

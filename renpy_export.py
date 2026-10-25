@@ -24,7 +24,6 @@ import story as S
 
 import paths
 
-ROOT = paths.HOME
 CONFIG = paths.CODE / "config.yaml"
 DEFAULTS = {"title": "Mon histoire", "width": 1920, "height": 1080}
 
@@ -34,7 +33,11 @@ def _config() -> dict:
 
 
 def project_dir() -> Path:
-    return Path(_config()["project"]["game_dir"])
+    """Projet Ren'Py : celui de la configuration pour l'histoire d'origine, un dossier propre à chaque
+    autre histoire (renpy/, à côté de ses données)."""
+    if paths.active_folder() is None:
+        return Path(_config()["project"]["game_dir"])
+    return paths.data_root() / "renpy"
 
 
 def renpy_sh() -> Path:
@@ -120,7 +123,7 @@ def split_problems(st: dict, assets_data: dict) -> tuple[list[str], list[str]]:
                 continue
             idx = plan_index(plan, a)
             cand = a["candidates"][idx]
-            if not (ROOT / cand["file"]).exists():
+            if not (paths.data_root() / cand["file"]).exists():
                 blocking.append(f"{where} / {plan['id']} : fichier d'image introuvable")
             elif idx != a.get("validated_candidate"):
                 warnings.append(f"{where} / {plan['id']} : image « {a.get('name', plan['asset'])} » non retenue")
@@ -216,7 +219,7 @@ def export(st: dict, assets_data: dict) -> dict:
         for plan in exportable_plans(sc, assets):
             a = assets[plan["asset"]]
             cand = a["candidates"][plan_index(plan, a)]
-            src = ROOT / cand["file"]
+            src = paths.data_root() / cand["file"]
             dst = images / f"{image_name(sc, plan)}.png"
             shutil.copyfile(src, dst)
             copied.append(dst.name)

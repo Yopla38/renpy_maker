@@ -22,7 +22,6 @@ import yaml
 
 import paths
 LOCK = threading.Lock()  # protège game_spec/story.yaml : partagé par le serveur et le pipeline
-STORY = paths.GAME_SPEC / "story.yaml"
 PROVIDER_ROLES = ("text", "image_base", "image_edit")
 NARRATOR = "Narration"
 PROVIDER_CHOICES = {
@@ -97,13 +96,15 @@ def migrate(story: dict) -> dict:
     return story
 
 
-def load(path: Path = STORY) -> dict:
+def load(path: Path | None = None) -> dict:
+    path = path or paths.story_file()
     if not path.exists():
         return new_story()
     return migrate(yaml.safe_load(path.read_text(encoding="utf-8")) or new_story())
 
 
-def save(story: dict, path: Path = STORY) -> None:
+def save(story: dict, path: Path | None = None) -> None:
+    path = path or paths.story_file()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(story, allow_unicode=True, sort_keys=False), encoding="utf-8")
 

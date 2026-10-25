@@ -232,6 +232,7 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 .top-actions { display: flex; gap: 10px; align-items: center; }
 .catalog-btn { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 9px 18px; font: 800 14px Nunito, sans-serif; color: var(--ink); }
 .catalog-btn:hover { border-color: var(--accent); color: var(--accent); }
+a.catalog-btn { text-decoration: none; display: inline-block; }
 .cat-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 20px; }
 .cat-tab { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 8px 15px; font: 800 14px Nunito, sans-serif; }
 .cat-tab span { font-weight: 600; color: var(--muted); margin-left: 6px; font-size: 13px; }
@@ -302,6 +303,7 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 <header class="top">
   <h1 class="brand">Mon histoire<small>Créez votre jeu, étape par étape</small></h1>
   <div class="top-actions">
+    <a class="catalog-btn" href="/projets">Mes histoires</a>
     <button class="catalog-btn" onclick="toggleCatalog()">Catalogue</button>
     <button class="gear" title="Réglages : modèles et fournisseurs" onclick="toggleSettings()" aria-label="Réglages">⚙</button>
   </div>
@@ -1463,7 +1465,7 @@ function fineHtml(s, vp, busy) {
     <div class="reflist">${auto || `<span class="notice">Aucune</span>`}</div>
     <div class="refs-title">Images ajoutées (cliquez pour ajouter ou retirer)</div>
     <div class="thumbs">${choices || `<span class="notice">Aucune autre image retenue.</span>`}</div>${miss}
-    ${loraHtml(vp.aid, busy)}
+    ${vp.comfy ? loraHtml(vp.aid, busy) : ""}
   </details>`;
 }
 

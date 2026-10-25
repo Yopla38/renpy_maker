@@ -28,7 +28,7 @@ def graph_with_reference() -> dict:
 class ChoicesTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp()) / "app_settings.yaml"
-        self.patch = mock.patch.object(appsettings, "FILE", self.tmp)
+        self.patch = mock.patch.object(paths, "app_settings_file", lambda: self.tmp)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 
@@ -59,7 +59,7 @@ class ChoicesTests(unittest.TestCase):
 class SettingsValidationTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp()) / "app_settings.yaml"
-        self.patch = mock.patch.object(appsettings, "FILE", self.tmp)
+        self.patch = mock.patch.object(paths, "app_settings_file", lambda: self.tmp)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 
@@ -104,7 +104,7 @@ class SettingsValidationTests(unittest.TestCase):
 class DefaultsAndMemoryTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp()) / "app_settings.yaml"
-        self.patch = mock.patch.object(appsettings, "FILE", self.tmp)
+        self.patch = mock.patch.object(paths, "app_settings_file", lambda: self.tmp)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 
@@ -183,7 +183,7 @@ def _write(path: Path) -> Path:
 class StepsTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp()) / "app_settings.yaml"
-        self.patch = mock.patch.object(appsettings, "FILE", self.tmp)
+        self.patch = mock.patch.object(paths, "app_settings_file", lambda: self.tmp)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 
@@ -354,7 +354,7 @@ class ContinuityChoiceTests(unittest.TestCase):
 
     def test_decision_task_is_configurable(self):
         import tempfile
-        with mock.patch.object(appsettings, "FILE", Path(tempfile.mkdtemp()) / "app_settings.yaml"):
+        with mock.patch.object(paths, "app_settings_file", lambda p=Path(tempfile.mkdtemp()) / "app_settings.yaml": p):
             appsettings.save({"llm_tasks": {"decision": {"provider": "ollama", "model": "qwen3:14b"}}})
             self.assertEqual(appsettings.llm_for("decision", "anthropic"), ("ollama", "qwen3:14b"))
 
@@ -391,7 +391,7 @@ class OllamaUnloadTests(unittest.TestCase):
 class MemorySharingTests(unittest.TestCase):
     def setUp(self):
         import tempfile
-        self.patch = mock.patch.object(appsettings, "FILE", Path(tempfile.mkdtemp()) / "app_settings.yaml")
+        self.patch = mock.patch.object(paths, "app_settings_file", lambda p=Path(tempfile.mkdtemp()) / "app_settings.yaml": p)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 

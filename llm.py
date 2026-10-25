@@ -32,7 +32,6 @@ def _key(name: str) -> str:
     return value
 
 
-MODELS_FILE = paths.GAME_SPEC / "llm_models.yaml"  # modèles choisis dans la page (roue de réglages)
 
 
 def provider_settings(name: str) -> dict:
@@ -42,8 +41,8 @@ def provider_settings(name: str) -> dict:
         base = dict(cfg["llm"]["providers"][name])
     except KeyError:
         raise LLMError(f"Fournisseur '{name}' absent de config.yaml") from None
-    if MODELS_FILE.exists():
-        override = (yaml.safe_load(MODELS_FILE.read_text(encoding="utf-8")) or {}).get(name, {})
+    if paths.llm_models_file().exists():
+        override = (yaml.safe_load(paths.llm_models_file().read_text(encoding="utf-8")) or {}).get(name, {})
         base.update({k: v for k, v in override.items() if v})
     return base
 
