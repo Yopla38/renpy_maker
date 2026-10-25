@@ -11,9 +11,11 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import facile as FA  # noqa: E402
+import facile_settings as FS  # noqa: E402
 import image_replicate as REP  # noqa: E402
 import keys  # noqa: E402
 import llm  # noqa: E402
+import appsettings
 import paths  # noqa: E402
 from test_facile import Setup  # noqa: E402
 
@@ -37,9 +39,9 @@ class KeysTests(unittest.TestCase):
 
     def test_only_known_secret_names_are_accepted(self):
         with self.assertRaises(ValueError):
-            FA.save_secret("AUTRE_CLE", "x")
+            FS.save_secret("AUTRE_CLE", "x")
         with self.assertRaises(ValueError):
-            FA.save_secret("REPLICATE_API_TOKEN", "   ")
+            FS.save_secret("REPLICATE_API_TOKEN", "   ")
 
 
 class KidsModeTests(Setup, unittest.TestCase):
@@ -50,7 +52,7 @@ class KidsModeTests(Setup, unittest.TestCase):
             self.wait(FA.write_dialogues())
             self.assertFalse(FA.S.load()["settings"]["explicit_content"])
             self.assertFalse(FA.view()["explicit"])
-            self.assertEqual(FA.S.load()["settings"]["providers"]["text"], "replicate")
+            self.assertEqual(appsettings.provider("text"), "replicate")
 
     def _safety_sent(self, kids, requested):
         """Valeur réellement envoyée à Replicate pour le filtre de sécurité (retouche avec images)."""
@@ -80,10 +82,10 @@ class KidsModeTests(Setup, unittest.TestCase):
 
     def test_replicate_is_the_only_text_provider_for_kids(self):
         with mock.patch.object(paths, "KIDS", True):
-            names = [c["name"] for c in FA.settings_view()["text"]["choices"]]
+            names = [c["name"] for c in FS.settings_view()["text"]["choices"]]
             self.assertEqual(names, ["replicate"])
             with self.assertRaises(ValueError):
-                FA.save_settings({"text_provider": "anthropic"})
+                FS.save_settings({"text_provider": "anthropic"})
 
 
 class PlayTests(Setup, unittest.TestCase):

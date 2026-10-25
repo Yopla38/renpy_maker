@@ -29,6 +29,7 @@ import plan as P  # noqa: E402
 import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
 import renpy_export as RE  # noqa: E402
+import appsettings  # noqa: E402
 import facile as FA  # noqa: E402
 import projects as PJ  # noqa: E402
 import paths  # noqa: E402
@@ -542,9 +543,7 @@ class Handler(BaseHTTPRequestHandler):
                 if "total_scenes" in body:
                     se["total_scenes"] = int(body["total_scenes"])
                 for role, val in (body.get("providers") or {}).items():
-                    if val not in S.PROVIDER_CHOICES.get(role, set()):
-                        raise ValueError(f"{role} : '{val}' non reconnu")
-                    se["providers"][role] = val
+                    appsettings.set_provider(role, val)  # écrit dans app_settings.yaml de l'histoire
             S.save(st)
             self._json(200, _story_view())
 
@@ -711,7 +710,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def _story_view() -> dict:
     st = S.load()
-    return {"story": st, "errors": S.validate(st, A.load()), "providers": {k: sorted(v) for k, v in S.PROVIDER_CHOICES.items()}}
+    st["settings"]["providers"] = appsettings.providers()  # affichage seulement : jamais réenregistré
+    return {"story": st, "errors": S.validate(st, A.load()), "providers": {k: sorted(v) for k, v in appsettings.PROVIDER_CHOICES.items()}}
 
 
 def _find_chapter(st: dict, cid: str) -> dict:

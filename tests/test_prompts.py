@@ -61,7 +61,7 @@ class PromptTests(unittest.TestCase):
         self.assertTrue(text.startswith("A young woman in a short dark blue dress."))
         self.assertTrue(text.endswith(PR.llm_style()))
         provider = m.call_args[0][0]
-        self.assertEqual(provider, st["settings"]["providers"]["text"])
+        self.assertEqual(provider, appsettings.provider("text"))
 
     def test_match_asset_links_story_element_to_registry(self):
         st, data = sample()

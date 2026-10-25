@@ -22,13 +22,7 @@ import yaml
 
 import paths
 LOCK = threading.Lock()  # protège game_spec/story.yaml : partagé par le serveur et le pipeline
-PROVIDER_ROLES = ("text", "image_base", "image_edit")
 NARRATOR = "Narration"
-PROVIDER_CHOICES = {
-    "text": {"anthropic", "openai", "ollama", "replicate"},
-    "image_base": {"replicate", "comfyui"},
-    "image_edit": {"replicate", "comfyui"},
-}
 
 
 # Styles visuels proposés au début d'une histoire. Le suffixe est ajouté à chaque prompt d'image.
@@ -69,11 +63,6 @@ def new_story(title: str = "", idea: str = "", total_scenes: int = 6) -> dict:
             "total_scenes": total_scenes,
             "style": None,                      # clé de STYLES, choisie au début
             "max_plans": 5,                     # plans (images) maximum par scène
-            "providers": {
-                "text": "anthropic",
-                "image_base": "replicate",      # flux-dev
-                "image_edit": "replicate",      # flux-2-klein-9b
-            },
         },
         "synopsis": "",
         "chapters": [],
@@ -139,11 +128,6 @@ def validate(story: dict, assets: dict | None = None) -> list[str]:
     scene_ids = {sc["id"] for sc in scenes}
 
     settings = story.get("settings", {})
-    for role, choices in PROVIDER_CHOICES.items():
-        p = settings.get("providers", {}).get(role)
-        if p not in choices:
-            errors.append(f"settings.providers.{role} : '{p}' non reconnu (attendu : {sorted(choices)})")
-
     for ch in story["chapters"]:
         if ch["id"] in seen_ch:
             errors.append(f"chapitre en double : {ch['id']}")

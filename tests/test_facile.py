@@ -12,8 +12,15 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import assets as A  # noqa: E402
+import llm  # noqa: E402
+import appsettings
 import paths  # noqa: E402
 import facile as FA  # noqa: E402
+import facile_base as FB  # noqa: E402
+import facile_elements as FE  # noqa: E402
+import facile_jobs as FJ  # noqa: E402
+import facile_plans as FP  # noqa: E402
+import facile_settings as FS  # noqa: E402
 import plan as P  # noqa: E402
 import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
@@ -77,9 +84,9 @@ class Setup:
             mock.patch.object(P, "generate_dialogue", side_effect=fake_dialogue),
             mock.patch.object(PR, "suggest", side_effect=lambda st, data, aid, provider=None: f"prompt de {aid}"),
             mock.patch.object(SC, "suggest", side_effect=lambda st, data, sc, k, provider=None: "scene prompt"),
-            mock.patch.object(FA, "_ensure_token", lambda: None),
-            mock.patch.object(FA, "_ask_outfit_change", return_value=False),
-            mock.patch.object(FA, "_ask_shots", side_effect=fake_shots),
+            mock.patch.object(FJ, "_ensure_token", lambda: None),
+            mock.patch.object(FP, "_ask_outfit_change", return_value=False),
+            mock.patch.object(FP, "_ask_shots", side_effect=fake_shots),
             mock.patch.object(PR, "describe_person", side_effect=lambda st, name, desc="", provider=None:
                               "young woman" if name == "Léa" else "young man"),
         ]
@@ -118,25 +125,25 @@ class FacileFlow(Setup, unittest.TestCase):
         self.assertFalse(v["done"]["personnages"])  # rien n'est encore dessiné
 
         for c in v["characters"]:
-            self.wait(FA.redo_card(c["aid"]))
+            self.wait(FE.redo_card(c["aid"]))
         for loc in v["locations"]:
-            self.wait(FA.redo_card(loc["aid"]))
+            self.wait(FE.redo_card(loc["aid"]))
         v = FA.view()
         self.assertTrue(v["done"]["personnages"] and v["done"]["lieux"])
         self.assertEqual([o["name"] for o in v["outfits"]], ["Jean et baskets"])
         self.assertFalse(v["done"]["tenues"])
         self.assertTrue(v["outfits"][0]["blocked"] is False)
         for o in v["outfits"]:
-            job = self.wait(FA.redo_card(o["aid"]))
+            job = self.wait(FE.redo_card(o["aid"]))
             self.assertEqual(job["state"], "done", job.get("error"))
         self.assertTrue(FA.view()["done"]["tenues"])
 
         for sc in FA.view()["scenes"]:
-            self.wait(FA.propose_plans(sc["id"]))
+            self.wait(FP.propose_plans(sc["id"]))
         v = FA.view()
         self.assertTrue(all(sc["plans"] for sc in v["scenes"]))
         self.assertFalse(v["done"]["images"])
-        job = self.wait(FA.make_all_plans())
+        job = self.wait(FP.make_all_plans())
         self.assertEqual(job["state"], "done", job.get("error"))
         v = FA.view()
         self.assertTrue(all(p["image"] for sc in v["scenes"] for p in sc["plans"]))
@@ -149,10 +156,10 @@ class FacileFlow(Setup, unittest.TestCase):
         outfit = FA.view()["outfits"][0]
         self.assertTrue(outfit["blocked"])
         with self.assertRaises(ValueError):
-            FA.redo_card(outfit["aid"])  # Léa n'a pas encore d'image
+            FE.redo_card(outfit["aid"])  # Léa n'a pas encore d'image
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
-        self.wait(FA.redo_card(lea["aid"]))
-        self.wait(FA.redo_card(FA.view()["outfits"][0]["aid"]))
+        self.wait(FE.redo_card(lea["aid"]))
+        self.wait(FE.redo_card(FA.view()["outfits"][0]["aid"]))
         data = A.load()
         generated = data["assets"][outfit["aid"]]["candidates"][-1]
         self.assertEqual(generated["refs"], [lea["aid"]])
@@ -162,21 +169,21 @@ class FacileFlow(Setup, unittest.TestCase):
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
-        self.wait(FA.redo_card(lea["aid"], "Léa, watercolor, red scarf"))
+        self.wait(FE.redo_card(lea["aid"], "Léa, watercolor, red scarf"))
         self.assertEqual(A.load()["assets"][lea["aid"]]["prompt"], "Léa, watercolor, red scarf")
-        self.assertEqual(FA.suggest_prompt("card", lea["aid"]), {"prompt": f"prompt de {lea['aid']}"})
+        self.assertEqual(FE.suggest_prompt("card", lea["aid"]), {"prompt": f"prompt de {lea['aid']}"})
         with self.assertRaises(ValueError):
-            FA.redo_card(lea["aid"], "   ")
-        self.wait(FA.propose_plans("s1"))
+            FE.redo_card(lea["aid"], "   ")
+        self.wait(FP.propose_plans("s1"))
         plan = FA.view()["scenes"][0]["plans"][0]
-        self.assertEqual(FA.suggest_prompt("plan", plan["aid"]), {"prompt": "scene prompt"})
+        self.assertEqual(FE.suggest_prompt("plan", plan["aid"]), {"prompt": "scene prompt"})
 
     def test_scene_image_refuses_missing_anchor(self):
         FA.set_style("dessin_anime")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        self.wait(FA.propose_plans("s1"))
-        job = self.wait(FA.make_plan_image("s1", "p1"))
+        self.wait(FP.propose_plans("s1"))
+        job = self.wait(FP.make_plan_image("s1", "p1"))
         self.assertEqual(job["state"], "error")
         self.assertIn("Il manque", job["error"])
 
@@ -202,48 +209,48 @@ if __name__ == "__main__":
 class Plans(Setup, unittest.TestCase):
     def test_proposal_is_cleaned_and_limited(self):
         raw = fake_shots(None, None, 5)
-        shots = FA.normalize_shots(raw, 2, 5)
+        shots = FP.normalize_shots(raw, 2, 5)
         self.assertEqual([x["from_line"] for x in shots], [0, 1])  # ligne hors dialogue écartée
         self.assertEqual(shots[1]["framing"], "close-up")
-        self.assertEqual(FA.normalize_shots({"plans": []}, 3, 5)[0]["from_line"], 0)
-        self.assertEqual(len(FA.normalize_shots(raw, 2, 1)), 1)
+        self.assertEqual(FP.normalize_shots({"plans": []}, 3, 5)[0]["from_line"], 0)
+        self.assertEqual(len(FP.normalize_shots(raw, 2, 1)), 1)
 
     def test_hand_made_plans_have_no_limit(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": f"r{i}", "expression": ""} for i in range(10)]
         S.save(st)
-        FA.set_max_plans(0)  # autant que l'on veut pour les propositions
+        FS.set_max_plans(0)  # autant que l'on veut pour les propositions
         self.assertEqual(FA.view()["max_plans"], 0)
-        FA.save_plans(sid, [{"id": None, "from_line": i, "text": f"plan {i}"} for i in range(10)])
-        self.assertEqual(len(FA._find_scene(S.load(), sid)["plans"]), 10)
+        FP.save_plans(sid, [{"id": None, "from_line": i, "text": f"plan {i}"} for i in range(10)])
+        self.assertEqual(len(FB._find_scene(S.load(), sid)["plans"]), 10)
 
     def test_max_plans_is_editable_and_enforced(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        FA.set_max_plans(2)
+        FS.set_max_plans(2)
         self.assertEqual(FA.view()["max_plans"], 2)
         with self.assertRaises(ValueError):
-            FA.save_plans("s1", [{"from_line": 0, "text": "a"}, {"from_line": 1, "text": "b"},
+            FP.save_plans("s1", [{"from_line": 0, "text": "a"}, {"from_line": 1, "text": "b"},
                                  {"from_line": 2, "text": "c"}])
         with self.assertRaises(ValueError):
-            FA.set_max_plans(99)
+            FS.set_max_plans(99)
 
     def test_plan_characters_follow_the_text(self):
         sc = {"characters": ["Léa", "Tom"]}
-        self.assertEqual(FA.shot_characters("Gros plan sur Lea, de face", sc, "close-up"), ["Léa"])
-        self.assertEqual(FA.shot_characters("Tom et Léa dans la clairière", sc, "medium shot"), ["Léa", "Tom"])
-        self.assertEqual(FA.shot_characters("Plan d'ensemble", sc, "wide shot"), ["Léa", "Tom"])
-        self.assertEqual(FA.shot_characters("Détail : la carte", sc, "close-up"), [])
+        self.assertEqual(FB.shot_characters("Gros plan sur Lea, de face", sc, "close-up"), ["Léa"])
+        self.assertEqual(FB.shot_characters("Tom et Léa dans la clairière", sc, "medium shot"), ["Léa", "Tom"])
+        self.assertEqual(FB.shot_characters("Plan d'ensemble", sc, "wide shot"), ["Léa", "Tom"])
+        self.assertEqual(FB.shot_characters("Détail : la carte", sc, "close-up"), [])
 
     def test_saved_text_sets_the_visible_character(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        FA.save_plans("s1", [{"from_line": 0, "text": "Plan d'ensemble"},
+        FP.save_plans("s1", [{"from_line": 0, "text": "Plan d'ensemble"},
                              {"from_line": 1, "text": "Gros plan sur Léa en riant"}])
         plans = A.load() and S.all_scenes(S.load())[0]["plans"]
         self.assertEqual(plans[1]["characters"], ["Léa"])
@@ -253,20 +260,20 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        FA.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": ["Léa"]},
+        FP.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": ["Léa"]},
                              {"from_line": 1, "text": "Gros plan sur Noé", "characters": None}])
         plans = S.all_scenes(S.load())[0]["plans"]
         self.assertEqual(plans[0]["characters"], ["Léa"])
         self.assertEqual(plans[1]["characters"], ["Noé"])  # sans choix explicite, le texte décide
         with self.assertRaises(ValueError):
-            FA.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": []}])
+            FP.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": []}])
 
     def test_prompt_does_not_mention_absent_speaker(self):
         import scenes as SC_
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        FA.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": ["Léa"]}])
+        FP.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": ["Léa"]}])
         st = S.load()
         sc = S.all_scenes(st)[0]
         system, user = SC_.build_request(st, A.load()["assets"], sc, 0)
@@ -278,7 +285,7 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        self.wait(FA.propose_plans("s1"))
+        self.wait(FP.propose_plans("s1"))
         plans = FA.view()["scenes"][0]["plans"]
         tmp = Path(tempfile.mkdtemp())
         src_file = tmp / "assets" / plans[0]["aid"] / "cand_00.png"
@@ -289,7 +296,7 @@ class Plans(Setup, unittest.TestCase):
         data["assets"][plans[0]["aid"]]["validated_candidate"] = 0
         A.save(data)
         with mock.patch.object(paths, "data_root", lambda: tmp):
-            FA.copy_plan_image("s1", plans[1]["id"], plans[0]["aid"], 0)
+            FP.copy_plan_image("s1", plans[1]["id"], plans[0]["aid"], 0)
         after = FA.view()["scenes"][0]["plans"]
         self.assertNotEqual(after[1]["aid"], plans[1]["aid"])
         self.assertEqual(after[0]["aid"], plans[0]["aid"])  # le plan source ne change pas
@@ -299,18 +306,18 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        self.wait(FA.propose_plans("s1"))
+        self.wait(FP.propose_plans("s1"))
         v = FA.view()
         for c in v["characters"] + v["locations"]:
-            self.wait(FA.redo_card(c["aid"]))
+            self.wait(FE.redo_card(c["aid"]))
         for o in FA.view()["outfits"]:
-            self.wait(FA.redo_card(o["aid"]))
+            self.wait(FE.redo_card(o["aid"]))
         plan = FA.view()["scenes"][0]["plans"][0]
-        self.wait(FA.make_plan_image("s1", plan["id"]))
+        self.wait(FP.make_plan_image("s1", plan["id"]))
         self.assertEqual(A.load()["assets"][plan["aid"]]["prompt"], "scene prompt")
-        FA.save_plans("s1", [{"id": plan["id"], "from_line": 0, "text": plan["text"]}])
+        FP.save_plans("s1", [{"id": plan["id"], "from_line": 0, "text": plan["text"]}])
         self.assertEqual(A.load()["assets"][plan["aid"]]["prompt"], "scene prompt")  # texte inchangé : prompt gardé
-        FA.save_plans("s1", [{"id": plan["id"], "from_line": 0, "text": "Vue de dos des deux personnages"}])
+        FP.save_plans("s1", [{"id": plan["id"], "from_line": 0, "text": "Vue de dos des deux personnages"}])
         self.assertEqual(A.load()["assets"][plan["aid"]]["prompt"], "")
         self.assertEqual(S.all_scenes(S.load())[0]["plans"][0]["shot"]["framing"], "")
 
@@ -345,20 +352,20 @@ class Plans(Setup, unittest.TestCase):
         import llm as LLM
         tmp = Path(tempfile.mkdtemp()) / "llm_models.yaml"
         with mock.patch.object(paths, "llm_models_file", lambda: tmp):
-            FA.save_settings({"text_provider": "openai", "text_model": "mon-modele", "image_provider": "replicate"})
+            FS.save_settings({"text_provider": "openai", "text_model": "mon-modele", "image_provider": "replicate"})
             self.assertEqual(LLM.provider_settings("openai")["model"], "mon-modele")
-            self.assertEqual(S.load()["settings"]["providers"]["text"], "openai")
+            self.assertEqual(appsettings.provider("text"), "openai")
             with self.assertRaises(ValueError):
-                FA.save_settings({"text_provider": "inconnu"})
+                FS.save_settings({"text_provider": "inconnu"})
 
     def test_inserted_plan_never_shares_an_image(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        self.wait(FA.propose_plans("s1"))
+        self.wait(FP.propose_plans("s1"))
         before = FA.view()["scenes"][0]["plans"]  # p1 à la réplique 0, p2 à la réplique 1
         # Le plan p2 est gardé et passe en première position ; un nouveau plan prend la place suivante.
-        FA.save_plans("s1", [{"id": before[1]["id"], "from_line": 0, "text": before[1]["text"]},
+        FP.save_plans("s1", [{"id": before[1]["id"], "from_line": 0, "text": before[1]["text"]},
                              {"id": None, "from_line": 1, "text": "Nouveau plan"}])
         after = FA.view()["scenes"][0]["plans"]
         ids = [p["id"] for p in after]
@@ -371,36 +378,36 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        self.wait(FA.propose_plans("s1"))
+        self.wait(FP.propose_plans("s1"))
         for c in FA.view()["characters"] + FA.view()["locations"]:
-            self.wait(FA.redo_card(c["aid"]))
+            self.wait(FE.redo_card(c["aid"]))
         for o in FA.view()["outfits"]:
-            self.wait(FA.redo_card(o["aid"]))
+            self.wait(FE.redo_card(o["aid"]))
         v = FA.view()
         plan = v["scenes"][0]["plans"][0]
         self.assertTrue(plan["refs"]["auto"])
         key = plan["refs"]["auto"][-1]["key"]
-        FA.save_refs("s1", plan["id"], [key], [])
+        FP.save_refs("s1", plan["id"], [key], [])
         after = FA.view()["scenes"][0]["plans"][0]["refs"]["auto"]
         self.assertTrue(next(a for a in after if a["key"] == key)["excluded"])
         lea = next(c for c in v["characters"] if c["name"] == "Léa")
-        FA.save_refs("s1", plan["id"], [], [lea["aid"]])
+        FP.save_refs("s1", plan["id"], [], [lea["aid"]])
         self.assertIn(lea["aid"], FA.view()["scenes"][0]["plans"][0]["refs"]["extra"])
         with self.assertRaises(ValueError):
-            FA.save_refs("s1", plan["id"], [], ["scene_inconnue"])
+            FP.save_refs("s1", plan["id"], [], ["scene_inconnue"])
 
     def test_continuity_uses_previous_plan_and_can_be_switched_off(self):
         sc = {"characters": ["Léa", "Noé"], "outfits": {"Léa": "Jean"},
               "plans": [{"id": "p1", "from_line": 0, "asset": "a1", "characters": ["Léa", "Noé"], "shot": {}},
                         {"id": "p2", "from_line": 1, "asset": "a2", "characters": ["Léa"], "shot": {}}]}
         assets = {"a1": {"validated_candidate": 0}, "a2": {"validated_candidate": 0}}
-        self.assertTrue(FA.apply_continuity(sc, assets))
+        self.assertTrue(FP.apply_continuity(sc, assets))
         p1, p2 = sc["plans"]
         self.assertEqual(p1.get("refs_extra", []), [])            # le premier plan garde la tenue de la scène
         self.assertEqual(p2["refs_extra"], ["a1"])                 # le second s'appuie sur le premier
         self.assertIn("tenue:léa", p2["refs_exclude"])             # sa tenue de référence est mise de côté
         p2["continuity"] = False                                   # « tenue d'origine »
-        FA.apply_continuity(sc, assets)
+        FP.apply_continuity(sc, assets)
         self.assertEqual(p2["refs_extra"], [])
         self.assertNotIn("tenue:léa", p2["refs_exclude"])
 
@@ -409,7 +416,7 @@ class Plans(Setup, unittest.TestCase):
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
-        FA.update_element(lea["aid"], name="Lisa")
+        FE.update_element(lea["aid"], name="Lisa")
         sc = S.all_scenes(S.load())[0]
         self.assertIn("Lisa", sc["characters"])
         self.assertNotIn("Léa", sc["characters"])
@@ -421,7 +428,7 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         outfit = FA.view()["outfits"][0]
-        FA.update_element(outfit["aid"], name="Robe d'été")
+        FE.update_element(outfit["aid"], name="Robe d'été")
         self.assertEqual(S.all_scenes(S.load())[0]["outfits"]["Léa"], "Robe d'été")
 
     def test_designer_refuses_duplicate_names_and_bad_descriptors(self):
@@ -429,40 +436,40 @@ class Plans(Setup, unittest.TestCase):
         self.wait(FA.write_story("", "Une histoire", 3, False))
         chars = FA.view()["characters"]
         with self.assertRaises(ValueError):
-            FA.update_element(chars[0]["aid"], name=chars[1]["name"])
+            FE.update_element(chars[0]["aid"], name=chars[1]["name"])
         with self.assertRaises(ValueError):
-            FA.update_element(chars[0]["aid"], descriptor="i can't tell")
-        FA.update_element(chars[0]["aid"], descriptor="young woman")
+            FE.update_element(chars[0]["aid"], descriptor="i can't tell")
+        FE.update_element(chars[0]["aid"], descriptor="young woman")
         self.assertEqual(A.load()["assets"][chars[0]["aid"]]["descriptor"], "young woman")
 
     def test_atelier_creates_an_outfit_worn_in_the_chosen_scenes(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
-        new = FA.create_outfit(lea["aid"], "Pull vert, jean brut, baskets blanches", "pull vert bouteille", ["s2"])
+        new = FE.create_outfit(lea["aid"], "Pull vert, jean brut, baskets blanches", "pull vert bouteille", ["s2"])
         self.assertEqual(A.load()["assets"][new["aid"]]["parent"], lea["aid"])
         worn = S.all_scenes(S.load())
         self.assertEqual(worn[1]["outfits"]["Léa"], "Pull vert, jean brut, baskets blanches")
         self.assertEqual(worn[0]["outfits"]["Léa"], "Jean et baskets")  # la scène non choisie ne change pas
         with self.assertRaises(ValueError):
-            FA.create_outfit(lea["aid"], "pull vert, jean brut, baskets blanches", "", [])
+            FE.create_outfit(lea["aid"], "pull vert, jean brut, baskets blanches", "", [])
 
     def test_character_mode_is_stored_and_checked(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.assertIsNone(FA.view()["character_mode"])
-        FA.set_character_mode("designer")
+        FE.set_character_mode("designer")
         self.assertEqual(FA.view()["character_mode"], "designer")
         with self.assertRaises(ValueError):
-            FA.set_character_mode("hasard")
+            FE.set_character_mode("hasard")
 
     def test_identity_suggestion_comes_from_the_story(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
         answer = '{"description": "Jeune femme rousse aux yeux verts.", "descriptor": "young woman"}'
-        with mock.patch.object(FA.llm, "complete_task", return_value=answer) as m:
-            result = FA.suggest_identity(lea["aid"])
+        with mock.patch.object(llm, "complete_task", return_value=answer) as m:
+            result = FE.suggest_identity(lea["aid"])
         self.assertEqual(result, {"description": "Jeune femme rousse aux yeux verts.", "descriptor": "young woman"})
         self.assertIn("Léa", m.call_args[0][2])
 
@@ -470,8 +477,8 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
-        with mock.patch.object(FA.llm, "complete_task", return_value='{"description": "x", "descriptor": "je ne sais pas"}'):
-            self.assertEqual(FA.suggest_identity(lea["aid"])["descriptor"], "")
+        with mock.patch.object(llm, "complete_task", return_value='{"description": "x", "descriptor": "je ne sais pas"}'):
+            self.assertEqual(FE.suggest_identity(lea["aid"])["descriptor"], "")
 
     def test_editing_the_identity_clears_the_stale_prompt(self):
         FA.set_style("aquarelle")
@@ -479,7 +486,7 @@ class Plans(Setup, unittest.TestCase):
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
         A.load()["assets"][lea["aid"]]  # présent
         data = A.load(); data["assets"][lea["aid"]]["prompt"] = "ancien prompt"; A.save(data)
-        FA.update_element(lea["aid"], description="rousse, yeux verts")
+        FE.update_element(lea["aid"], description="rousse, yeux verts")
         self.assertEqual(A.load()["assets"][lea["aid"]]["prompt"], "")
 
     def test_outfit_is_refused_while_its_character_image_is_stale(self):
@@ -492,65 +499,65 @@ class Plans(Setup, unittest.TestCase):
         data["assets"][lea["aid"]]["image_stale"] = True
         A.save(data)
         with self.assertRaises(ValueError):
-            FA._refs_for(A.load()["assets"], outfit["aid"])
+            FE._refs_for(A.load()["assets"], outfit["aid"])
 
     def test_changing_the_gender_marks_the_character_image_stale(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
         data = A.load(); data["assets"][lea["aid"]]["validated_candidate"] = 0; A.save(data)
-        FA.update_element(lea["aid"], descriptor="adult man")
+        FE.update_element(lea["aid"], descriptor="adult man")
         self.assertTrue(A.load()["assets"][lea["aid"]].get("image_stale"))
 
     def test_outfit_prompt_naming_the_wrong_person_is_rejected(self):
         assets = {"c": {"kind": "character", "name": "Victor", "descriptor": "old man"},
                   "o": {"kind": "outfit", "name": "Chemise", "parent": "c"}}
-        self.assertTrue(FA._wrong_person("Keep the woman from image 1 exactly as she is.", assets, "o"))
-        self.assertTrue(FA._wrong_person("Keep the man from image 1. She wears a shirt.", assets, "o"))
-        self.assertFalse(FA._wrong_person("Keep the man from image 1 exactly as they are.", assets, "o"))
+        self.assertTrue(FE._wrong_person("Keep the woman from image 1 exactly as she is.", assets, "o"))
+        self.assertTrue(FE._wrong_person("Keep the man from image 1. She wears a shirt.", assets, "o"))
+        self.assertFalse(FE._wrong_person("Keep the man from image 1 exactly as they are.", assets, "o"))
 
     def test_element_refs_and_starting_outfit_are_validated(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
-        first = FA.create_outfit(lea["aid"], "Chemise", "chemise sombre", [])["aid"]
-        second = FA.create_outfit(lea["aid"], "Lunettes", "lunettes fines", [])["aid"]
+        first = FE.create_outfit(lea["aid"], "Chemise", "chemise sombre", [])["aid"]
+        second = FE.create_outfit(lea["aid"], "Lunettes", "lunettes fines", [])["aid"]
         data = A.load()
         data["assets"][lea["aid"]]["validated_candidate"] = 0
         for aid in (first, second):
             data["assets"][aid]["validated_candidate"] = 0
         A.save(data)
-        FA.set_element_refs(second, [], first)
+        FE.set_element_refs(second, [], first)
         self.assertEqual(A.load()["assets"][second]["based_on"], first)
         with self.assertRaises(ValueError):
-            FA.set_element_refs(second, [], second)          # pas sa propre tenue de départ
+            FE.set_element_refs(second, [], second)          # pas sa propre tenue de départ
         with self.assertRaises(ValueError):
-            FA.set_element_refs(lea["aid"], [], first)       # un personnage n'a pas de tenue de départ
+            FE.set_element_refs(lea["aid"], [], first)       # un personnage n'a pas de tenue de départ
         data = A.load(); data["assets"][first]["validated_candidate"] = None; A.save(data)
         with self.assertRaises(ValueError):
-            FA.set_element_refs(second, [first])             # image non retenue
+            FE.set_element_refs(second, [first])             # image non retenue
 
     def test_line_tags_are_checked_and_drive_plan_characters(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sc = FA.view()["scenes"][0]
         sid = sc["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
         S.save(st)
         with self.assertRaises(ValueError):
-            FA.set_line_tags(sid, 0, ["Personne inventée"], "", {})
-        FA.set_line_tags(sid, 0, ["Léa"], "", {})
-        FA.set_line_tags(sid, 1, ["Léa"], "", {})
-        target = FA._find_scene(S.load(), sid)
-        self.assertEqual(FA._chars_from_tags(target, 0, 1), ["Léa"])
-        self.assertEqual(FA._chars_from_tags(target, 2, 3), [])
+            FP.set_line_tags(sid, 0, ["Personne inventée"], "", {})
+        FP.set_line_tags(sid, 0, ["Léa"], "", {})
+        FP.set_line_tags(sid, 1, ["Léa"], "", {})
+        target = FB._find_scene(S.load(), sid)
+        self.assertEqual(FP._chars_from_tags(target, 0, 1), ["Léa"])
+        self.assertEqual(FP._chars_from_tags(target, 2, 3), [])
 
     def test_line_tags_are_preselected_by_default(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["characters"] = ["Léa"]
         target["location"] = "Studio"
         target["outfits"] = {"Léa": "Chemise"}
@@ -565,16 +572,16 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
         S.save(st)
         # deux plans sur la réplique 1 : le premier est une image seule, sans réplique
-        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+        FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
                             {"id": None, "from_line": 1, "text": "silence", "pause": True},
                             {"id": None, "from_line": 1, "text": "gros plan"}])
-        plans = FA._find_scene(S.load(), sid)["plans"]
+        plans = FB._find_scene(S.load(), sid)["plans"]
         self.assertEqual(sum(1 for p in plans if p.get("pause")), 1)
-        with mock.patch.object(FA, "_url", return_value="img.png"):  # les plans n'ont pas encore d'image
+        with mock.patch.multiple("facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile", _url=lambda *a, **k: "img.png"):  # les plans n'ont pas encore d'image
             scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
             self.assertEqual([l.get("pause", False) for l in scene["lines"]], [False, True, False])
             starts = [i["from_line"] for i in scene["images"]]
@@ -584,83 +591,83 @@ class Plans(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
         S.save(st)
-        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+        FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
                             {"id": None, "from_line": 1, "text": "silence 1", "pause": True},
                             {"id": None, "from_line": 1, "text": "silence 2", "pause": True},
                             {"id": None, "from_line": 1, "text": "réplique"}])
-        self.assertEqual(len(FA._find_scene(S.load(), sid)["plans"]), 4)
+        self.assertEqual(len(FB._find_scene(S.load(), sid)["plans"]), 4)
 
     def test_image_only_plan_can_follow_the_last_line(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
         S.save(st)
-        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+        FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
                             {"id": None, "from_line": 2, "text": "fin", "pause": True}])
-        with mock.patch.object(FA, "_url", return_value="img.png"):
+        with mock.patch.multiple("facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile", _url=lambda *a, **k: "img.png"):
             scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
         self.assertEqual([l.get("pause", False) for l in scene["lines"]], [False, False, True])
         self.assertEqual([i["from_line"] for i in scene["images"]], [0, 2])
         with self.assertRaises(ValueError):  # un plan normal ne peut pas commencer après la fin
-            FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "x"}, {"id": None, "from_line": 2, "text": "y"}])
+            FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "x"}, {"id": None, "from_line": 2, "text": "y"}])
 
     def test_image_only_plan_can_carry_a_typed_line(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
         S.save(st)
-        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+        FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
                             {"id": None, "from_line": 1, "text": "silence", "pause": True,
                              "speaker": "Léa", "speech": "Je ne sais pas."},
                             {"id": None, "from_line": 1, "text": "réplique"}])
-        with mock.patch.object(FA, "_url", return_value="img.png"):
+        with mock.patch.multiple("facile_base", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_elements", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile_plans", _url=lambda *a, **k: "img.png"), mock.patch.multiple("facile", _url=lambda *a, **k: "img.png"):
             scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
         self.assertEqual(scene["lines"][1], {"speaker": "Léa", "text": "Je ne sais pas."})
         self.assertFalse(scene["lines"][1].get("pause", False))
         with self.assertRaises(ValueError):
-            FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "x", "pause": True, "speaker": "Inconnu", "speech": "a"},
+            FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "x", "pause": True, "speaker": "Inconnu", "speech": "a"},
                                 {"id": None, "from_line": 1, "text": "y"}])
 
     def test_existing_line_can_be_corrected_but_not_emptied_or_given_a_stranger(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": "joyeuse"}]
         S.save(st)
-        FA.update_line(sid, 0, "Narration", "Le vent se lève.")
-        line = FA._find_scene(S.load(), sid)["dialogue"][0]
+        FP.update_line(sid, 0, "Narration", "Le vent se lève.")
+        line = FB._find_scene(S.load(), sid)["dialogue"][0]
         self.assertEqual((line["speaker"], line["text"], line["expression"]), ("Narration", "Le vent se lève.", "joyeuse"))
         with self.assertRaises(ValueError):
-            FA.update_line(sid, 0, "Léa", "   ")
+            FP.update_line(sid, 0, "Léa", "   ")
         with self.assertRaises(ValueError):
-            FA.update_line(sid, 0, "Personne", "bonjour")
+            FP.update_line(sid, 0, "Personne", "bonjour")
 
     def test_two_plans_cannot_share_a_line_without_an_image_only_plan(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         sid = FA.view()["scenes"][0]["id"]
-        st = S.load(); target = FA._find_scene(st, sid)
+        st = S.load(); target = FB._find_scene(st, sid)
         target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
         S.save(st)
         with self.assertRaises(ValueError):
-            FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "x"}, {"id": None, "from_line": 1, "text": "y"},
+            FP.save_plans(sid, [{"id": None, "from_line": 0, "text": "x"}, {"id": None, "from_line": 1, "text": "y"},
                                 {"id": None, "from_line": 1, "text": "z"}])
 
     def test_text_edit_keeps_existing_image(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
         self.wait(FA.write_dialogues())
-        self.wait(FA.propose_plans("s1"))
+        self.wait(FP.propose_plans("s1"))
         first = FA.view()["scenes"][0]["plans"][0]
-        FA.save_plans("s1", [{"id": first["id"], "from_line": 0, "text": "Plan large, texte modifié"}])
+        FP.save_plans("s1", [{"id": first["id"], "from_line": 0, "text": "Plan large, texte modifié"}])
         plan = FA.view()["scenes"][0]["plans"][0]
         self.assertEqual(plan["text"], "Plan large, texte modifié")
         self.assertEqual(plan["aid"], first["aid"])

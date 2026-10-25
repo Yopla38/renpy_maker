@@ -18,6 +18,7 @@ import unicodedata
 from datetime import datetime
 from pathlib import Path
 
+import appsettings
 import assets as A
 import paths
 import story as S
@@ -126,7 +127,8 @@ def _unique_id(base: str) -> str:
 
 
 def create(name: str, idea: str = "") -> str:
-    """Crée une histoire vide (avec les réglages des fournisseurs et des images de l'histoire ouverte)."""
+    """Crée une histoire vide. Ses choix (LLM, ComfyUI ou Replicate…) partent des valeurs de config.yaml :
+    ils ne sont jamais recopiés d'une autre histoire."""
     name = " ".join(str(name).split())
     if not name:
         raise ValueError("Donne un titre à l'histoire")
@@ -136,10 +138,6 @@ def create(name: str, idea: str = "") -> str:
     spec.mkdir(parents=True)
     (folder / "assets").mkdir()
     (folder / "work").mkdir()
-    source = paths.game_spec()
-    for keep in ("app_settings.yaml", "llm_models.yaml"):  # réglages, pas des données de l'histoire
-        if (source / keep).exists():
-            shutil.copyfile(source / keep, spec / keep)
     S.save(S.new_story(title=name, idea=" ".join(str(idea).split())), spec / "story.yaml")
     A.save({"version": 1, "assets": {}}, spec / "assets.yaml")
     _write_meta(folder, {"name": name, "created": datetime.now().isoformat(timespec="seconds")})
@@ -150,6 +148,9 @@ def open_project(pid: str, busy: bool) -> dict:
     if busy:
         raise ValueError("Une génération est en cours : attends qu'elle se termine avant de changer d'histoire.")
     paths.activate(_folder_of(pid))
+    st = S.load()
+    if appsettings.absorb_story_providers(st):
+        S.save(st)
     paths.PROJECTS.mkdir(parents=True, exist_ok=True)
     (paths.PROJECTS / LAST).write_text(json.dumps({"id": pid}), encoding="utf-8")
     return current()

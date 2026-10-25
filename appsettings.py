@@ -37,6 +37,52 @@ def save(data: dict) -> None:
     FILE.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
+# Fournisseurs de l'histoire (fichier app_settings.yaml de l'histoire, clé « providers »).
+PROVIDER_ROLES = ("text", "image_base", "image_edit")
+PROVIDER_DEFAULTS = {"text": "anthropic", "image_base": "replicate", "image_edit": "replicate"}
+PROVIDER_CHOICES = {
+    "text": {"anthropic", "openai", "ollama", "replicate"},
+    "image_base": {"replicate", "comfyui"},
+    "image_edit": {"replicate", "comfyui"},
+}
+
+
+def provider(role: str) -> str:
+    """Fournisseur choisi pour l'histoire ouverte (texte, image de base, image avec références)."""
+    if role not in PROVIDER_ROLES:
+        raise ValueError(f"Rôle de fournisseur inconnu : {role}")
+    return (load().get("providers") or {}).get(role) or PROVIDER_DEFAULTS[role]
+
+
+def providers() -> dict:
+    return {role: provider(role) for role in PROVIDER_ROLES}
+
+
+def set_provider(role: str, value: str) -> None:
+    if role not in PROVIDER_ROLES:
+        raise ValueError(f"Rôle de fournisseur inconnu : {role}")
+    if value not in PROVIDER_CHOICES[role]:
+        raise ValueError(f"{role} : '{value}' non reconnu")
+    data = load()
+    data.setdefault("providers", {})[role] = value
+    save(data)
+
+
+def absorb_story_providers(st: dict) -> bool:
+    """Ancienne place des fournisseurs (settings.providers de story.yaml) : repris ici une seule fois.
+    Renvoie True si l'histoire a changé et doit être réenregistrée."""
+    legacy = (st.get("settings") or {}).pop("providers", None)
+    if legacy is None:
+        return False
+    data = load()
+    prov = data.setdefault("providers", {})
+    for role in PROVIDER_ROLES:
+        if legacy.get(role) in PROVIDER_CHOICES[role] and role not in prov:
+            prov[role] = legacy[role]
+    save(data)
+    return True
+
+
 def llm_for(task: str, story_provider: str) -> tuple[str, str]:
     """(fournisseur, modèle) pour une tâche d'écriture. Le modèle vide = modèle par défaut du fournisseur."""
     if task not in TASKS:

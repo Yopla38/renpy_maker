@@ -19,7 +19,6 @@ from pathlib import Path
 
 import yaml
 
-import assets as A
 import story as S
 
 import paths

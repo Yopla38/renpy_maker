@@ -139,6 +139,15 @@ class ProjectsTests(unittest.TestCase):
         PJ.open_project(pid, busy=False)
         self.assertEqual(RE.project_dir(), paths.PROJECTS / pid / "renpy")
 
+    def test_new_story_does_not_inherit_the_open_story_choices(self):
+        first = PJ.create("Premiere")
+        (paths.PROJECTS / first / "game_spec" / "app_settings.yaml").write_text(
+            "image_engines:\n  base: {engine: comfyui, workflow: null}\n", encoding="utf-8")
+        PJ.open_project(first, busy=False)
+        second = PJ.create("Seconde")
+        self.assertFalse((paths.PROJECTS / second / "game_spec" / "app_settings.yaml").exists())
+        self.assertFalse((paths.PROJECTS / second / "game_spec" / "llm_models.yaml").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

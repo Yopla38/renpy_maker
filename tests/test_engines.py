@@ -11,7 +11,10 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import appsettings  # noqa: E402
 import assets as A  # noqa: E402
-import facile as FA  # noqa: E402
+import facile_elements as FE  # noqa: E402
+import facile_jobs as FJ  # noqa: E402
+import facile_plans as FP  # noqa: E402
+import facile_settings as FS  # noqa: E402
 import comfy_client as CC  # noqa: E402
 import comfy_image  # noqa: E402
 import llm  # noqa: E402
@@ -64,7 +67,7 @@ class SettingsValidationTests(unittest.TestCase):
         self.addCleanup(self.patch.stop)
 
     def test_tasks_and_engines_are_saved(self):
-        FA.save_settings_tasks({
+        FS.save_settings_tasks({
             "tasks": [{"task": "dialogue", "provider": "ollama", "model": "qwen3:14b"},
                       {"task": "histoire", "provider": "", "model": ""}],
             "images": [{"role": "base", "engine": "replicate", "workflow": ""}],
@@ -74,30 +77,30 @@ class SettingsValidationTests(unittest.TestCase):
 
     def test_unknown_provider_or_task_is_refused(self):
         with self.assertRaises(ValueError):
-            FA.save_settings_tasks({"tasks": [{"task": "dialogue", "provider": "inconnu"}]})
+            FS.save_settings_tasks({"tasks": [{"task": "dialogue", "provider": "inconnu"}]})
         with self.assertRaises(ValueError):
-            FA.save_settings_tasks({"tasks": [{"task": "musique", "provider": "ollama"}]})
+            FS.save_settings_tasks({"tasks": [{"task": "musique", "provider": "ollama"}]})
 
     def test_comfyui_needs_an_existing_workflow_file(self):
         with self.assertRaises(ValueError) as cm:
-            FA.save_settings_tasks({"images": [{"role": "edit", "engine": "comfyui", "workflow": "absent.json"}]})
+            FS.save_settings_tasks({"images": [{"role": "edit", "engine": "comfyui", "workflow": "absent.json"}]})
         self.assertIn("introuvable", str(cm.exception))
-        FA.save_settings_tasks({"images": [{"role": "edit", "engine": "comfyui", "workflow": ""}]})
+        FS.save_settings_tasks({"images": [{"role": "edit", "engine": "comfyui", "workflow": ""}]})
         self.assertEqual(appsettings.image_for("edit")["workflow"], str(paths.CODE / "comfy/workflows/FLUX_KLEIN3_EDIT_API.json"))
 
     def test_kids_mode_refuses_comfyui_and_other_providers(self):
         with mock.patch.object(paths, "KIDS", True):
             with self.assertRaises(ValueError):
-                FA.save_settings_tasks({"images": [{"role": "base", "engine": "comfyui", "workflow": "x"}]})
+                FS.save_settings_tasks({"images": [{"role": "base", "engine": "comfyui", "workflow": "x"}]})
             with self.assertRaises(ValueError):
-                FA.save_settings_tasks({"tasks": [{"task": "dialogue", "provider": "ollama"}]})
+                FS.save_settings_tasks({"tasks": [{"task": "dialogue", "provider": "ollama"}]})
 
     def test_lora_strength_is_bounded(self):
         with mock.patch.object(A, "load", return_value={"version": 1, "assets": {"a": {}}}), \
                 mock.patch.object(A, "save"):
             with self.assertRaises(ValueError):
-                FA.set_asset_loras("a", [{"name": "x.safetensors", "strength": 5}])
-            result = FA.set_asset_loras("a", [{"name": "x.safetensors", "strength": 0.7}, {"name": ""}])
+                FE.set_asset_loras("a", [{"name": "x.safetensors", "strength": 5}])
+            result = FE.set_asset_loras("a", [{"name": "x.safetensors", "strength": 0.7}, {"name": ""}])
         self.assertEqual(result["loras"], [{"name": "x.safetensors", "strength": 0.7, "clip": False}])
 
 
@@ -205,12 +208,12 @@ class StepsTests(unittest.TestCase):
         self.assertEqual(sent["graph"]["46"]["inputs"]["steps"], 12)
 
     def test_steps_are_saved_from_the_settings_panel(self):
-        FA.save_settings_tasks({"images": [{"role": "edit", "engine": "replicate", "workflow": "", "steps": "20"},
+        FS.save_settings_tasks({"images": [{"role": "edit", "engine": "replicate", "workflow": "", "steps": "20"},
                                            {"role": "base", "engine": "replicate", "workflow": "", "steps": ""}]})
         self.assertEqual(appsettings.steps_for("edit"), 20)
         self.assertIsNone(appsettings.steps_for("base"))
         with self.assertRaises(ValueError):
-            FA.save_settings_tasks({"images": [{"role": "edit", "engine": "replicate", "workflow": "", "steps": "abc"}]})
+            FS.save_settings_tasks({"images": [{"role": "edit", "engine": "replicate", "workflow": "", "steps": "abc"}]})
 
     def test_out_of_range_steps_are_refused(self):
         appsettings.save({"comfy_steps": {"base": 500}})
@@ -240,7 +243,7 @@ class StopTests(unittest.TestCase):
         FA2.JOBS[job_id] = {"state": "running", "label": "x", "message": "", "error": None, "progress": None,
                             "cancel_requested": False, "comfy_prompt": "pid-1"}
         with mock.patch.object(CC, "interrupt", side_effect=lambda base, pid=None: calls.append(pid)):
-            self.assertEqual(FA2.cancel_job(job_id), {"ok": True})
+            self.assertEqual(FJ.cancel_job(job_id), {"ok": True})
         self.assertEqual(calls, ["pid-1"])
         self.assertTrue(FA2.JOBS[job_id]["cancel_requested"])
 
@@ -249,8 +252,8 @@ class StopTests(unittest.TestCase):
         job_id = "batch-test"
         FA2.JOBS[job_id] = {"state": "running", "label": "x", "message": "", "error": None, "progress": None,
                             "cancel_requested": True, "comfy_prompt": None}
-        with self.assertRaises(FA2.Cancelled):
-            FA2._check_cancel(job_id)
+        with self.assertRaises(FJ.Cancelled):
+            FJ._check_cancel(job_id)
 
 
 class DialogueRetryTests(unittest.TestCase):
@@ -298,37 +301,32 @@ class ContinuityChoiceTests(unittest.TestCase):
         return sc, assets
 
     def test_manual_inclusion_beats_continuity(self):
-        import facile as FA2
         sc, assets = self._plans()
         sc["plans"][1]["manual_refs"] = {"tenue:léa": False}  # l'auteur a remis la tenue à la main
-        FA2.apply_continuity(sc, assets)
+        FP.apply_continuity(sc, assets)
         self.assertNotIn("tenue:léa", sc["plans"][1].get("refs_exclude", []))
 
     def test_manual_exclusion_is_kept(self):
-        import facile as FA2
         sc, assets = self._plans()
         sc["plans"][1]["manual_refs"] = {"tenue:léa": True}
         sc["plans"][1]["refs_exclude"] = ["tenue:léa"]
-        FA2.apply_continuity(sc, assets)
+        FP.apply_continuity(sc, assets)
         self.assertIn("tenue:léa", sc["plans"][1]["refs_exclude"])
 
     def test_outfit_change_decision_keeps_the_outfit_reference(self):
-        import facile as FA2
         sc, assets = self._plans("Léa retire sa veste, les manches retroussées")
-        sc["plans"][1]["outfit_change"] = {"hash": FA2._text_hash(sc["plans"][1]["shot"]["note"]), "change": True}
-        FA2.apply_continuity(sc, assets)
+        sc["plans"][1]["outfit_change"] = {"hash": FP._text_hash(sc["plans"][1]["shot"]["note"]), "change": True}
+        FP.apply_continuity(sc, assets)
         self.assertNotIn("tenue:léa", sc["plans"][1].get("refs_exclude", []))
         self.assertEqual(sc["plans"][1]["refs_extra"], ["a1"])  # la continuité reste utile pour l'identité
 
     def test_stale_decision_is_ignored(self):
-        import facile as FA2
         sc, assets = self._plans("Léa retire sa veste")
         sc["plans"][1]["outfit_change"] = {"hash": "ancien-texte", "change": True}  # le texte a changé depuis
-        FA2.apply_continuity(sc, assets)
+        FP.apply_continuity(sc, assets)
         self.assertIn("tenue:léa", sc["plans"][1].get("refs_exclude", []))
 
     def test_model_decision_is_parsed_and_cached(self):
-        import facile as FA2
         st = {"settings": {"providers": {"text": "anthropic"}}, "chapters": []}
         sc = {"characters": ["Léa"], "plans": []}
         plans = [{"shot": {"note": "Léa retire sa veste"}}]
@@ -339,17 +337,16 @@ class ContinuityChoiceTests(unittest.TestCase):
             return '{"change": true}'
 
         with mock.patch.object(llm, "complete_task", side_effect=fake):
-            FA2.refresh_outfit_decisions(st, sc, plans)
-            FA2.refresh_outfit_decisions(st, sc, plans)  # même texte : pas de nouvel appel
+            FP.refresh_outfit_decisions(st, sc, plans)
+            FP.refresh_outfit_decisions(st, sc, plans)  # même texte : pas de nouvel appel
         self.assertEqual(calls, ["decision"])
-        self.assertTrue(FA2._changes_outfit(plans[0]))
+        self.assertTrue(FP._changes_outfit(plans[0]))
 
     def test_unclear_answer_is_not_cached(self):
-        import facile as FA2
         st = {"settings": {"providers": {"text": "anthropic"}}, "chapters": []}
         plans = [{"shot": {"note": "Léa sourit"}}]
         with mock.patch.object(llm, "complete_task", return_value="peut-être"):
-            FA2.refresh_outfit_decisions(st, {"characters": ["Léa"]}, plans)
+            FP.refresh_outfit_decisions(st, {"characters": ["Léa"]}, plans)
         self.assertNotIn("outfit_change", plans[0])
 
     def test_decision_task_is_configurable(self):
@@ -400,7 +397,7 @@ class MemorySharingTests(unittest.TestCase):
         self.assertFalse(appsettings.free_comfy_before_ollama())
 
     def test_setting_can_be_changed_in_the_panel(self):
-        FA.save_settings_tasks({"unload_ollama_before_comfy": False, "free_comfy_before_ollama": True})
+        FS.save_settings_tasks({"unload_ollama_before_comfy": False, "free_comfy_before_ollama": True})
         self.assertFalse(appsettings.unload_ollama_before_comfy())
         self.assertTrue(appsettings.free_comfy_before_ollama())
 
@@ -436,7 +433,7 @@ class AnchorLoraTests(unittest.TestCase):
         assets = {"char_lea": {"kind": "character", "name": "Léa", "status": "validated", "validated_candidate": 0,
                                "candidates": [{"file": "assets/char_lea/cand_00.png"}],
                                "loras": [{"name": "style.safetensors", "strength": 0.6, "clip": False}]}}
-        card = FA._element_card(assets, "character", "Léa")
+        card = FE._element_card(assets, "character", "Léa")
         self.assertEqual(card["loras"], [{"name": "style.safetensors", "strength": 0.6, "clip": False}])
 
 

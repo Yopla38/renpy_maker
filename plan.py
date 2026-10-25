@@ -8,6 +8,7 @@ des résumés qui serviront ensuite à l'écriture des dialogues.
 
 from __future__ import annotations
 
+import appsettings
 import llm
 import paths
 import story as S
@@ -78,7 +79,7 @@ def normalize(raw: dict, scene_count: int, first_scene_number: int) -> dict:
 
 def generate_chapter(st: dict, scene_count: int, guidance: str = "", provider: str | None = None) -> dict:
     """Appelle le LLM et renvoie le chapitre normalisé (non encore ajouté à l'histoire)."""
-    provider = provider or st["settings"]["providers"]["text"]
+    provider = provider or appsettings.provider("text")
     chapter_index = len(st["chapters"]) + 1
     first_scene = len(S.all_scenes(st)) + 1
     system, user = build_prompt(st, chapter_index, scene_count, guidance)
@@ -159,7 +160,7 @@ def generate_dialogue(st: dict, scene_id: str, provider: str | None = None) -> l
     sc = scenes[idx]
     ch = next(c for c in st["chapters"] if any(x["id"] == scene_id for x in c["scenes"]))
     previous = scenes[idx - 1].get("dialogue", [])[-3:] if idx > 0 else []
-    provider = provider or st["settings"]["providers"]["text"]
+    provider = provider or appsettings.provider("text")
     system, user = build_dialogue_prompt(st, ch, sc, previous)
     allowed = ", ".join(list(sc.get("characters", [])) + [S.NARRATOR])
     failure = ""

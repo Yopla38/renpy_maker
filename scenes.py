@@ -8,6 +8,7 @@ personnages de la scène. Les références d'un plan sont le décor, puis une im
 
 from __future__ import annotations
 
+import appsettings
 import re
 
 import llm
@@ -298,7 +299,7 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
 
 def suggest(st: dict, assets_data: dict, sc: dict, k: int, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], sc, k)
-    provider = provider or st["settings"]["providers"]["text"]
+    provider = provider or appsettings.provider("text")
     return PR.with_style(PR.clean(llm.complete_task("prompt", system, user, provider)), PR.llm_style())
 
 
@@ -359,7 +360,7 @@ def detect_elements(st: dict, sc: dict, assets: dict, provider: str | None = Non
         f"Personnages déclarés dans la scène : {declared}",
         "Répliques :",
     ] + [f"- {l['speaker']} : {l['text']}" for l in sc.get("dialogue", [])])
-    provider = provider or st["settings"]["providers"]["text"]
+    provider = provider or appsettings.provider("text")
     raw = llm.extract_json(llm.complete_task("prompt", DETECT_SYSTEM, user, provider))
     out = []
     for el in raw.get("elements", []):

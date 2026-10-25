@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import appsettings
 import story as S  # noqa: E402
 
 ASSETS = {"assets": {
@@ -67,10 +68,9 @@ class StoryTests(unittest.TestCase):
         st["settings"]["total_scenes"] = 6
         self.assertTrue(any("3 scène(s) au total, 6" in e for e in S.validate(st, ASSETS)))
 
-    def test_bad_provider(self):
-        st = make()
-        st["settings"]["providers"]["text"] = "inconnu"
-        self.assertTrue(any("settings.providers.text" in e for e in S.validate(st, ASSETS)))
+    def test_bad_provider_is_refused_in_app_settings(self):
+        with self.assertRaises(ValueError):
+            appsettings.set_provider("text", "inconnu")
 
     def test_duplicate_scene_id(self):
         st = make()

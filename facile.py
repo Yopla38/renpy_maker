@@ -10,549 +10,65 @@ gros plan sur un personnage, détail…). Le découpage est proposé par le LLM,
 
 from __future__ import annotations
 
-import hashlib
-import re
 import shutil
-import threading
-import yaml
 import time
-import traceback
-import unicodedata
-import uuid
-from pathlib import Path
 
 import assets as A
 import appsettings
-import keys
 import paths
-import projects as PJ
-import image_replicate as REP
-import llm
 import pipeline as PL
 import plan as P
-import prompts as PR
+import projects as PJ
 import renpy_export as RE
-import scenes as SC
 import story as S
-
-
-SCENE_COUNTS = (3, 4, 5, 6)
-PLAN_LIMITS = (0, *range(1, 9))  # 0 : autant que l'on veut (pour les propositions de l'IA)
-PROPOSAL_CAP = 12  # plafond de sécurité quand l'IA propose « autant que l'on veut »
-JOBS: dict[str, dict] = {}
-_busy = threading.Lock()
-
-
-class NotFound(LookupError):
-    pass
-
-
-# ---------- utilitaires ----------
-
-def _find_scene(st: dict, sid: str) -> dict:
-    for sc in S.all_scenes(st):
-        if sc["id"] == sid:
-            return sc
-    raise ValueError(f"Scène inconnue : {sid}")
-
-
-def _find_plan(sc: dict, pid: str) -> tuple[int, dict]:
-    for k, plan in enumerate(sc.get("plans", [])):
-        if plan["id"] == pid:
-            return k, plan
-    raise ValueError(f"Plan inconnu : {pid}")
-
-
-def _key(text: str) -> str:
-    """Nom en minuscules, sans accents ni ponctuation : « Léa » et « lea » se retrouvent."""
-    plain = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
-    return " " + " ".join(re.findall(r"[a-z0-9]+", plain)) + " "
-
-
-def shot_characters(text: str, sc: dict, framing: str) -> list[str]:
-    """Personnages visibles dans un plan : ceux que son texte nomme. Sans nom, un plan large montre
-    toute la scène ; un autre plan n'impose personne (l'image suit alors les locuteurs)."""
-    named = [c for c in sc.get("characters", []) if _key(c) in _key(text)]
-    if named:
-        return named
-    wide_words = " ensemble " in _key(text) or " large " in _key(text) or " wide " in _key(text)
-    if framing in ("wide shot", "establishing shot") or wide_words:
-        return list(sc.get("characters", []))
-    return []
-
-
-def _max_plans(st: dict) -> int:
-    """Nombre de plans proposés par l'IA ; 0 veut dire « autant que l'on veut »."""
-    value = st["settings"].get("max_plans")
-    return 5 if value is None else int(value)
-
-
-def _proposal_cap(st: dict) -> int:
-    return _max_plans(st) or PROPOSAL_CAP
-
-
-def _unique(values) -> list[str]:
-    return list(dict.fromkeys(v for v in values if v))
-
-
-def _characters(st: dict) -> list[str]:
-    return _unique(n for sc in S.all_scenes(st) for n in sc.get("characters", []))
-
-
-def _outfits(st: dict) -> list[tuple[str, str]]:
-    """Tenues de l'histoire, sous forme (personnage, tenue)."""
-    return _unique((char, outfit) for sc in S.all_scenes(st) for char, outfit in sc.get("outfits", {}).items()
-                   if char and outfit)
-
-
-def _locations(st: dict) -> list[str]:
-    return _unique(sc.get("location") for sc in S.all_scenes(st))
-
-
-def _aid(assets: dict, kind: str, name: str, parent: str | None = None) -> str | None:
-    if kind == "location":
-        return SC.match_registry(name, kind, assets)
-    chars = {S.norm(a["name"]): k for k, a in assets.items() if a["kind"] == "character"}
-    return PR.match_asset(assets, {"kind": kind, "name": name, "parent_name": parent}, chars)
-
-
-def _refs_for(assets: dict, aid: str) -> list[str]:
-    """Images de référence d'une carte, dans l'ordre du prompt. Une tenue s'appuie toujours sur son personnage."""
-    a = assets[aid]
-    if a["kind"] == "outfit":
-        parent = assets.get(a.get("parent") or "")
-        if parent and parent.get("image_stale"):
-            raise ValueError(f"Redessinez d'abord « {parent['name']} » : son image date d'avant la modification "
-                             "de son genre ou de son apparence.")
-        if not parent or parent.get("validated_candidate") is None:
-            raise ValueError(f"Dessinez d'abord le personnage « {parent['name'] if parent else '?'} » : "
-                             "sa tenue s'appuie sur son image.")
-    return PR.ref_order(assets, aid)
-
-
-def set_element_refs(aid: str, refs: list, based_on: str | None = None) -> dict:
-    """Images de référence choisies pour un personnage, une tenue ou un lieu, et tenue de départ d'une tenue."""
-    with A.LOCK:
-        data = A.load()
-    a = data["assets"].get(aid)
-    if a is None or a["kind"] not in ("character", "outfit", "location"):
-        raise ValueError("Élément inconnu")
-    chosen = []
-    for rid in refs:
-        if rid == aid:
-            continue
-        if not PR._retained(data["assets"], rid):
-            raise ValueError("Cette image n'est pas encore retenue : elle ne peut pas servir de référence.")
-        if rid not in chosen:
-            chosen.append(rid)
-    if based_on:
-        base = data["assets"].get(based_on)
-        if (a["kind"] != "outfit" or based_on == aid or base is None or base.get("kind") != "outfit"
-                or base.get("parent") != a.get("parent") or not PR._retained(data["assets"], based_on)):
-            raise ValueError("La tenue de départ doit être une autre tenue retenue du même personnage.")
-    previous = a.get("based_on") or None
-    a["refs"] = chosen
-    a["based_on"] = based_on or None
-    if (a["based_on"] or None) != previous:
-        a["prompt"] = ""  # la consigne de la tenue dépend de sa tenue de départ : on la réécrit
-    with A.LOCK:
-        A.save(data)
-    return {"ok": True}
-
-
-def _slug(text: str) -> str:
-    plain = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
-    return re.sub(r"[^a-z0-9]+", "_", plain).strip("_")[:30] or "tenue"
-
-
-def _same(a: str, b: str) -> bool:
-    return S.norm(a) == S.norm(b)
-
-
-def _rekey(key: str, old: str, new: str) -> str:
-    """Clé de référence (« tenue:nom », « perso:nom ») après un renommage de personnage."""
-    if ":" not in key:
-        return key
-    role, name = key.split(":", 1)
-    return f"{role}:{S.norm(new)}" if name == S.norm(old) else key
-
-
-def _rename_character(st: dict, old: str, new: str) -> None:
-    """Renommage d'un personnage partout dans l'histoire : scènes, tenues, répliques, découpages."""
-    for sc in S.all_scenes(st):
-        sc["characters"] = [new if _same(c, old) else c for c in sc.get("characters", [])]
-        sc["outfits"] = {(new if _same(k, old) else k): v for k, v in sc.get("outfits", {}).items()}
-        for line in sc.get("dialogue", []):
-            if _same(line.get("speaker", ""), old):
-                line["speaker"] = new
-        for plan in sc.get("plans", []):
-            if plan.get("characters"):
-                plan["characters"] = [new if _same(c, old) else c for c in plan["characters"]]
-            for field in ("refs_exclude", "continuity_excluded"):
-                if plan.get(field):
-                    plan[field] = [_rekey(k, old, new) for k in plan[field]]
-            if plan.get("manual_refs"):
-                plan["manual_refs"] = {_rekey(k, old, new): v for k, v in plan["manual_refs"].items()}
-
-
-def _rename_outfit(st: dict, character: str, old: str, new: str) -> None:
-    """Renommage d'une tenue : le texte de la scène qui la porte suit."""
-    for sc in S.all_scenes(st):
-        sc["outfits"] = {k: (new if _same(k, character) and _same(v, old) else v)
-                         for k, v in sc.get("outfits", {}).items()}
-
-
-def update_element(aid: str, name: str | None = None, description: str | None = None,
-                   descriptor: str | None = None) -> dict:
-    """Designer, onglet Identité : nom, description, genre et âge (personnage ou tenue)."""
-    with S.LOCK:
-        st = S.load()
-    with A.LOCK:
-        data = A.load()
-    a = data["assets"].get(aid)
-    if a is None:
-        raise ValueError("Élément inconnu")
-    if a["kind"] not in ("character", "outfit"):
-        raise ValueError("Seuls les personnages et les tenues se modifient ici")
-    old = a["name"]
-    new = old if name is None else name.strip()
-    if not new:
-        raise ValueError("Le nom ne peut pas être vide")
-    if a["kind"] == "character":
-        if not _same(new, old):
-            if any(_same(o["name"], new) for k, o in data["assets"].items() if o["kind"] == "character" and k != aid):
-                raise ValueError("Un autre personnage porte déjà ce nom")
-            _rename_character(st, old, new)
-    else:
-        parent = data["assets"].get(a.get("parent") or "")
-        if parent is None:
-            raise ValueError("Cette tenue n'est rattachée à aucun personnage")
-        if not _same(new, old):
-            if any(_same(o["name"], new) for k, o in data["assets"].items()
-                   if o["kind"] == "outfit" and o.get("parent") == a.get("parent") and k != aid):
-                raise ValueError("Ce personnage a déjà une tenue de ce nom")
-            _rename_outfit(st, parent["name"], old, new)
-    changed = not _same(new, old)
-    identity = False  # genre ou apparence : l'image du personnage ne correspond plus
-    a["name"] = new
-    if description is not None and description.strip() != a.get("description", ""):
-        a["description"] = description.strip()
-        changed = identity = True
-    if descriptor is not None and a["kind"] == "character":
-        value = descriptor.strip()
-        if value and not PR.valid_descriptor(value):
-            raise ValueError("Le genre et l'âge doivent contenir un mot de genre (woman, man, girl, boy…)")
-        if value != (a.get("descriptor") or ""):
-            changed = identity = True
-        if value:
-            a["descriptor"] = value
-        else:
-            a.pop("descriptor", None)
-    if identity and a["kind"] == "character" and a.get("validated_candidate") is not None:
-        a["image_stale"] = True
-    if changed:
-        a["prompt"] = ""  # le prompt sera rédigé de nouveau à partir de la description modifiée
-    with A.LOCK:
-        A.save(data)
-    with S.LOCK:
-        S.save(st)
-    return {"ok": True, "name": new}
-
-
-def set_character_mode(mode: str) -> dict:
-    """Comment créer les personnages : « auto » (dessinés à l'arrivée) ou « designer » (validés un par un)."""
-    if mode not in ("auto", "designer"):
-        raise ValueError("Mode inconnu")
-    with S.LOCK:
-        st = S.load()
-        st["settings"]["character_mode"] = mode
-        S.save(st)
-    return {"ok": True, "mode": mode}
-
-
-def suggest_identity(aid: str) -> dict:
-    """Pré-remplit la description, et le genre et l'âge, d'un personnage à partir de l'histoire,
-    de ses scènes et de ses répliques (c'est là que le rôle et le genre se voient)."""
-    with A.LOCK:
-        data = A.load()
-    char = data["assets"].get(aid)
-    if char is None or char["kind"] != "character":
-        raise ValueError("Personnage inconnu")
-    with S.LOCK:
-        st = S.load()
-    name = char["name"]
-    scenes = [sc for sc in S.all_scenes(st) if any(_same(c, name) for c in sc.get("characters", []))]
-    story = " ".join(x for x in (st.get("idea"), st.get("synopsis")) if x)
-    context = "\n".join(f"- {sc['title']} : {sc.get('summary', '')}" for sc in scenes)
-    lines = [f"{l['speaker']} : {l['text']}" for sc in scenes for l in sc.get("dialogue", [])
-             if _same(l.get("speaker", ""), name)][:8]
-    system = ("Tu décris un personnage de roman visuel à partir de l'histoire et de ses répliques. "
-              "Réponds uniquement par du JSON : {\"description\": \"...\", \"descriptor\": \"...\"}. "
-              "description : en français, une ou deux phrases sur l'apparence (cheveux, yeux, silhouette, style), "
-              "seulement ce que l'histoire indique. "
-              "descriptor : en anglais, le genre et la tranche d'âge (« young woman », « adult man », « teenage boy »). "
-              "Ne devine jamais le genre : ni le rôle, ni le prénom, ni le genre de l'héroïne ne suffisent. "
-              "Si le texte ne l'indique pas clairement (pronoms, « monsieur », « madame », accords), "
-              "laisse descriptor vide.")
-    user = (f"Personnage : {name}\nHistoire : {story or '(non précisée)'}\n"
-            f"Scènes où il apparaît :\n{context or '(aucune)'}\n"
-            f"Ses répliques :\n" + ("\n".join(lines) or "(aucune)"))
-    raw = llm.extract_json(llm.complete_task("prompt", system, user, st["settings"]["providers"]["text"]))
-    description = " ".join(str(raw.get("description", "")).split()) if isinstance(raw, dict) else ""
-    descriptor = str(raw.get("descriptor", "")).strip().lower() if isinstance(raw, dict) else ""
-    return {"description": description, "descriptor": descriptor if PR.valid_descriptor(descriptor) else ""}
-
-
-def create_outfit(character_aid: str, name: str, description: str, scene_ids: list[str]) -> dict:
-    """Designer, atelier : crée une tenue pour un personnage et la porte dans les scènes choisies."""
-    if not name.strip():
-        raise ValueError("Donnez un nom à la tenue")
-    with A.LOCK:
-        data = A.load()
-    char = data["assets"].get(character_aid)
-    if char is None or char["kind"] != "character":
-        raise ValueError("Personnage inconnu")
-    if any(o["kind"] == "outfit" and o.get("parent") == character_aid and _same(o["name"], name)
-           for o in data["assets"].values()):
-        raise ValueError("Ce personnage a déjà une tenue de ce nom")
-    new_id = f"outfit_{_slug(name)}_{uuid.uuid4().hex[:6]}"
-    A.add_asset(data, new_id, "outfit", name.strip(), description.strip(), character_aid)
-    with A.LOCK:
-        A.save(data)
-    with S.LOCK:
-        st = S.load()
-        for sc in S.all_scenes(st):
-            if sc["id"] in scene_ids and any(_same(c, char["name"]) for c in sc.get("characters", [])):
-                for key in [k for k in sc.get("outfits", {}) if _same(k, char["name"])]:
-                    sc["outfits"].pop(key)
-                sc.setdefault("outfits", {})[char["name"]] = name.strip()
-        S.save(st)
-    return {"aid": new_id, "name": name.strip()}
-
-
-def _url(asset: dict, idx: int | None) -> str | None:
-    if idx is None or not 0 <= idx < len(asset.get("candidates", [])):
-        return None
-    return paths.file_url(asset["candidates"][idx]["file"])
-
-
-def _element_card(assets: dict, kind: str, name: str, parent: str | None = None) -> dict:
-    aid = _aid(assets, kind, name, parent)
-    a = assets.get(aid) if aid else None
-    idx = a.get("validated_candidate") if a else None
-    blocked = False
-    if a and kind == "outfit":
-        blocked = assets.get(a.get("parent") or "", {}).get("validated_candidate") is None
-    return {"name": name, "aid": aid, "image": _url(a, idx) if a else None, "ready": idx is not None,
-            "description": a.get("description", "") if a else "",
-            "descriptor": a.get("descriptor", "") if a else "",
-            "prompt": a.get("prompt", "") if a else "", "blocked": blocked, "parent": parent or "",
-            "loras": list(a.get("loras", [])) if a else [],
-            "refs": list(a.get("refs", [])) if a else [], "based_on": (a.get("based_on") or "") if a else ""}
-
-
-def _text_hash(text: str) -> str:
-    return hashlib.sha1((text or "").encode("utf-8")).hexdigest()[:16]
-
-
-def _changes_outfit(plan: dict) -> bool:
-    """Décision mise en cache pour le texte actuel du plan (vrai seulement si elle est à jour)."""
-    cached = plan.get("outfit_change") or {}
-    note = (plan.get("shot") or {}).get("note", "")
-    return bool(cached.get("change")) and cached.get("hash") == _text_hash(note)
-
-
-def _ask_outfit_change(st: dict, sc: dict, text: str) -> bool | None:
-    """Le modèle répond : le texte décrit-il un changement de vêtement ou d'apparence ? None si pas de réponse claire."""
-    system = ('Tu lis la description d\'un plan de bande dessinée. Réponds uniquement par du JSON : '
-              '{"change": true} ou {"change": false}. "change" vaut true si la description indique qu\'un personnage '
-              "enlève, retire, ouvre, défait ou change un vêtement ou son apparence (par exemple « Léa sans sa veste », "
-              "« chemise ouverte », « pieds nus »). Sinon false.")
-    user = f"Personnages de la scène : {', '.join(sc.get('characters', [])) or 'aucun'}\nDescription du plan : {text}"
-    try:
-        raw = llm.extract_json(llm.complete_task("decision", system, user, st["settings"]["providers"]["text"]))
-    except (llm.LLMError, ValueError):
-        return None
-    value = raw.get("change") if isinstance(raw, dict) else None
-    return value if isinstance(value, bool) else None
-
-
-def refresh_outfit_decisions(st: dict, sc: dict, plans: list[dict]) -> None:
-    """Met à jour la décision de chaque plan dont le texte a changé. Appelé hors des verrous (appel réseau)."""
-    for plan in plans:
-        text = (plan.get("shot") or {}).get("note", "")
-        digest = _text_hash(text)
-        if (plan.get("outfit_change") or {}).get("hash") == digest:
-            continue
-        value = False if not text.strip() else _ask_outfit_change(st, sc, text)
-        if value is not None:
-            plan["outfit_change"] = {"hash": digest, "change": value}
-
-
-def apply_continuity(sc: dict, assets: dict) -> bool:
-    """Continuité : à partir du deuxième plan, l'image du plan précédent est une référence (état réel des
-    personnages). Sauf si le texte du plan décrit un changement de tenue, la tenue de référence des
-    personnages présents dans les deux plans est alors mise de côté.
-    Les choix faits à la main (plan["manual_refs"]) ne sont jamais modifiés. Renvoie True si le découpage a changé."""
-    changed = False
-    prev = None
-    for plan in sc.get("plans", []):
-        prev_ok = prev is not None and assets.get(prev["asset"], {}).get("validated_candidate") is not None
-        use = bool(plan.get("continuity", True)) and prev_ok
-        want_ref = prev["asset"] if use else None
-        if plan.get("continuity_ref") != want_ref:
-            extra = [r for r in plan.get("refs_extra", []) if r != plan.get("continuity_ref")]
-            if want_ref and want_ref not in extra:
-                extra.append(want_ref)
-            plan["refs_extra"] = extra
-            plan["continuity_ref"] = want_ref
-            changed = True
-        manual = plan.get("manual_refs", {})
-        want_excl = []
-        if use and not _changes_outfit(plan):
-            shared = set(SC.plan_characters(sc, prev)) & set(SC.plan_characters(sc, plan))
-            want_excl = [f"tenue:{S.norm(n)}" for n in sorted(shared) if n in sc.get("outfits", {})]
-        old_excl = plan.get("continuity_excluded", [])
-        want_excl = [k for k in want_excl if k not in manual]
-        if sorted(old_excl) != sorted(want_excl):
-            # les exclusions choisies à la main restent telles quelles
-            excl = [k for k in plan.get("refs_exclude", []) if k not in old_excl or k in manual]
-            plan["refs_exclude"] = excl + [k for k in want_excl if k not in excl]
-            plan["continuity_excluded"] = want_excl
-            changed = True
-        prev = plan
-    return changed
-
-
-def _refs_view(sc: dict, plan: dict, assets: dict) -> dict:
-    """Images de référence d'un plan : celles du moteur (décor, personnages, tenues) et celles ajoutées."""
-    info = SC.plan_refs(assets, sc, plan)
-    auto = []
-    for it in info["auto"]:
-        a = assets.get(it["id"], {})
-        auto.append({"key": it["key"], "label": it["label"], "excluded": it["excluded"], "ok": it["ok"],
-                     "image": _url(a, a.get("validated_candidate")) if a else None})
-    return {"auto": auto, "extra": [e["id"] for e in info["extra"]], "missing": info["missing"]}
-
-
-def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
-    a = assets.get(plan["asset"], {})
-    refs = _refs_view(sc, plan, assets)
-    # Les LoRA ne s'appliquent qu'avec ComfyUI : le rôle (base ou edit) dépend des références du plan.
-    used = refs["extra"] or any(not r["excluded"] for r in refs["auto"])
-    return {"id": plan["id"], "aid": plan["asset"], "from_line": plan["from_line"], "pause": bool(plan.get("pause")),
-            "speaker": plan.get("speaker", ""), "speech": plan.get("speech", ""),
-            "candidate": RE.plan_index(plan, a) if a else None,
-            "loras": list(a.get("loras", [])) if a else [],
-            "comfy": appsettings.image_for("edit" if used else "base")["engine"] == "comfyui",
-            "refs": refs,
-            "continuity": bool(plan.get("continuity", True)),
-            "characters": SC.plan_characters(sc, plan),
-            "text": (plan.get("shot") or {}).get("note", ""),
-            "image": _url(a, RE.plan_index(plan, a)) if a else None,
-            "prompt": a.get("prompt", "")}
-
-
-def _ensure_descriptors(st: dict) -> None:
-    """Genre et âge de chaque personnage, pour les prompts (complète les anciennes histoires)."""
-    with A.LOCK:
-        data = A.load()
-    missing = [k for k, a in data["assets"].items()
-               if a["kind"] == "character" and not PR.valid_descriptor(a.get("descriptor"))]
-    if not missing:
-        return
-    found = {k: PR.describe_person(st, data["assets"][k]["name"], data["assets"][k].get("description", ""))
-             for k in missing}
-    with A.LOCK:
-        data = A.load()
-        for k, word in found.items():
-            if word:  # un descriptif invalide reste absent : il sera redemandé
-                data["assets"][k]["descriptor"] = word
-        A.save(data)
-
-
-def available_loras() -> list[str]:
-    """Fichiers LoRA du dossier des modèles ComfyUI (vide si ComfyUI n'est pas installé ici)."""
-    if paths.KIDS:
-        return []  # application enfants : pas de ComfyUI, donc pas de LoRA
-    cfg = appsettings.config().get("comfy", {})
-    folder = Path(cfg.get("models_dir", "")) / "loras"
-    if not cfg.get("models_dir") or not folder.is_dir():
-        return []
-    return sorted(p.name for p in folder.iterdir() if p.suffix == ".safetensors")
-
-
-def set_asset_loras(aid: str, loras: list[dict]) -> dict:
-    """LoRA ajoutés à une image (réglage fin). Utilisés seulement quand le moteur est ComfyUI."""
-    clean = []
-    for item in loras:
-        name = str(item.get("name", "")).strip()
-        if not name:
-            continue
-        strength = float(item.get("strength", 1.0))
-        if not -2.0 <= strength <= 2.0:
-            raise ValueError("La force d'un LoRA doit être entre -2 et 2")
-        clean.append({"name": name, "strength": strength, "clip": bool(item.get("clip", False))})
-    with A.LOCK:
-        data = A.load()
-        if aid not in data["assets"]:
-            raise ValueError("Élément inconnu")
-        data["assets"][aid]["loras"] = clean
-        A.save(data)
-    return {"ok": True, "loras": clean}
-
-
-def _ensure_token() -> None:
-    REP.ensure_token()
-
-
-# ---------- réglages (roue) ----------
-
-TEXT_LABELS = {"replicate": "Replicate (Llama)", "anthropic": "Anthropic (Claude)", "openai": "OpenAI",
-               "ollama": "Ollama (local)"}
-KIDS_TEXT = ("replicate",)   # application grand public : seul Replicate, même compte que les images
-SECRET_NAMES = ("REPLICATE_API_TOKEN",)
-
-
-def settings_view() -> dict:
-    with S.LOCK:
-        st = S.load()
-    choices = []
-    for name, label in TEXT_LABELS.items():
-        if paths.KIDS and name not in KIDS_TEXT:
-            continue
-        cfg = llm.provider_settings(name)
-        choices.append({"name": name, "label": label, "model": cfg.get("model", ""),
-                        "key": llm.key_available(name)})
-    return {
-        "kids": paths.KIDS,
-        "replicate_key": keys.present("REPLICATE_API_TOKEN"),
-        "text": {"provider": st["settings"]["providers"]["text"], "choices": choices},
-        "tasks": _tasks_view(st),
-        "image_rows": _images_view(),
-        "comfy_free_memory": appsettings.comfy_free_memory(),
-        "unload_ollama_before_comfy": appsettings.unload_ollama_before_comfy(),
-        "free_comfy_before_ollama": appsettings.free_comfy_before_ollama(),
-        "comfy_defaults": {role: appsettings.default_comfy_workflow(role) for role in appsettings.ROLES},
-        "engine_labels": ENGINE_LABELS,
-        "loras": available_loras(),
-        "image": {"provider": st["settings"]["providers"]["image_base"],
-                  "choices": [{"name": "replicate", "label": "Replicate (cloud)", "available": True},
-                              {"name": "comfyui", "label": "ComfyUI (local), bientôt", "available": False}],
-                  "models": ["FLUX dev pour les ancres", "FLUX.2 Klein pour les retouches et les scènes"]},
-        "explicit": bool(st["settings"].get("explicit_content")),
-    }
-
-
-def save_secret(name: str, value: str) -> dict:
-    """Enregistre une clé saisie dans l'application, sur l'appareil seulement."""
-    if name not in SECRET_NAMES:
-        raise ValueError("Clé inconnue")
-    if not value.strip():
-        raise ValueError("La clé est vide")
-    keys.set(name, value)
-    return settings_view()
-
+from facile_base import (
+    PLAN_LIMITS,
+    SCENE_COUNTS,
+    NotFound,
+    _characters,
+    _find_scene,
+    _locations,
+    _max_plans,
+    _outfits,
+    _url,
+    available_loras,
+)
+from facile_elements import (
+    _element_card,
+    create_outfit,
+    redo_card,
+    set_asset_loras,
+    set_character_mode,
+    set_element_refs,
+    suggest_identity,
+    suggest_prompt,
+    update_element,
+)
+from facile_jobs import JOBS, _busy, _say, _start, cancel_job
+from facile_plans import (
+    _effective_tags,
+    _plan_view,
+    copy_plan_image,
+    make_all_plans,
+    make_plan_image,
+    propose_plans,
+    save_plans,
+    save_refs,
+    set_continuity,
+    set_line_tags,
+    update_line,
+)
+from facile_settings import save_secret, save_settings, set_max_plans, settings_view
+
+"""Parcours simple : style → idée → personnages → lieux → tenues → histoire → plans → jeu.
+
+Ce module ne fait qu'enchaîner les fonctions existantes (plan, répliques, registre, scènes, export).
+Les créations longues tournent dans un fil : la page suit l'avancement par /api/facile/jobs/<id>.
+Une seule création à la fois : les appels réseau sont lents, deux à la fois se gêneraient.
+
+Une scène compte plusieurs plans : chacun démarre à une réplique et montre une image (plan large,
+gros plan sur un personnage, détail…). Le découpage est proposé par le LLM, puis modifiable.
+"""
 
 def play_view() -> dict:
     """L'histoire telle que la joue le lecteur : scènes, répliques, images aux bons moments."""
@@ -597,181 +113,6 @@ def play_view() -> dict:
                            "lines": lines, "images": images})
     return {"title": st.get("title") or "Mon histoire", "scenes": scenes}
 
-
-TASK_LABELS = {"histoire": "Histoire (plan des chapitres)", "dialogue": "Dialogue (répliques)",
-               "prompt": "Prompts d'image et découpage", "decision": "Décisions (changement de tenue)"}
-ENGINE_LABELS = {"replicate": "Replicate (cloud)", "comfyui": "ComfyUI (local)"}
-
-
-def _tasks_view(st: dict) -> list[dict]:
-    rows = []
-    default_provider = st["settings"]["providers"]["text"]
-    for task, label in TASK_LABELS.items():
-        provider, model = appsettings.llm_for(task, default_provider)
-        rows.append({"task": task, "label": label, "provider": provider, "model": model})
-    return rows
-
-
-def _images_view() -> list[dict]:
-    rows = []
-    for role, label in (("base", "Dessin de base (sans référence)"), ("edit", "Retouche (avec références)")):
-        choice = appsettings.image_for(role)
-        workflow = choice["workflow"] or ""
-        if workflow.startswith(str(paths.CODE) + "/"):
-            workflow = workflow[len(str(paths.CODE)) + 1:]  # chemin relatif, comme dans la liste
-        rows.append({"role": role, "label": label, "engine": choice["engine"], "workflow": workflow,
-                     "steps": appsettings.steps_for(role) or "", "choices": appsettings.available_workflows()})
-    return rows
-
-
-def save_settings_tasks(body: dict) -> None:
-    """Enregistre les choix par tâche et par moteur d'image (game_spec/app_settings.yaml)."""
-    data = appsettings.load()
-    tasks = body.get("tasks")
-    if tasks is not None:
-        chosen = {}
-        for row in tasks:
-            task = row.get("task")
-            if task not in appsettings.TASKS:
-                raise ValueError("Tâche inconnue")
-            provider = row.get("provider") or ""
-            if provider and provider not in TEXT_LABELS:
-                raise ValueError("Fournisseur d'écriture inconnu")
-            if provider and paths.KIDS and provider not in KIDS_TEXT:
-                raise ValueError("Fournisseur non disponible dans cette application")
-            chosen[task] = {"provider": provider or None, "model": str(row.get("model") or "").strip() or None}
-        data["llm_tasks"] = chosen
-    engines = body.get("images")
-    if engines is not None:
-        chosen = {}
-        for row in engines:
-            role = row.get("role")
-            if role not in appsettings.ROLES:
-                raise ValueError("Rôle d'image inconnu")
-            engine = row.get("engine") or "replicate"
-            if engine not in appsettings.ENGINES:
-                raise ValueError("Moteur d'image inconnu")
-            if paths.KIDS and engine != "replicate":
-                raise ValueError("Cette application utilise Replicate pour les images")
-            workflow = str(row.get("workflow") or "").strip() or None
-            if engine == "comfyui":
-                if not workflow:
-                    workflow = appsettings.default_comfy_workflow(role)
-                wf = Path(workflow) if Path(workflow).is_absolute() else paths.CODE / workflow
-                if not wf.is_file():
-                    raise ValueError(f"Fichier de workflow introuvable : {workflow}")
-            chosen[role] = {"engine": engine, "workflow": workflow}
-        data["image_engines"] = chosen
-        steps = {}
-        for row in engines:
-            value = str(row.get("steps") or "").strip()
-            if value:
-                if not value.isdigit() or not 1 <= int(value) <= 100:
-                    raise ValueError("Le nombre d'étapes doit être entre 1 et 100")
-                steps[row["role"]] = int(value)
-        data["comfy_steps"] = steps  # vide : on garde le nombre d'étapes du workflow
-    if "comfy_free_memory" in body:
-        data["comfy_free_memory"] = bool(body["comfy_free_memory"])
-    if "unload_ollama_before_comfy" in body:
-        data["unload_ollama_before_comfy"] = bool(body["unload_ollama_before_comfy"])
-    if "free_comfy_before_ollama" in body:
-        data["free_comfy_before_ollama"] = bool(body["free_comfy_before_ollama"])
-    appsettings.save(data)
-
-
-def save_settings(body: dict) -> dict:
-    provider = body.get("text_provider", "")
-    if provider not in TEXT_LABELS or (paths.KIDS and provider not in KIDS_TEXT):
-        raise ValueError("Fournisseur d'écriture inconnu")
-    model = str(body.get("text_model", "")).strip()
-    if model:
-        overrides = {}
-        if paths.llm_models_file().exists():
-            overrides = yaml.safe_load(paths.llm_models_file().read_text(encoding="utf-8")) or {}
-        overrides.setdefault(provider, {})["model"] = model
-        paths.llm_models_file().write_text(yaml.safe_dump(overrides, allow_unicode=True), encoding="utf-8")
-    with S.LOCK:
-        st = S.load()
-        st["settings"]["providers"]["text"] = provider
-        S.save(st)
-    save_settings_tasks(body)
-    return {"ok": True, **settings_view()}
-
-
-# ---------- tâches longues ----------
-
-def _start(label: str, work, *args) -> dict:
-    if not _busy.acquire(blocking=False):
-        raise ValueError("Une création est déjà en cours : elle apparaîtra dès qu'elle sera terminée.")
-    job_id = uuid.uuid4().hex[:12]
-    JOBS[job_id] = {"state": "running", "label": label, "message": "", "error": None, "progress": None,
-                    "cancel_requested": False, "comfy_prompt": None}
-
-    def run():
-        try:
-            _ensure_token()
-            work(job_id, *args)
-            JOBS[job_id]["state"] = "done"
-        except Exception as e:  # le message est montré à l'utilisateur, la trace reste dans le journal serveur
-            if JOBS[job_id]["cancel_requested"]:
-                JOBS[job_id].update(state="cancelled", message="Génération arrêtée")
-            else:
-                traceback.print_exc()
-                JOBS[job_id].update(state="error", error=f"{type(e).__name__}: {e}")
-        finally:
-            _busy.release()
-
-    threading.Thread(target=run, daemon=True).start()
-    return {"job": job_id}
-
-
-def _say(job_id: str, message: str) -> None:
-    JOBS[job_id]["message"] = message
-    JOBS[job_id]["progress"] = None  # une nouvelle étape repart de zéro
-
-
-class Cancelled(Exception):
-    """Arrêt demandé par l'auteur : la tâche s'arrête entre deux images."""
-
-
-def _check_cancel(job_id: str) -> None:
-    if JOBS[job_id]["cancel_requested"]:
-        raise Cancelled("arrêtée")
-
-
-def _submit(job_id: str):
-    """Mémorise l'identifiant ComfyUI de la génération en cours, pour pouvoir l'arrêter."""
-    def remember(prompt_id: str) -> None:
-        JOBS[job_id]["comfy_prompt"] = prompt_id
-    return remember
-
-
-def cancel_job(job_id: str) -> dict:
-    """Arrête une tâche en cours. ComfyUI n'est interrompu que si cette tâche a une génération en cours là-bas."""
-    job = JOBS.get(job_id)
-    if job is None or job["state"] != "running":
-        raise ValueError("Cette tâche n'est plus en cours")
-    job["cancel_requested"] = True
-    if job.get("comfy_prompt"):
-        import comfy_client as CC
-        import comfy_image
-        try:
-            CC.interrupt(comfy_image.base_url(), job["comfy_prompt"])
-        except OSError:
-            pass  # ComfyUI injoignable : la tâche s'arrête à l'étape suivante
-    return {"ok": True}
-
-
-def _progress(job_id: str):
-    """Callback d'avancement de ComfyUI pour une tâche : étape courante sur le total."""
-    def update(value: int, maximum: int) -> None:
-        if job_id in JOBS and maximum > 0:
-            JOBS[job_id]["progress"] = {"value": value, "max": maximum}
-    return update
-
-
-# ---------- vue ----------
-
 def view() -> dict:
     with S.LOCK:
         st = S.load()
@@ -812,9 +153,6 @@ def view() -> dict:
         "done": done, "busy": _busy.locked(),
     }
 
-
-# ---------- style et histoire ----------
-
 def set_style(key: str) -> dict:
     if key not in S.STYLES:
         raise ValueError("Style inconnu")
@@ -825,17 +163,6 @@ def set_style(key: str) -> dict:
         st["settings"]["style"] = key
         S.save(st)
     return {"ok": True}
-
-
-def set_max_plans(n: int) -> dict:
-    if n not in PLAN_LIMITS:
-        raise ValueError("Choisissez un nombre de plans proposés entre 1 et 8, ou « autant que je veux »")
-    with S.LOCK:
-        st = S.load()
-        st["settings"]["max_plans"] = n
-        S.save(st)
-    return {"ok": True, "max_plans": n}
-
 
 def write_story(title: str, idea: str, count: int, explicit: bool) -> dict:
     if paths.KIDS:
@@ -856,10 +183,9 @@ def write_story(title: str, idea: str, count: int, explicit: bool) -> dict:
         st["settings"]["explicit_content"] = bool(explicit)
         st["settings"]["total_scenes"] = count
         if paths.KIDS:
-            st["settings"]["providers"]["text"] = "replicate"  # seul fournisseur disponible sur l'application
+            appsettings.set_provider("text", "replicate")  # seul fournisseur disponible sur l'application
         S.save(st)
     return _start("Écriture de l'histoire", _write_work, count)
-
 
 def _write_work(job_id: str, count: int) -> None:
     _say(job_id, "Écriture du plan des scènes…")
@@ -874,7 +200,6 @@ def _write_work(job_id: str, count: int) -> None:
         S.save(st)
     _elements_work(job_id)  # les répliques viennent à l'étape Histoire, quand les personnages sont validés
 
-
 def complete() -> dict:
     """Reprend une histoire interrompue : éléments manquants (personnages, lieux, tenues)."""
     with S.LOCK:
@@ -882,7 +207,6 @@ def complete() -> dict:
     if not st["chapters"]:
         raise ValueError("Il n'y a pas encore d'histoire à compléter")
     return _start("Compléter l'histoire", _elements_work)
-
 
 def write_dialogues() -> dict:
     """Écrit les répliques des scènes qui n'en ont pas encore (étape Histoire)."""
@@ -894,13 +218,11 @@ def write_dialogues() -> dict:
         raise ValueError("Toutes les scènes ont déjà leurs répliques")
     return _start("Répliques", _dialogues_work)
 
-
 def _dialogues_work(job_id: str) -> None:
     with S.LOCK:
         todo = [sc["id"] for sc in S.all_scenes(S.load()) if not sc.get("dialogue")]
     for sid in todo:
         _write_dialogue(job_id, sid)
-
 
 def add_chapter(count: int, guidance: str = "") -> dict:
     """Ajoute un chapitre à la suite de l'histoire : plan, répliques, nouveaux éléments."""
@@ -911,7 +233,6 @@ def add_chapter(count: int, guidance: str = "") -> dict:
     if not st["chapters"]:
         raise ValueError("Écrivez d'abord l'histoire")
     return _start("Nouveau chapitre", _chapter_work, count, guidance.strip())
-
 
 def _chapter_work(job_id: str, count: int, guidance: str) -> None:
     _say(job_id, "Écriture du nouveau chapitre…")
@@ -925,7 +246,6 @@ def _chapter_work(job_id: str, count: int, guidance: str) -> None:
         S.save(st)
     _elements_work(job_id)
 
-
 def delete_last_chapter() -> dict:
     """Retire le dernier chapitre (avec ses scènes). Les images restent dans le registre, sans être utilisées."""
     if _busy.locked():
@@ -938,7 +258,6 @@ def delete_last_chapter() -> dict:
         st["settings"]["total_scenes"] = len(S.all_scenes(st))
         S.save(st)
     return {"ok": True, "removed": removed["title"]}
-
 
 def _elements_work(job_id: str) -> None:
     """Crée les personnages, lieux et tenues de l'histoire qui n'existent pas encore au registre."""
@@ -960,7 +279,6 @@ def _elements_work(job_id: str) -> None:
     with A.LOCK:
         A.save(data)
 
-
 def _write_dialogue(job_id: str, sid: str) -> None:
     _say(job_id, f"Répliques de la scène {sid}…")
     with S.LOCK:
@@ -973,516 +291,10 @@ def _write_dialogue(job_id: str, sid: str) -> None:
         target.pop("line_tags", None)  # les bulles visaient l'ancien texte : on les efface
         S.save(st)
 
-
 def redo_dialogue(sid: str) -> dict:
     with S.LOCK:
         _find_scene(S.load(), sid)
     return _start("Répliques", lambda job_id: _write_dialogue(job_id, sid))
-
-
-# ---------- personnages, lieux, tenues : une image par carte ----------
-
-def redo_card(aid: str, prompt: str | None = None) -> dict:
-    with A.LOCK:
-        assets = A.load()["assets"]
-    if aid not in assets:
-        raise ValueError("Élément inconnu")
-    _refs_for(assets, aid)  # refuse tout de suite une tenue sans image de son personnage
-    if prompt is not None and not prompt.strip():
-        raise ValueError("Le prompt est vide")
-    return _start("Image", _card_work, aid, prompt)
-
-
-def _wrong_person(text: str, assets: dict, aid: str) -> bool:
-    """Un prompt de tenue qui parle d'une autre personne que le personnage (« woman » pour un homme,
-    « she » ou « her »…) ne doit pas servir : il a été écrit avant la correction du genre."""
-    parent = assets.get(assets[aid].get("parent") or "")
-    if not parent:
-        return False
-    noun = PR.person_noun(parent.get("descriptor"))
-    if noun == "person":
-        return False
-    low = text.lower()
-    others = [w for w in ("woman", "man", "girl", "boy") if w != noun]
-    if any(re.search(rf"\b{w}\b", low) for w in others):
-        return True
-    return noun in ("man", "boy") and bool(re.search(r"\b(she|her)\b", low))
-
-
-def _card_work(job_id: str, aid: str, prompt: str | None = None) -> None:
-    with S.LOCK:
-        _ensure_descriptors(S.load())
-    with A.LOCK:
-        data = A.load()
-    a = data["assets"][aid]
-    refs = _refs_for(data["assets"], aid)
-    if not prompt:
-        prompt = a.get("prompt")
-    if prompt and a["kind"] == "outfit" and _wrong_person(prompt, data["assets"], aid):
-        _say(job_id, "Le prompt visait une autre personne : nouvelle rédaction…")
-        prompt = None
-    if not prompt:
-        _say(job_id, f"Description de « {a['name']} »…")
-        with S.LOCK:
-            st = S.load()
-        prompt = PR.suggest(st, data, aid)
-    prompt = prompt.strip()
-    with A.LOCK:
-        data = A.load()
-        data["assets"][aid]["prompt"] = prompt
-        A.save(data)
-    _say(job_id, f"Dessin de « {a['name']} » (une à deux minutes)…")
-    _check_cancel(job_id)
-    idx = A.generate_candidate(aid, refs, prompt, None, "replicate", None, on_progress=_progress(job_id),
-                               on_submit=_submit(job_id))
-    with A.LOCK:
-        data = A.load()
-        A.set_status(data, aid, idx, True)
-        data["assets"][aid].pop("image_stale", None)
-        A.save(data)
-
-
-# ---------- découpage en plans ----------
-
-SHOT_SYSTEM = """You split a scene of a visual novel into camera shots, one still image per shot.
-Answer ONLY with JSON: {"plans": [{"from_line": <number of the dialogue line where the shot starts, starting at 1>,
-"framing": "<one of: """ + ", ".join(SC.FRAMINGS) + """>", "text": "<one short French sentence: what the shot shows>"}]}
-Rules:
-- The first shot starts at line 1 and shows the whole place with everyone in it (wide or medium shot).
-- Then, when the speaker changes or an emotion matters, add a close-up on the character who speaks
-  (text: 'Gros plan sur Léa, qui ...').
-- Add a detail shot when an object or a place from the story deserves it (text: 'Détail : la carte aux bords jaunis').
-- If a character takes off or puts on a clothing item, or changes their look, say it in the text
-  (for example 'Léa sans sa veste', 'Tom ébouriffé, la chemise ouverte').
-- Use at most {max} shots. Keep them in order of dialogue lines. Never more than one shot per line."""
-
-
-def _default_tags(sc: dict, line: int) -> dict:
-    """Bulles présélectionnées : la personne qui parle (si c'est un personnage de la scène), le lieu de la
-    scène, et la tenue que la scène prévoit pour elle."""
-    speaker = sc["dialogue"][line].get("speaker", "")
-    present = [speaker] if speaker in sc.get("characters", []) else []
-    outfits = {c: sc["outfits"][c] for c in present if sc.get("outfits", {}).get(c)}
-    return {"characters": present, "location": sc.get("location", ""), "outfits": outfits}
-
-
-def _effective_tags(sc: dict, line: int) -> dict:
-    """Les bulles telles qu'elles sont affichées : le choix enregistré, ou le défaut."""
-    stored = (sc.get("line_tags") or {}).get(str(line))
-    return stored if stored is not None else _default_tags(sc, line)
-
-
-def update_line(sid: str, line: int, speaker: str, text: str) -> dict:
-    """Corrige une réplique déjà écrite : qui parle, et ce qui est dit. Les bulles et les plans restent."""
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-        dialogue = sc.get("dialogue", [])
-        if not 0 <= line < len(dialogue):
-            raise ValueError("Réplique inconnue")
-        speaker = speaker.strip()
-        if speaker != "Narration" and speaker not in sc.get("characters", []):
-            raise ValueError("La personne qui parle doit être un personnage de la scène, ou la narration")
-        text = text.strip()
-        if not text:
-            raise ValueError("Une réplique ne peut pas être vide")
-        dialogue[line]["speaker"] = speaker
-        dialogue[line]["text"] = text
-        S.save(st)
-    return {"ok": True}
-
-
-def set_line_tags(sid: str, line: int, characters: list, location: str, outfits: dict) -> dict:
-    """Bulles d'une réplique : qui est présent, dans quel lieu, et en quelle tenue. Choisies par l'auteur,
-    elles sont données au découpage et décident des personnages de chaque plan."""
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-        if not 0 <= line < len(sc.get("dialogue", [])):
-            raise ValueError("Réplique inconnue")
-        known = set(_characters(st))
-        if any(c not in known for c in characters):
-            raise ValueError("Personnage inconnu")
-        if location and location not in set(_locations(st)):
-            raise ValueError("Lieu inconnu")
-        allowed = {(c, o) for c, o in _outfits(st)}
-        for c, o in outfits.items():
-            if c not in characters or (c, o) not in allowed:
-                raise ValueError("Cette tenue ne correspond pas à un personnage présent dans la réplique")
-        tags = {"characters": list(dict.fromkeys(characters)), "location": location or "",
-                "outfits": {c: o for c, o in outfits.items() if o}}
-        # Même vide, le choix est gardé : sinon le défaut réapparaîtrait après un clic pour tout retirer.
-        sc.setdefault("line_tags", {})[str(line)] = tags
-        S.save(st)
-    return {"ok": True}
-
-
-def _tags_summary(sc: dict) -> list[str]:
-    """Une ligne par réplique bulletée, pour le modèle qui découpe."""
-    out = []
-    for n in range(len(sc.get("dialogue", []))):
-        key, tags = str(n), _effective_tags(sc, n)
-        parts = []
-        if tags.get("characters"):
-            parts.append("present: " + ", ".join(tags["characters"]))
-        if tags.get("location"):
-            parts.append(f"place: {tags['location']}")
-        for c, o in (tags.get("outfits") or {}).items():
-            parts.append(f"{c} wears: {o}")
-        if parts:
-            out.append(f"{int(key) + 1}. " + "; ".join(parts))
-    return out
-
-
-def _ask_shots(st: dict, sc: dict, max_plans: int) -> dict:
-    """Demande le découpage au LLM d'écriture. Renvoie le JSON brut."""
-    lines = [f"{n}. {l['speaker']} : {l['text']}" for n, l in enumerate(sc.get("dialogue", []), 1)]
-    tags = _tags_summary(sc)
-    user = (f"Scene : {sc['title']} — {sc.get('summary', '')}\n"
-            f"Location : {sc.get('location') or 'unknown'}\n"
-            f"Characters : {', '.join(sc.get('characters', []))}\n"
-            "Dialogue :\n" + "\n".join(lines))
-    if tags:
-        user += ("\n\nChoices made by the writer for some lines (respect them; they are authoritative) :\n"
-                 + "\n".join(tags))
-    provider = st["settings"]["providers"]["text"]
-    return llm.extract_json(llm.complete_task("prompt", SHOT_SYSTEM.replace("{max}", str(max_plans)), user, provider))
-
-
-def normalize_shots(raw, n_lines: int, max_plans: int) -> list[dict]:
-    """Nettoie la proposition : bornes, ordre, doublons, limite. Toujours au moins un plan à la première réplique."""
-    items = raw.get("plans", []) if isinstance(raw, dict) else (raw or [])
-    shots: dict[int, dict] = {}
-    for it in items:
-        try:
-            line = int(it.get("from_line")) - 1
-        except (TypeError, ValueError, AttributeError):
-            continue
-        text = " ".join(str((it or {}).get("text", "")).split())
-        if not 0 <= line < n_lines or not text or line in shots:
-            continue
-        framing = it.get("framing") if it.get("framing") in SC.FRAMINGS else "medium shot"
-        shots[line] = {"from_line": line, "framing": framing, "text": text}
-    out = [shots[k] for k in sorted(shots)][:max_plans]
-    if not out:
-        out = [{"from_line": 0, "framing": "medium shot", "text": "Plan d'ensemble de la scène."}]
-    out[0]["from_line"] = 0
-    return out
-
-
-def propose_plans(sid: str) -> dict:
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-    if not sc.get("dialogue"):
-        raise ValueError("Écrivez d'abord les répliques de cette scène")
-    return _start("Découpage", _propose_work, sid)
-
-
-def _propose_work(job_id: str, sid: str) -> None:
-    _say(job_id, f"Scène {sid} : découpage en plans…")
-    with S.LOCK:
-        st = S.load()
-    sc = _find_scene(st, sid)
-    limit = _proposal_cap(st)
-    shots = normalize_shots(_ask_shots(st, sc, limit), len(sc["dialogue"]), limit)
-    _replace_plans(sid, [{"from_line": s["from_line"], "text": s["text"], "framing": s["framing"]} for s in shots])
-
-
-def _new_asset(data: dict, sid: str, title: str, summary: str) -> str:
-    base = f"scene_{sid}_{uuid.uuid4().hex[:6]}"
-    A.add_asset(data, base, "scene", title, summary)
-    return base
-
-
-def _chars_from_tags(sc: dict, start: int, end: int) -> list[str]:
-    """Personnages présents pendant les répliques [start, end) : ceux que l'auteur a cochés. Vide si aucune bulle."""
-    chosen: list[str] = []
-    for n in range(start, min(end, len(sc.get("dialogue", [])))):
-        for c in _effective_tags(sc, n).get("characters", []):
-            if c not in chosen:
-                chosen.append(c)
-    return chosen
-
-
-def _replace_plans(sid: str, items: list[dict]) -> None:
-    """Remplace le découpage d'une scène. Les images déjà faites restent dans le registre, détachées."""
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-    with A.LOCK:
-        data = A.load()
-        plans = []
-        bounds = [it["from_line"] for it in items] + [len(sc.get("dialogue", []))]
-        for k, it in enumerate(items, 1):
-            asset_id = _new_asset(data, sid, f"{sc['title']} · plan {k}", sc.get("summary", ""))
-            framing = it.get("framing") or "medium shot"
-            chars = _chars_from_tags(sc, bounds[k - 1], bounds[k])
-            plans.append({"id": f"p{k}", "from_line": it["from_line"], "asset": asset_id,
-                          "characters": chars or shot_characters(it.get("text", ""), sc, framing),
-                          "shot": {"framing": framing, "angle": "", "note": it.get("text", "")}})
-        A.save(data)
-    refresh_outfit_decisions(st, sc, plans)
-    with S.LOCK:
-        st = S.load()
-        target = _find_scene(st, sid)
-        target["plans"] = plans
-        apply_continuity(target, A.load()["assets"])
-        S.save(st)
-
-
-def save_plans(sid: str, items: list[dict]) -> dict:
-    """Enregistre le découpage modifié à la main. Garde les images des plans qui existent encore."""
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-    n_lines = len(sc.get("dialogue", []))
-    if not items:
-        raise ValueError("Une scène a au moins un plan")  # pas de plafond : autant que l'on veut
-    cleaned = []
-    for it in items:
-        line = int(it.get("from_line", 0))
-        # Une image seule peut venir après la dernière réplique (from_line == nombre de répliques).
-        last_ok = line == n_lines and bool(it.get("pause"))
-        if not (0 <= line < n_lines or last_ok):
-            raise ValueError("Un plan commence sur une réplique qui n'existe pas")
-        chosen = it.get("characters")  # None : le personnage suit le texte du plan
-        if chosen is not None:
-            chosen = [c for c in sc.get("characters", []) if c in chosen]
-            if not chosen:
-                raise ValueError("Un plan montre au moins un personnage : désélectionnez-en un seul, pas tous.")
-        speaker = str(it.get("speaker", "")).strip()
-        if speaker and speaker != "Narration" and speaker not in sc.get("characters", []):
-            raise ValueError("La personne qui parle sur cette image doit être un personnage de la scène")
-        cleaned.append({"id": it.get("id"), "from_line": line, "text": str(it.get("text", "")).strip(),
-                        "characters": chosen, "pause": bool(it.get("pause")),
-                        "speaker": speaker, "speech": str(it.get("speech", "")).strip()})
-    # Un plan « image seule » (sans réplique) peut précéder le plan qui commence sur la même réplique.
-    cleaned.sort(key=lambda x: (x["from_line"], 0 if x["pause"] else 1))
-    kinds: dict[int, list[bool]] = {}
-    for c in cleaned:
-        kinds.setdefault(c["from_line"], []).append(c["pause"])
-    for line, flags in kinds.items():
-        # Plusieurs images seules peuvent se suivre ; au plus un plan normal, en dernier.
-        if flags.count(False) > 1 or (False in flags and flags[-1] is not False):
-            raise ValueError("Deux plans ne peuvent pas commencer sur la même réplique "
-                             "(sauf un plan « image seule » placé juste avant)")
-    cleaned[0]["from_line"] = 0
-    old = {p["id"]: p for p in sc.get("plans", [])}
-    taken: set[str] = set()  # identifiants déjà attribués dans ce découpage
-    plans = []
-    with A.LOCK:
-        data = A.load()
-        for k, c in enumerate(cleaned, 1):
-            # Un plan garde son image seulement s'il est le premier à porter cet identifiant.
-            if c["id"] in old and c["id"] not in taken:
-                prev = old[c["id"]]
-                asset_id = prev["asset"]
-                shot = {**(prev.get("shot") or {}), "note": c["text"]}
-                if (prev.get("shot") or {}).get("note", "") != c["text"]:
-                    # Texte modifié : l'ancien prompt et l'ancien cadrage ne décrivent plus le plan.
-                    # Le prochain « Refaire » rédige un prompt neuf à partir du nouveau texte.
-                    shot["framing"] = ""
-                    if asset_id in data["assets"]:
-                        data["assets"][asset_id]["prompt"] = ""
-                else:
-                    shot.setdefault("framing", "medium shot")
-                pid = prev["id"]
-            else:
-                # Nouvel identifiant jamais utilisé : deux plans ne peuvent pas partager une image.
-                asset_id = _new_asset(data, sid, f"{sc['title']} · plan {k}", sc.get("summary", ""))
-                shot = {"framing": "medium shot", "angle": "", "note": c["text"]}
-                n = 1
-                while f"p{n}" in taken or f"p{n}" in old:
-                    n += 1
-                pid = f"p{n}"
-            taken.add(pid)
-            characters = c["characters"] or shot_characters(c["text"], sc, shot["framing"])
-            plan = {"id": pid, "from_line": c["from_line"], "characters": characters, "asset": asset_id, "shot": shot}
-            if c["pause"]:
-                plan["pause"] = True
-                if c["speech"]:  # réplique tapée librement sur une image sans dialogue
-                    plan["speaker"] = c["speaker"] or "Narration"
-                    plan["speech"] = c["speech"]
-            plans.append(plan)
-        A.save(data)
-    refresh_outfit_decisions(st, sc, plans)
-    with S.LOCK:
-        st = S.load()
-        target = _find_scene(st, sid)
-        target["plans"] = plans
-        apply_continuity(target, A.load()["assets"])
-        S.save(st)
-    return {"ok": True, "plans": len(plans)}
-
-
-# ---------- images des plans ----------
-
-def make_plan_image(sid: str, pid: str, prompt: str | None = None) -> dict:
-    with S.LOCK:
-        sc = _find_scene(S.load(), sid)
-        _find_plan(sc, pid)
-    if not sc.get("dialogue"):
-        raise ValueError("Écrivez d'abord les répliques de cette scène")
-    if prompt is not None and not prompt.strip():
-        raise ValueError("Le prompt est vide")
-    return _start("Image de plan", lambda job_id: _plan_work(job_id, sid, pid, prompt))
-
-
-def make_all_plans() -> dict:
-    with S.LOCK:
-        st = S.load()
-    with A.LOCK:
-        assets = A.load()["assets"]
-    todo = [(sc["id"], p["id"]) for sc in S.all_scenes(st) for p in sc.get("plans", [])
-            if _url(assets.get(p["asset"], {}), RE.plan_index(p, assets.get(p["asset"], {}))) is None]
-    if not todo:
-        raise ValueError("Tous les plans ont déjà leur image" if any(sc.get("plans") for sc in S.all_scenes(st))
-                         else "Proposez d'abord le découpage des scènes")
-    return _start("Images des plans", _all_plans_work, todo)
-
-
-def _all_plans_work(job_id: str, todo: list) -> None:
-    for sid, pid in todo:
-        _check_cancel(job_id)
-        _plan_work(job_id, sid, pid)
-
-
-def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> None:
-    _say(job_id, f"Scène {sid}, plan {pid} : préparation…")
-    with S.LOCK:
-        st = S.load()
-    _ensure_descriptors(st)
-    sc = _find_scene(st, sid)
-    k, plan = _find_plan(sc, pid)
-    with A.LOCK:
-        data = A.load()
-    refresh_outfit_decisions(st, sc, sc.get("plans", []))
-    if apply_continuity(sc, data["assets"]):
-        with S.LOCK:
-            cur = S.load()
-            _find_scene(cur, sid)["plans"] = sc["plans"]
-            S.save(cur)
-    info = SC.plan_refs(data["assets"], sc, plan)
-    if info["missing"]:
-        raise ValueError("Il manque encore une image pour : " + ", ".join(info["missing"]))
-    if info["too_many"]:
-        raise ValueError("Trop de personnages pour une seule image (5 références au maximum)")
-    if not prompt:
-        prompt = data["assets"][plan["asset"]].get("prompt")
-    if not prompt:
-        _say(job_id, f"Scène {sid}, plan {pid} : description de l'image…")
-        prompt = SC.suggest(st, data, sc, k)
-    prompt = prompt.strip()
-    with A.LOCK:  # le prompt utilisé est enregistré tout de suite, comme pour les ancres
-        data = A.load()
-        data["assets"][plan["asset"]]["prompt"] = prompt
-        A.save(data)
-    _say(job_id, f"Scène {sid}, plan {pid} : dessin (plusieurs minutes possibles)…")
-    _check_cancel(job_id)
-    idx = A.generate_candidate(plan["asset"], info["refs"], prompt, None, "replicate", None,
-                               on_progress=_progress(job_id), on_submit=_submit(job_id))
-    with A.LOCK:
-        data = A.load()
-        data["assets"][plan["asset"]]["prompt"] = prompt
-        A.set_status(data, plan["asset"], idx, True)
-        A.save(data)
-
-
-def set_continuity(sid: str, pid: str, on: bool) -> dict:
-    """Active ou désactive la continuité d'un plan (« tenue d'origine » quand elle est désactivée)."""
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-        _, plan = _find_plan(sc, pid)
-        plan["continuity"] = bool(on)
-    with A.LOCK:
-        assets = A.load()["assets"]
-    apply_continuity(sc, assets)
-    with S.LOCK:
-        S.save(st)
-    return {"ok": True}
-
-
-def save_refs(sid: str, pid: str, exclude: list, extra: list) -> dict:
-    """Réglage fin : coche ou décoche les références automatiques, ajoute ou retire des images."""
-    with A.LOCK:
-        assets = A.load()["assets"]
-    for ref in extra:
-        if ref not in assets or assets[ref].get("validated_candidate") is None:
-            raise ValueError("Cette image n'est pas encore retenue : elle ne peut pas servir de référence.")
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-        _, plan = _find_plan(sc, pid)
-        plan["refs_exclude"] = [str(k) for k in exclude]
-        plan["refs_extra"] = [r for r in extra if r != plan["asset"]]
-        # Chaque référence automatique a désormais une décision explicite, qui prime sur la continuité.
-        info = SC.plan_refs(A.load()["assets"], sc, plan)
-        plan["manual_refs"] = {a["key"]: (a["key"] in plan["refs_exclude"]) for a in info["auto"] if a.get("key")}
-        S.save(st)
-    return {"ok": True}
-
-
-def copy_plan_image(sid: str, pid: str, source: str, candidate: int) -> dict:
-    """Met une copie d'une image existante dans un plan (glisser-déposer). Le plan source ne change pas :
-    « Refaire » sur l'un ne touche pas l'autre."""
-    with S.LOCK:
-        st = S.load()
-        sc = _find_scene(st, sid)
-        _, plan = _find_plan(sc, pid)
-    with A.LOCK:
-        data = A.load()
-    src = data["assets"].get(source)
-    if src is None or not 0 <= candidate < len(src.get("candidates", [])):
-        raise ValueError("Image introuvable")
-    cand = dict(src["candidates"][candidate])
-    origin = paths.data_root() / cand["file"]
-    if not origin.exists():
-        raise ValueError("Fichier de l'image introuvable")
-    new_id = f"scene_{sid}_{uuid.uuid4().hex[:6]}"
-    folder = paths.data_root() / "assets" / new_id
-    folder.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(origin, folder / "cand_00.png")
-    cand["file"] = f"assets/{new_id}/cand_00.png"
-    with A.LOCK:
-        data = A.load()
-        A.add_asset(data, new_id, "scene", f"{sc['title']} · plan {pid} (copie)", sc.get("summary", ""))
-        data["assets"][new_id].update(status="validated", validated_candidate=0, candidates=[cand],
-                                      prompt=src.get("prompt", ""))
-        A.save(data)
-    with S.LOCK:
-        st = S.load()
-        target = _find_plan(_find_scene(st, sid), pid)[1]
-        target["asset"] = new_id
-        target.pop("candidate", None)
-        S.save(st)
-    return {"ok": True, "asset": new_id}
-
-
-def suggest_prompt(kind: str, target: str) -> dict:
-    """Propose un nouveau prompt (en anglais) pour une carte ou un plan. Ne l'enregistre pas."""
-    with S.LOCK:
-        st = S.load()
-    _ensure_descriptors(st)
-    if kind == "card":
-        with A.LOCK:
-            data = A.load()
-        if target not in data["assets"]:
-            raise ValueError("Élément inconnu")
-        return {"prompt": PR.suggest(st, data, target)}
-    if kind == "plan":
-        for sc in S.all_scenes(st):
-            for k, plan in enumerate(sc.get("plans", [])):
-                if plan["asset"] == target:
-                    with A.LOCK:
-                        data = A.load()
-                    return {"prompt": SC.suggest(st, data, sc, k)}
-        raise ValueError("Plan inconnu")
-    raise ValueError("Type inconnu")
-
-
-# ---------- jeu ----------
 
 def export_game() -> dict:
     with S.LOCK:
@@ -1494,12 +306,8 @@ def export_game() -> dict:
     lint = RE.lint()
     return {"export": info, "warnings": warnings, "lint": lint}
 
-
 def launch_game() -> dict:
     return RE.launch()
-
-
-# ---------- recommencer ----------
 
 def reset() -> dict:
     """Met l'histoire et le registre d'images à zéro. Une copie est gardée dans work/backups/."""
@@ -1517,9 +325,6 @@ def reset() -> dict:
             shutil.copy(paths.assets_file(), backup / "assets.yaml")
         A.save({"version": 1, "assets": {}})
     return {"ok": True, "backup": str(backup)}
-
-
-# ---------- routage HTTP ----------
 
 def route(method: str, path: str, body: dict) -> dict:
     if method == "GET":

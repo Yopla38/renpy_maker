@@ -6,6 +6,7 @@ Rien n'est envoyé au modèle image sans l'accord de l'auteur.
 
 from __future__ import annotations
 
+import appsettings
 import re
 
 import llm
@@ -101,7 +102,7 @@ def clean_descriptor(text: str) -> str:
 def describe_person(st: dict, name: str, description: str = "", provider: str | None = None) -> str | None:
     """Genre et âge d'un personnage, en quelques mots anglais. None si le LLM ne donne rien d'utilisable
     (on réessaie plus tard, au lieu d'enregistrer une phrase de refus comme descriptif)."""
-    provider = provider or st["settings"]["providers"]["text"]
+    provider = provider or appsettings.provider("text")
     story = " ".join(x for x in (st.get("idea"), st.get("synopsis")) if x)
     user = f"Person : {name}\nNotes (French) : {description}" if description else f"Person : {name}"
     if story:
@@ -267,5 +268,5 @@ def with_style(text: str, style: str) -> str:
 
 def suggest(st: dict, assets_data: dict, aid: str, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], aid)
-    provider = provider or st["settings"]["providers"]["text"]
+    provider = provider or appsettings.provider("text")
     return with_style(clean(llm.complete_task("prompt", system, user, provider)), llm_style())

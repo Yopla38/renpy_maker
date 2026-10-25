@@ -99,7 +99,7 @@ class SceneTests(unittest.TestCase):
             text = SC.suggest(st, data, sc, 0)
         self.assertTrue(text.startswith("A candlelit table, two people."))
         self.assertTrue(text.endswith(SC.PR.llm_style()))  # le style du projet termine toujours le prompt
-        self.assertEqual(m.call_args[0][0], st["settings"]["providers"]["text"])
+        self.assertEqual(m.call_args[0][0], appsettings.provider("text"))
 
     def test_several_images_can_share_a_line(self):
         st, sc, data = make()
