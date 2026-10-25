@@ -166,10 +166,18 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .inline { display: inline-flex; align-items: center; gap: 10px; margin: 0; font-weight: 700; }
 select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; max-width: 100%; }
 .plans { display: grid; gap: 12px; margin-top: 12px; }
-.plan { display: grid; grid-template-columns: 240px 1fr; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.plan { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
 .plan .frame { aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--paper); position: relative; }
-.plan .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.plan > * { min-width: 0; }
+.plan .frame img { width: 100%; height: 100%; object-fit: cover; display: block; max-width: 100%; }
 .plan .frame .wait { font-size: 13px; padding: 10px; }
+.covered { margin: 8px 0; }
+.covered summary { cursor: pointer; font-weight: 800; font-size: 13px; color: var(--muted); }
+.covered .line { margin: 6px 0; }
+.sololine { display: grid; grid-template-columns: minmax(0, 200px) 1fr; gap: 8px; margin: 6px 0; }
+.sololine textarea { margin-top: 0; }
+@media (max-width: 560px) { .sololine { grid-template-columns: 1fr; } }
+.pause-tag { background: #efe6d4; border: 1px dashed var(--accent); border-radius: 999px; padding: 2px 10px; font: 800 12px Nunito, sans-serif; color: var(--accent); }
 .plan-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 .plan textarea { margin-top: 0; min-height: 0; font-size: 15px; }
 .plan .prompt { margin-top: 8px; }
@@ -241,8 +249,45 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 .cat-caption { padding: 11px 13px 13px; }
 .cat-caption b { display: block; font: 700 16px/1.25 Fraunces, Georgia, serif; }
 .cat-caption small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+.mode-choice { margin: 0 0 18px; }
+.mode-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 10px; }
+.mode-card { text-align: left; background: var(--paper); border: 2px solid var(--line); border-radius: 18px; padding: 18px; color: var(--ink); font: inherit; transition: transform .15s ease, border-color .15s ease; }
+.mode-card:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--accent); }
+.mode-card b { display: block; font: 700 19px Fraunces, Georgia, serif; margin-bottom: 6px; }
+.mode-card span { display: block; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.dz-form { margin: 0 0 14px; }
+.dz-field { display: block; font-weight: 800; margin: 0 0 12px; }
+.dz-field input, .dz-field textarea { display: block; width: 100%; margin-top: 6px; }
+.dz-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-top: 4px; }
+.dz-outfits { margin: 16px 0 6px; }
+.dz-outfits h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.dz-outfit { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-bottom: 12px; }
+.dz-outfit.has-img { grid-template-columns: 90px 1fr; }
+.dz-thumb { width: 90px; height: 120px; object-fit: cover; border-radius: 12px; }
+.refs-box { margin: 12px 0; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 10px 14px; }
+.refs-box summary { cursor: pointer; font-weight: 800; }
+.ref-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 6px; }
+.ref-pick { width: 84px; border: 2px solid var(--line); background: var(--card); border-radius: 12px; padding: 4px; color: var(--ink); font: 700 11px Nunito, sans-serif; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: transform .15s ease; }
+.ref-pick img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
+.ref-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.ref-pick.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(196, 98, 63, .25); }
+.ref-pick:hover:not(:disabled) { transform: translateY(-1px); }
+.line-wrap { margin-bottom: 8px; }
+.line-edit { display: grid; grid-template-columns: minmax(0, 180px) 1fr; gap: 8px; margin: 6px 0; }
+.line-edit textarea { margin-top: 0; }
+.line-edit.narr textarea { font-style: italic; }
+@media (max-width: 560px) { .line-edit { grid-template-columns: 1fr; } }
+.bubbles { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px 6px; padding: 8px 10px; background: var(--paper); border-radius: 14px; border: 1px dashed var(--line); }
+.bubble-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bubble-label { font: 800 12px Nunito, sans-serif; color: var(--muted); margin-right: 4px; }
+.bubble { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 4px 11px; font: 700 13px Nunito, sans-serif; transition: transform .12s ease; }
+.bubble:hover { transform: translateY(-1px); }
+.bubble.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bubble.place.on { background: var(--ink); border-color: var(--ink); }
+.bubble.outfit.on { background: #6b8f6b; border-color: #6b8f6b; }
+@media (max-width: 560px) { .dz-outfit.has-img { grid-template-columns: 1fr; } .dz-thumb { width: 100%; height: auto; aspect-ratio: 2 / 3; } }
 @media (max-width: 560px) { .cat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .cat-caption b { font-size: 15px; } }
-@media (max-width: 560px) { .plan { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .plan { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) {
   body { font-size: 16px; }
   .stage { border-radius: 18px; }
@@ -263,6 +308,7 @@ select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); 
 </header>
 <nav class="steps" id="steps"></nav>
 <main><section class="stage" id="stage"><p class="notice">Chargement…</p></section></main>
+
 
 <script>
 const STEPS = [
@@ -292,6 +338,7 @@ let job = null;        // tâche en cours : {id, message}
 let err = "";          // dernier message d'erreur à montrer
 let draft = null;      // brouillon du formulaire d'idée (survit aux rafraîchissements)
 let planDraft = {};    // découpage modifié, par scène, pas encore enregistré
+let planSaving = {};   // scènes dont le découpage est en cours d'enregistrement (retour visuel immédiat)
 let gameResult = null; // résultat de la dernière création du jeu
 let chapterForm = null; // formulaire « nouveau chapitre » ouvert : {count, guidance}
 let promptDraft = {}; // suggestion de prompt pas encore générée, par identifiant (affichée dans le champ)
@@ -317,20 +364,27 @@ async function api(method, path, body) {
   return data;
 }
 
-function stepIndex(id) { return STEPS.findIndex((s) => s.id === id); }
+// En mode Designer, les tenues se valident avec leur personnage : l'étape Tenues n'existe pas.
+function stepList() {
+  return V && V.character_mode === "designer" ? STEPS.filter((s) => s.id !== "tenues") : STEPS;
+}
+
+function stepIndex(id) { return stepList().findIndex((s) => s.id === id); }
 function firstOpen() {
-  const i = STEPS.findIndex((s) => s.id !== "jouer" && !V.done[s.id]);
-  return i === -1 ? STEPS.length - 1 : i;
+  const list = stepList();
+  const i = list.findIndex((s) => s.id !== "jouer" && !V.done[s.id]);
+  return i === -1 ? list.length - 1 : i;
 }
 
 async function load() {
   V = await api("GET", "/api/facile");
-  if (!step) step = STEPS[firstOpen()].id;
+  if (!step) step = stepList()[firstOpen()].id;
+  if (step === "tenues" && stepList() !== STEPS) step = "personnages";
 }
 
 function renderSteps() {
   const open = firstOpen();
-  $("steps").innerHTML = STEPS.map((s, i) => {
+  $("steps").innerHTML = stepList().map((s, i) => {
     const cls = V.done[s.id] ? "done" : (s.id === step ? "current" : "");
     return `<button class="${cls}" ${i <= open ? "" : "disabled"} onclick="go('${s.id}')">` +
       `<span class="n">${V.done[s.id] ? "✓" : i + 1}</span>${s.label}</button>`;
@@ -347,12 +401,12 @@ function go(id) {
 
 function next() {
   const i = stepIndex(step);
-  if (i < STEPS.length - 1) go(STEPS[i + 1].id);
+  if (i < stepList().length - 1) go(stepList()[i + 1].id);
 }
 
 function prev() {
   const i = stepIndex(step);
-  if (i > 0) go(STEPS[i - 1].id);
+  if (i > 0) go(stepList()[i - 1].id);
 }
 
 function jobHtml() {
@@ -447,7 +501,8 @@ function catalogCard(it, tab) {
   const media = it.image
     ? `<img class="zoomable" src="${esc(it.image)}" alt="${esc(it.name)}">`
     : `<div class="cat-empty"><span>${it.blocked ? "En attente du personnage" : "Pas encore dessinée"}</span>
-        ${canDraw ? `<button class="ghost small" onclick="${draw}">Dessiner</button>` : ""}</div>`;
+        ${canDraw ? `<button class="ghost small" onclick="${draw}">Dessiner</button>` : ""}
+        </div>`;
   return `<article class="cat-card ${it.ready ? "" : "todo"}">
     <div class="cat-media ${shape}">${media}</div>
     <div class="cat-caption"><b>${esc(it.name)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</div>
@@ -604,7 +659,7 @@ async function writeChapter() {
   const { count, guidance } = chapterForm;
   await runJob(
     () => api("POST", "/api/facile/chapter/add", { count, guidance }),
-    () => { chapterForm = null; step = STEPS[firstOpen()].id; },
+    () => { chapterForm = null; step = stepList()[firstOpen()].id; },
   );
 }
 
@@ -714,6 +769,10 @@ async function writeStory() {
   );
 }
 
+async function writeDialogues() {
+  await runJob(() => api("POST", "/api/facile/dialogues", {}));
+}
+
 async function completeStory() {
   await runJob(() => api("POST", "/api/facile/complete", {}));
 }
@@ -751,7 +810,7 @@ function promptBox(aid, saved, suggestKind, redoJs) {
     <summary>Prompt de l'image (en anglais)</summary>
     ${warns}
     ${text ? "" : `<p class="notice">Pas encore de prompt : il sera rédigé à partir du texte du plan.</p>`}
-    <textarea id="pr-${aid}" rows="4">${esc(text)}</textarea>
+    <textarea id="pr-${aid}" rows="4" oninput="promptDraft['${aid}'] = this.value">${esc(text)}</textarea>
     <div class="prompt-actions">
       <button class="ghost small" onclick="suggestPrompt('${suggestKind}', '${aid}')" ${busy ? "disabled" : ""}>Proposer un autre prompt</button>
       <button class="primary small" onclick="${redoJs}" ${busy ? "disabled" : ""}>Refaire avec ce prompt</button>
@@ -759,6 +818,12 @@ function promptBox(aid, saved, suggestKind, redoJs) {
 }
 
 async function suggestPrompt(kind, id) {
+  // Les modifications du designer, pas encore enregistrées, doivent entrer dans le prompt proposé.
+  if (kind === "card" && dzDraft[id]) {
+    const key = V.characters.some((c) => c.aid === id) ? "characters" : "outfits";
+    await saveIdentity(id, key);
+    if (err) return;
+  }
   // Même bulle que les générations : on voit que ça travaille, en bas de l'écran.
   job = { id: "local", message: "Rédaction du prompt en cours (quelques secondes)…", progress: null };
   render();
@@ -777,6 +842,7 @@ async function redoCard(aid, useText) {
   autoTried[aid] = true;
   const prompt = useText ? $("pr-" + aid).value : undefined;
   // Le brouillon reste affiché pendant la génération, et devient le prompt enregistré si elle réussit.
+  if (useText) promptDraft[aid] = prompt;
   await runJob(() => api("POST", "/api/facile/card", { aid, prompt }), () => { if (useText) delete promptDraft[aid]; });
 }
 
@@ -787,9 +853,156 @@ function currentCard() {
 }
 
 function maybeAutoDraw() {
+  if (V.character_mode !== "auto") return;  // en mode Designer, rien n'est dessiné sans validation
   const it = currentCard();
   if (!it || it.image || !it.aid || it.blocked || job || V.busy || autoTried[it.aid]) return;
   redoCard(it.aid);
+}
+
+// --- Personnages et tenues : mode Automatique ou Designer ---
+const dzDraft = {};         // brouillons du formulaire Designer, par élément
+const prefillTried = {};    // pré-remplissage déjà demandé pour ce personnage
+
+async function setCharacterMode(mode) {
+  try {
+    await api("POST", "/api/facile/character-mode", { mode });
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+function modeChoiceHtml() {
+  return `<div class="mode-choice">
+    <p class="kicker">Comment créer les personnages ?</p>
+    <div class="mode-cards">
+      <button class="mode-card" onclick="setCharacterMode('auto')" ${job ? "disabled" : ""}>
+        <b>Automatique</b><span>Les personnages et tenues sont dessinés les uns après les autres, à partir de l'histoire.</span></button>
+      <button class="mode-card" onclick="setCharacterMode('designer')" ${job ? "disabled" : ""}>
+        <b>Designer</b><span>Vous relisez et modifiez chaque personnage (nom, apparence, tenues), puis vous le dessinez.</span></button>
+    </div></div>`;
+}
+
+function designerDraft(it) {
+  if (!dzDraft[it.aid]) dzDraft[it.aid] = { name: it.name, description: it.description || "", descriptor: it.descriptor || "" };
+  return dzDraft[it.aid];
+}
+
+const GENDER_OPTIONS = ["young woman", "adult woman", "young man", "adult man", "teenage girl", "teenage boy", "child"];
+const GENDER_LABELS = { "young woman": "Jeune femme", "adult woman": "Femme adulte", "young man": "Jeune homme",
+  "adult man": "Homme adulte", "teenage girl": "Adolescente", "teenage boy": "Adolescent", "child": "Enfant" };
+
+function genderFieldHtml(aid, value) {
+  const options = value && !GENDER_OPTIONS.includes(value) ? [value, ...GENDER_OPTIONS] : GENDER_OPTIONS;
+  return `<label class="dz-field">Genre et âge
+      <select onchange="dzDraft['${aid}'].descriptor = this.value; render()">
+        <option value="" ${value ? "" : "selected"}>— à choisir —</option>
+        ${options.map((o) => `<option value="${esc(o)}" ${o === value ? "selected" : ""}>${esc(GENDER_LABELS[o] || o)}</option>`).join("")}
+      </select></label>
+      ${value ? "" : `<p class="notice">Le texte ne précise pas le genre : choisissez-le ici avant de dessiner.</p>`}`;
+}
+
+function designerFormHtml(key, it) {
+  const d = designerDraft(it);
+  const isChar = key === "characters";
+  const busy = job || V.busy;
+  return `<div class="dz-form">
+    <label class="dz-field">${isChar ? "Nom" : "Nom de la tenue"}
+      <input type="text" value="${esc(d.name)}" oninput="dzDraft['${it.aid}'].name = this.value"></label>
+    <label class="dz-field">${isChar ? "Apparence" : "Description"}
+      <textarea rows="3" oninput="dzDraft['${it.aid}'].description = this.value">${esc(d.description)}</textarea></label>
+    ${isChar ? genderFieldHtml(it.aid, d.descriptor) : ""}
+    <div class="dz-row">
+      ${isChar ? `<button class="ghost small" onclick="prefillIdentity('${it.aid}')" ${busy ? "disabled" : ""}>Pré-remplir depuis l'histoire</button>` : ""}
+      <button class="ghost small" onclick="saveIdentity('${it.aid}', '${key}')" ${busy ? "disabled" : ""}>Enregistrer</button>
+      <button class="primary small" onclick="validateAndDraw('${it.aid}', '${key}')" ${busy || it.blocked || (isChar && !d.descriptor) ? "disabled" : ""}>Valider et dessiner</button>
+    </div>${it.blocked ? `<p class="notice">Dessinez d'abord le personnage : sa tenue s'appuie sur son image.</p>` : ""}
+  </div>`;
+}
+
+async function prefillIdentity(aid) {
+  prefillTried[aid] = true;
+  job = { id: "local", message: "Lecture de l'histoire pour pré-remplir la description…", progress: null };
+  render();
+  try {
+    const r = await api("POST", "/api/facile/identity/suggest", { aid });
+    const draft = designerDraft(findElement(aid) || { aid, name: "", description: "", descriptor: "" });
+    draft.description = r.description;
+    if (r.descriptor) draft.descriptor = r.descriptor;
+    err = "";
+  } catch (e) { err = e.message; }
+  job = null;
+  render();
+}
+
+function genderOk(text) {
+  return /\b(woman|man|girl|boy|female|male|lady|gentleman|teenager|child)\b/i.test(text || "");
+}
+
+function findElement(aid) {
+  return [...V.characters, ...V.locations, ...V.outfits].find((x) => x.aid === aid);
+}
+
+// --- Images de référence, pour un personnage, une tenue ou un lieu ---
+function refsHtml(it, key) {
+  if (!it.aid) return "";
+  const on = it.refs || [];
+  const choices = V.ref_choices.filter((r) => r.ref !== it.aid);
+  const siblings = key === "outfits"
+    ? V.outfits.filter((o) => o.parent === it.parent && o.aid !== it.aid && o.ready) : [];
+  const base = key === "outfits" ? `<label class="dz-field">Part de la tenue
+      <select onchange="setElementBase('${it.aid}', this.value)" ${job ? "disabled" : ""}>
+        <option value="">Le personnage (dessinée à partir de lui)</option>
+        ${siblings.map((o) => `<option value="${esc(o.aid)}" ${o.aid === it.based_on ? "selected" : ""}>${esc(o.name)}</option>`).join("")}
+      </select></label>` : "";
+  const picks = choices.length
+    ? choices.map((r) => `<button class="ref-pick ${on.includes(r.ref) ? "on" : ""}" title="${esc(r.label)}"
+        onclick="toggleElementRef('${it.aid}', '${esc(r.ref)}')" ${job ? "disabled" : ""}>
+        <img src="${esc(r.image)}" alt=""><span>${esc(r.label)}</span></button>`).join("")
+    : `<p class="notice">Aucune autre image retenue pour l'instant.</p>`;
+  return `<details class="refs-box" ${on.length || it.based_on ? "open" : ""}>
+    <summary>Images de référence${on.length ? ` (${on.length})` : ""}${it.based_on ? " · tenue de départ" : ""}</summary>
+    ${base}<div class="ref-row">${picks}</div>
+    <p class="notice">Les images cochées sont données au modèle en plus de l'élément : elles indiquent le style, un lieu ou une tenue à reprendre.</p>
+  </details>`;
+}
+
+async function saveElementRefs(aid, refs, based) {
+  try {
+    await api("POST", "/api/facile/element/refs", { aid, refs, based_on: based || null });
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+function toggleElementRef(aid, ref) {
+  const it = findElement(aid);
+  const on = it.refs || [];
+  saveElementRefs(aid, on.includes(ref) ? on.filter((x) => x !== ref) : [...on, ref], it.based_on);
+}
+
+function setElementBase(aid, value) {
+  saveElementRefs(aid, findElement(aid).refs || [], value);
+}
+
+async function saveIdentity(aid, key) {
+  const d = dzDraft[aid] || designerDraft(findElement(aid));
+  try {
+    await api("POST", "/api/facile/element/update", {
+      aid, name: d.name, description: d.description,
+      descriptor: key === "characters" ? d.descriptor : undefined,
+    });
+    delete dzDraft[aid];
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+async function validateAndDraw(aid, key) {
+  await saveIdentity(aid, key);  // enregistre, puis dessine avec la nouvelle description
+  if (!err) await redoCard(aid);
 }
 
 function bodyCards(key, portraitClass, noun) {
@@ -806,18 +1019,35 @@ function bodyCards(key, portraitClass, noun) {
   else if (job) pic = `<div class="wait"><span class="spin"></span>${esc(job.message)}</div>`;
   else pic = `<div class="wait">Pas encore dessinée : utilisez « Refaire l'image »</div>`;
   const last = i === items.length - 1;
+  const designing = V.character_mode === "designer" && key === "characters";
+  const outfits = designing ? V.outfits.filter((o) => o.parent === it.name) : [];
+  const outfitsReady = outfits.every((o) => o.ready);
+  const outfitsHtml = designing ? `
+      <div class="dz-outfits"><h4>Ses tenues</h4>
+        ${outfits.length ? outfits.map((o) => `
+          <div class="dz-outfit ${o.image ? "has-img" : ""}">${o.image ? `<img class="zoomable dz-thumb" src="${esc(o.image)}" alt="${esc(o.name)}">` : ""}
+            <div class="dz-outfit-form">${designerFormHtml("outfits", o)}
+              ${o.aid ? promptBox(o.aid, o.prompt, "card", `redoCard('${o.aid}', true)`) : ""}
+              ${refsHtml(o, "outfits")}
+              ${o.aid ? loraHtml(o.aid, job || V.busy) : ""}</div></div>`).join("")
+          : `<p class="notice">Aucune tenue dans les scènes pour ce personnage.</p>`}
+      </div>` : "";
   return {
     body: `
+      ${V.character_mode == null && key !== "locations" ? modeChoiceHtml() : ""}
       <p class="count">${i + 1} / ${items.length}</p>
       <figure class="portrait ${portraitClass}">${pic}</figure>
-      <h2>${esc(it.name)}</h2>
+      ${V.character_mode === "designer" && it.aid && key !== "locations" ? designerFormHtml(key, it) : `<h2>${esc(it.name)}</h2>`}
       ${it.parent ? `<p class="notice center">Porté par ${esc(it.parent)}</p>` : ""}
-      <div class="row"><button class="ghost small" onclick="redoCard('${it.aid}')" ${busy || !it.aid || it.blocked ? "disabled" : ""}>Refaire l'image</button></div>
+      <div class="row"><button class="ghost small" onclick="redoCard('${it.aid}')" ${busy || !it.aid || it.blocked ? "disabled" : ""}>Refaire l'image</button>
+        </div>
       ${it.aid ? promptBox(it.aid, it.prompt, "card", `redoCard('${it.aid}', true)`) : ""}
-      ${it.aid ? loraHtml(it.aid, busy) : ""}`,
+      ${refsHtml(it, key)}
+      ${it.aid ? loraHtml(it.aid, busy) : ""}
+      ${outfitsHtml}`,
     foot: `<div class="actions">
       <button class="ghost" onclick="${i === 0 ? "prev()" : `cardStep('${key}', -1)`}" ${busy ? "disabled" : ""}>${i === 0 ? "Retour" : "← Précédent"}</button>
-      <div class="right"><button class="primary" ${!it.ready || busy ? "disabled" : ""}
+      <div class="right"><button class="primary" ${!it.ready || !outfitsReady || busy ? "disabled" : ""}
         onclick="${last ? "next()" : `cardStep('${key}', 1)`}">${last ? "Continuer" : "Suivant →"}</button></div></div>`,
   };
 }
@@ -835,7 +1065,9 @@ function bodyHistoire() {
       <header><span class="num">Scène ${n + 1}</span><h3>${esc(s.title)}</h3></header>
       <p class="summary">${esc(s.summary)}</p>
       ${s.dialogue.length
-        ? `<div class="lines">${s.dialogue.map((l) => `<p class="line ${l.speaker === "Narration" ? "narr" : ""}"><b>${esc(l.speaker)}</b>${esc(l.text)}</p>`).join("")}</div>`
+        ? `<div class="lines">${s.dialogue.map((l, i) => `<div class="line-wrap">
+            ${lineEditHtml(s, l, i)}
+            ${bubblesHtml(s, i)}</div>`).join("")}</div>`
         : `<p class="warn">Les répliques de cette scène ne sont pas encore écrites.</p>`}
       <div><button class="ghost small" onclick="redoDialogue('${s.id}')" ${job || V.busy ? "disabled" : ""}>Réécrire cette scène</button></div>
     </article>`).join("");
@@ -843,9 +1075,90 @@ function bodyHistoire() {
     body: `<div class="scenes">${cards}</div>`,
     foot: `<div class="actions">
       <button class="ghost" onclick="prev()" ${job ? "disabled" : ""}>Retour</button>
-      <div class="right">${missing ? `<button class="ghost" onclick="completeStory()" ${job ? "disabled" : ""}>Écrire les répliques manquantes</button>` : ""}
+      <div class="right">${missing ? `<button class="ghost" onclick="writeDialogues()" ${job ? "disabled" : ""}>Écrire les répliques (${missing} scène(s))</button>` : ""}
       <button class="primary" onclick="next()" ${job || missing ? "disabled" : ""}>Continuer</button></div></div>`,
   };
+}
+
+// --- Bulles par réplique : qui est là, où, et en quelle tenue (elles guident le découpage) ---
+function lineTags(s, i) {
+  return (s.line_tags && s.line_tags[String(i)]) || { characters: [], location: "", outfits: {} };
+}
+
+function bubblesHtml(s, i) {
+  if (job || V.busy) return "";
+  const t = lineTags(s, i);
+  const chars = s.characters.map((c, ci) => `<button class="bubble ${t.characters.includes(c) ? "on" : ""}"
+      onclick="tagChar('${s.id}', ${i}, ${ci})">${esc(c)}</button>`).join("");
+  const locs = V.locations.map((l, li) => `<button class="bubble place ${t.location === l.name ? "on" : ""}"
+      onclick="tagPlace('${s.id}', ${i}, ${li})">${esc(l.name)}</button>`).join("");
+  const outfits = s.characters.filter((c) => t.characters.includes(c)).map((c) => {
+    const list = V.outfits.filter((o) => o.parent === c);
+    if (!list.length) return "";
+    return `<div class="bubble-row"><span class="bubble-label">${esc(c)} :</span>${list.map((o, oi) =>
+      `<button class="bubble outfit ${t.outfits[c] === o.name ? "on" : ""}" onclick="tagOutfit('${s.id}', ${i}, '${s.characters.indexOf(c)}', ${V.outfits.indexOf(o)})">${esc(o.name)}</button>`).join("")}</div>`;
+  }).join("");
+  return `<div class="bubbles">
+    <div class="bubble-row"><span class="bubble-label">Présents :</span>${chars || '<span class="notice">Aucun personnage dans cette scène.</span>'}</div>
+    ${locs ? `<div class="bubble-row"><span class="bubble-label">Lieu :</span>${locs}</div>` : ""}
+    ${outfits}
+  </div>`;
+}
+
+// Une réplique déjà écrite : on corrige la personne qui parle et le texte. Enregistré en quittant le champ.
+function lineEditHtml(s, l, i) {
+  const busy = job || V.busy;
+  const speakers = ["Narration", ...s.characters];
+  const opts = speakers.map((n) => `<option value="${esc(n)}" ${l.speaker === n ? "selected" : ""}>${esc(n)}</option>`).join("");
+  return `<div class="line-edit ${l.speaker === "Narration" ? "narr" : ""}">
+    <select id="sp-${s.id}-${i}" ${busy ? "disabled" : ""} onchange="saveLine('${s.id}', ${i})">${opts}</select>
+    <textarea id="tx-${s.id}-${i}" rows="2" ${busy ? "disabled" : ""} onchange="saveLine('${s.id}', ${i})">${esc(l.text)}</textarea>
+  </div>`;
+}
+
+async function saveLine(sid, i) {
+  const speaker = $("sp-" + sid + "-" + i).value;
+  const text = $("tx-" + sid + "-" + i).value;
+  try {
+    await api("POST", "/api/facile/dialogue/line", { scene: sid, line: i, speaker, text });
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+async function saveTags(sid, i, t) {
+  try {
+    await api("POST", "/api/facile/line-tags", { scene: sid, line: i, characters: t.characters, location: t.location, outfits: t.outfits });
+    await load();
+    err = "";
+  } catch (e) { err = e.message; }
+  render();
+}
+
+function sceneOf(sid) { return V.scenes.find((x) => x.id === sid); }
+
+function tagChar(sid, i, ci) {
+  const s = sceneOf(sid), t = JSON.parse(JSON.stringify(lineTags(s, i))), c = s.characters[ci];
+  if (t.characters.includes(c)) {
+    t.characters = t.characters.filter((x) => x !== c);
+    delete t.outfits[c];
+  } else t.characters.push(c);
+  saveTags(sid, i, t);
+}
+
+function tagPlace(sid, i, li) {
+  const t = JSON.parse(JSON.stringify(lineTags(sceneOf(sid), i)));
+  const name = V.locations[li].name;
+  t.location = t.location === name ? "" : name;
+  saveTags(sid, i, t);
+}
+
+function tagOutfit(sid, i, ci, oi) {
+  const s = sceneOf(sid), t = JSON.parse(JSON.stringify(lineTags(s, i)));
+  const c = s.characters[ci], name = V.outfits[oi].name;
+  t.outfits[c] = t.outfits[c] === name ? "" : name;
+  saveTags(sid, i, t);
 }
 
 async function redoDialogue(sid) {
@@ -855,7 +1168,8 @@ async function redoDialogue(sid) {
 // --- étape Plans : découpage par scène, une image par plan ---
 // Affichage : le brouillon s'il existe (modifications non enregistrées), sinon le découpage du serveur.
 function planRows(s) {
-  return planDraft[s.id] || s.plans.map((p) => ({ id: p.id, from_line: p.from_line, text: p.text }));
+  return planDraft[s.id] || s.plans.map((p) => ({ id: p.id, from_line: p.from_line, text: p.text, pause: !!p.pause,
+    speaker: p.speaker || "", speech: p.speech || "" }));
 }
 
 // Modification : on ne crée le brouillon qu'à la première modification.
@@ -893,17 +1207,24 @@ function insertPlan(sid, k) {
   const lo = rows[k - 1].from_line;
   const hi = k < rows.length ? rows[k].from_line : s.dialogue.length;
   const at = Math.floor((lo + hi) / 2);
-  if (at <= lo || at >= hi) {
-    err = "Pas de réplique libre entre ces deux plans : déplacez l'un d'eux d'abord.";
-    return render();
+  if (k === rows.length) {
+    rows.splice(k, 0, { id: null, from_line: s.dialogue.length, text: "", pause: true });
+  } else if (at > lo && at < hi) {
+    rows.splice(k, 0, { id: null, from_line: at, text: "" });
+  } else if (k < rows.length) {
+    // Pas de réplique libre : on ajoute une image seule, sans réplique, juste avant le plan suivant.
+    // Les images seules peuvent se suivre : on n'empêche pas d'en mettre une après une autre.
+    rows.splice(k, 0, { id: null, from_line: hi, text: "", pause: true });
+  } else {
+    // Après le dernier plan : une image seule, affichée après la dernière réplique.
+    rows.splice(k, 0, { id: null, from_line: s.dialogue.length, text: "", pause: true });
   }
-  rows.splice(k, 0, { id: null, from_line: at, text: "" });
   err = "";
   render();
 }
 
 function insertHtml(s, k, busy) {
-  const room = planRows(s).length < V.max_plans;
+  const room = true;  // pas de plafond pour les plans créés à la main
   return `<div class="insert"><button class="plus" title="Ajouter un plan ici"
     onclick="insertPlan('${s.id}', ${k})" ${busy || !room ? "disabled" : ""}>+</button></div>`;
 }
@@ -964,12 +1285,15 @@ async function proposePlans(sid) {
 }
 
 async function savePlans(sid) {
+  planSaving[sid] = true;  // le bouton change tout de suite, avant la réponse du serveur
+  render();
   try {
     await api("POST", "/api/facile/scene/plans", { scene: sid, plans: planDraft[sid] || [] });
     delete planDraft[sid];
     err = "";
     await load();
   } catch (e) { err = e.message; }
+  planSaving[sid] = false;
   render();
 }
 
@@ -1002,6 +1326,30 @@ async function allPlanImages() {
   await runJob(() => api("POST", "/api/facile/plan/images", {}));
 }
 
+// Les répliques que ce plan couvre, en entier : de sa première réplique à celle du plan suivant.
+function coveredHtml(s, r, rows, k) {
+  const from = r.from_line;
+  const next = rows.slice(k + 1).find((x) => x.from_line > from);
+  const to = next ? next.from_line : s.dialogue.length;
+  const spoken = s.dialogue.map((l, i) => ({ l, i })).slice(from, to);
+  const items = spoken.map(({ l, i }) => lineEditHtml(s, l, i)).join("");
+  return `<details class="covered" open><summary>Répliques de ce plan (${spoken.length})</summary>
+    ${r.pause && r.speech ? `<p class="line"><b>Sur l'image</b>${esc(r.speech)}</p>` : ""}
+    ${items || (r.pause ? "" : `<p class="notice">Aucune réplique : c'est une image seule.</p>`)}
+  </details>`;
+}
+
+// Image sans réplique : une réplique peut être tapée librement, sur cette image.
+function solineHtml(s, r, k, busy) {
+  const speakers = ["Narration", ...s.characters];
+  const opts = speakers.map((n) => `<option value="${esc(n)}" ${(r.speaker || "Narration") === n ? "selected" : ""}>${esc(n)}</option>`).join("");
+  return `<div class="sololine">
+    <select ${busy ? "disabled" : ""} onchange="planField('${s.id}', ${k}, 'speaker', this.value)">${opts}</select>
+    <textarea rows="2" ${busy ? "disabled" : ""} oninput="planField('${s.id}', ${k}, 'speech', this.value, true)"
+      placeholder="Réplique lue pendant cette image (facultatif)">${esc(r.speech || "")}</textarea>
+  </div>`;
+}
+
 function planHtml(s, r, k, busy) {
   const vp = s.plans.find((p) => p.id === r.id);
   const rows = planRows(s);
@@ -1011,16 +1359,20 @@ function planHtml(s, r, k, busy) {
   const shown = r.characters || (vp ? vp.characters : []);
   const chips = s.characters.map((name) => `<button class="chip ${shown.includes(name) ? "on" : ""}"
       onclick="togglePlanChar('${s.id}', ${k}, '${esc(name)}')" ${busy ? "disabled" : ""}>${esc(name)}</button>`).join("");
-  const opts = s.dialogue.map((l, i) => `<option value="${i}" ${i === r.from_line ? "selected" : ""}>${i + 1}. ${esc(l.speaker)} : ${esc(l.text.slice(0, 60))}${l.text.length > 60 ? "…" : ""}</option>`).join("");
+  const pauseNote = r.pause ? `<span class="pause-tag">Image seule : sans réplique</span>` : "";
+  const after = r.from_line >= s.dialogue.length ? `<option value="${s.dialogue.length}" selected>après la dernière réplique</option>` : "";
+  const opts = after + s.dialogue.map((l, i) => `<option value="${i}" ${i === r.from_line ? "selected" : ""}>${i + 1}. ${esc(l.speaker)} : ${esc(l.text.slice(0, 60))}${l.text.length > 60 ? "…" : ""}</option>`).join("");
   const drag = vp && vp.image ? `draggable="true" ondragstart="dragImage(event, '${vp.aid}', ${vp.candidate})"` : "";
   return `<div class="plan" ondragover="allowDrop(event)" ondragenter="this.classList.add('drop')"
       ondragleave="this.classList.remove('drop')" ondrop="dropImage(event, '${s.id}', '${vp ? vp.id : ""}', ${k})">
     <div class="frame" ${drag} title="${vp && vp.image ? "Glissez cette image sur un autre plan pour la réutiliser" : ""}">${img}</div>
     <div class="plan-body">
-      <div class="plan-head"><b>Plan ${k + 1}</b>
+      <div class="plan-head"><b>Plan ${k + 1}</b>${pauseNote}
         <span class="notice">à partir de</span>
         <select ${busy || k === 0 ? "disabled" : ""} onchange="planField('${s.id}', ${k}, 'from_line', Number(this.value))">${opts}</select></div>
       <textarea rows="2" ${busy ? "disabled" : ""} oninput="planField('${s.id}', ${k}, 'text', this.value, true)" placeholder="Ce que montre ce plan">${esc(r.text)}</textarea>
+      ${r.pause ? solineHtml(s, r, k, busy) : ""}
+      ${coveredHtml(s, r, rows, k)}
       <div class="chips"><span class="notice">Visible :</span>${chips || `<span class="notice">aucun personnage dans la scène</span>`}</div>
       ${fineHtml(s, vp, busy)}
       <div class="prompt-actions">
@@ -1158,15 +1510,15 @@ function addRef(sid, pid, aid) {
 function sceneBlock(s, n, busy) {
   const rows = planRows(s);
   const dirty = !!planDraft[s.id];
-  const room = rows.length < V.max_plans;
+  const room = true;  // pas de plafond pour les plans créés à la main
   return `<article class="scene">
     <header><span class="num">Scène ${n + 1}</span><h3>${esc(s.title)}</h3></header>
     <div class="prompt-actions">
       <button class="ghost small" onclick="proposePlans('${s.id}')" ${busy || !s.dialogue.length ? "disabled" : ""}>${s.plans.length ? "Reproposer le découpage" : "Proposer le découpage"}</button>
       <button class="ghost small" onclick="addPlanRow('${s.id}')" ${busy || !room || !s.dialogue.length ? "disabled" : ""}>+ Ajouter un plan</button>
-      <button class="primary small" onclick="savePlans('${s.id}')" ${busy || !dirty ? "disabled" : ""}>Enregistrer le découpage</button>
+      <button class="primary small" onclick="savePlans('${s.id}')" ${busy || !dirty || planSaving[s.id] ? "disabled" : ""}>${planSaving[s.id] ? "Enregistrement…" : "Enregistrer le découpage"}</button>
     </div>
-    <p class="notice">${rows.length} plan(s) sur ${V.max_plans} maximum</p>
+    <p class="notice">${rows.length} plan(s)${V.max_plans ? ` · l'IA en propose jusqu'à ${V.max_plans}` : " · l'IA en propose autant qu'elle juge utile"}</p>
     <div class="plans">${rows.length
       ? rows.map((r, k) => (k > 0 ? insertHtml(s, k, busy) : "") + planHtml(s, r, k, busy)).join("") + insertHtml(s, rows.length, busy)
       : `<p class="notice">Pas encore de découpage : proposez-en un.</p>`}</div>
@@ -1176,9 +1528,9 @@ function sceneBlock(s, n, busy) {
 function bodyPlans() {
   const busy = job || V.busy;
   const missing = V.scenes.reduce((n, s) => n + s.plans.filter((p) => !p.image).length, 0);
-  const select = `<label class="inline">Plans maximum par scène
+  const select = `<label class="inline">Plans proposés par l'IA
     <select onchange="setMaxPlans(this.value)" ${busy ? "disabled" : ""}>
-      ${V.plan_limits.map((n) => `<option value="${n}" ${n === V.max_plans ? "selected" : ""}>${n}</option>`).join("")}
+      ${V.plan_limits.map((n) => `<option value="${n}" ${n === V.max_plans ? "selected" : ""}>${n || "Autant que je veux"}</option>`).join("")}
     </select></label>`;
   return {
     body: `<div class="planbar">${select}</div>
@@ -1267,12 +1619,16 @@ function render() {
   // Les blocs repliables gardent leur état (ouvert ou fermé) quand la page se redessine.
   const opened = new Set([...document.querySelectorAll("details[data-key][open]")].map((d) => d.dataset.key));
   $("stage").innerHTML = `
-    <p class="kicker">Étape ${i + 1} sur ${STEPS.length}</p>
+    <p class="kicker">Étape ${i + 1} sur ${stepList().length}</p>
     <h1>${esc(s.title)}</h1>
     <p class="lead">${esc(s.lead)}</p>
     <div id="jobslot">${jobHtml()}</div>${errBox}${settingsForm ? settingsHtml() : ""}${chapterBar()}${pendingHtml()}${parts.body}${parts.foot}`;
   for (const d of document.querySelectorAll("details[data-key]")) {
     if (opened.has(d.dataset.key)) d.open = true;
+  }
+  if (V.character_mode === "designer" && step === "personnages" && !job && !V.busy) {
+    const it = currentCard();
+    if (it && it.aid && !prefillTried[it.aid] && (!it.description || !genderOk(it.descriptor))) prefillIdentity(it.aid);
   }
   const key = CARD_KEYS[step];
   if (key && !job && !V.busy) {

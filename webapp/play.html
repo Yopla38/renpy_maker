@@ -28,13 +28,13 @@ body { font: 400 18px/1.5 Nunito, system-ui, sans-serif; }
 .btn { background: rgba(16,13,20,.7); color: var(--ink); border: 1px solid rgba(242,179,107,.5); border-radius: 10px;
   padding: 7px 12px; font: 800 14px Nunito, sans-serif; cursor: pointer; text-decoration: none; }
 .btn.on { background: var(--gold); color: #1d1610; }
-#box { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; max-height: 330px; min-height: 180px; box-sizing: border-box;
+#box { position: absolute; left: 0; right: 0; bottom: 0; height: auto; max-height: 46%; min-height: 180px; box-sizing: border-box;
   padding: 22px clamp(16px, 7vw, 90px) 30px; background: var(--box); border-top: 2px solid rgba(242,179,107,.55);
   backdrop-filter: blur(4px); z-index: 4; }
 #name { display: none; position: absolute; left: clamp(16px, 7vw, 90px); top: -34px; padding: 6px 16px; border-radius: 10px 10px 0 0;
   font: 800 18px Nunito, sans-serif; color: #17120c; background: var(--c, var(--gold)); }
 #name.on { display: block; }
-#text { font-size: clamp(17px, 2.5vw, 21px); line-height: 1.55; white-space: pre-wrap; height: 100%; overflow-y: auto; }
+#text { font-size: clamp(17px, 2.5vw, 21px); line-height: 1.55; white-space: pre-wrap; max-height: calc(46vh - 40px); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding-right: 6px; }
 #text.narr { font-style: italic; color: #e7dccb; }
 #more { position: absolute; right: 22px; bottom: 14px; color: var(--gold); font-size: 20px; animation: blink 1.1s steps(2, start) infinite; }
 @keyframes blink { to { visibility: hidden; } }
@@ -91,6 +91,7 @@ let li = 0;           // réplique courante
 let auto = false;
 let typing = null;    // {full, shown, timer} pendant l'écriture lettre par lettre
 let autoTimer = null;
+let lastLen = 0;      // longueur de la réplique affichée : en mode auto, on laisse le temps de la lire
 let shownBg = null;
 let bgFront = "bgA";
 
@@ -137,6 +138,7 @@ function showTitle(text, sub) {
 
 function typeText(full, narr) {
   const el = $("text");
+  lastLen = full.length;
   el.className = narr ? "narr" : "";
   stopTyping();
   typing = { full, shown: 0 };
@@ -165,7 +167,7 @@ function finishTyping() {
 
 function scheduleNext() {
   clearTimeout(autoTimer);
-  if (auto) autoTimer = setTimeout(advance, 2600);
+  if (auto) autoTimer = setTimeout(advance, Math.max(2600, lastLen * 60));
 }
 
 function showLine() {
@@ -173,6 +175,13 @@ function showLine() {
   const line = scene.lines[li];
   saveProgress();
   setBackground(imageFor(scene, li));
+  if (line && line.pause) {  // image seule : rien à lire, elle attend un clic (même en mode auto)
+    stopTyping();
+    clearTimeout(autoTimer);
+    $("name").classList.remove("on");
+    $("text").textContent = "";
+    return;
+  }
   const narr = !line || line.speaker === "Narration";
   const name = $("name");
   if (narr) {
@@ -225,6 +234,8 @@ function toggleAuto() {
   if (!auto) clearTimeout(autoTimer);
 }
 
+// Faire défiler une réplique longue ne doit pas passer à la suivante.
+$("text").addEventListener("click", (ev) => ev.stopPropagation());
 $("stage").addEventListener("click", (ev) => {
   if (ev.target.closest("a, button")) return;
   advance();

@@ -36,7 +36,7 @@ class PromptTests(unittest.TestCase):
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
         self.assertIn("Keep the woman from image 1", system)  # une tenue est une retouche de la personne
         self.assertIn("Reference image 1 : the young woman", user)
-        self.assertIn("young woman entre au Velvet.", user)
+        self.assertNotIn("entre au Velvet", user)  # une tenue n'envoie pas de résumé de scène
         self.assertNotIn("Eve", user)  # aucun prénom dans ce que lit le modèle image
         self.assertIn("photorealistic 3D render", system)  # style de référence, lu dans config.yaml
 
@@ -90,3 +90,57 @@ class StyleEndingTests(unittest.TestCase):
         already = "A woman in blue. watercolor painting, soft wet edges"
         self.assertEqual(PR.with_style(already, style), already)
         self.assertEqual(PR.with_style("A woman.", ""), "A woman.")
+
+
+class PersonNounTests(unittest.TestCase):
+    def test_outfit_edit_uses_the_real_gender_word(self):
+        from prompts import EDIT_SYSTEM, person_noun
+        self.assertEqual(person_noun("Old man"), "man")
+        self.assertEqual(person_noun("young woman"), "woman")
+        self.assertEqual(person_noun(""), "person")
+        self.assertIn("the man from image 1", EDIT_SYSTEM.format(style="s", noun="man"))
+        self.assertNotIn("woman", EDIT_SYSTEM.format(style="s", noun="man"))
+
+    def test_outfit_request_has_no_scene_summary_that_could_mislead_the_gender(self):
+        st = {"settings": {"style": "aquarelle"}, "idea": "", "synopsis": "",
+              "chapters": [{"id": "c1", "title": "C", "summary": "", "scenes": [
+                  {"id": "s1", "title": "Studio", "summary": "Léa fait face à Victor, qui la regarde.",
+                   "characters": ["Léa", "Victor"], "outfits": {"Victor": "Chemise sombre"}, "dialogue": [],
+                   "plans": [], "location": ""}]}]}
+        assets = {
+            "char_victor": {"kind": "character", "name": "Victor", "descriptor": "old man", "description": ""},
+            "outfit_v": {"kind": "outfit", "name": "Chemise sombre", "parent": "char_victor", "description": ""},
+        }
+        _, user = PR.build_request(st, assets, "outfit_v")
+        self.assertNotIn("Léa", user)
+        self.assertIn("old man", user)
+
+
+class ReferenceOrderTests(unittest.TestCase):
+    def assets(self):
+        return {
+            "c": {"kind": "character", "name": "Victor", "descriptor": "old man", "validated_candidate": 0},
+            "o1": {"kind": "outfit", "name": "Chemise", "parent": "c", "validated_candidate": 0},
+            "o2": {"kind": "outfit", "name": "Lunettes", "parent": "c", "validated_candidate": 0,
+                   "based_on": "o1"},
+            "loc": {"kind": "location", "name": "Bureau", "validated_candidate": 0, "refs": []},
+        }
+
+    def test_outfit_starts_from_its_base_then_the_character(self):
+        self.assertEqual(PR.ref_order(self.assets(), "o2"), ["o1", "c"])
+        self.assertEqual(PR.ref_order(self.assets(), "o1"), ["c"])
+
+    def test_chosen_references_come_after_and_unretained_ones_are_dropped(self):
+        a = self.assets()
+        a["loc"]["refs"] = ["o1", "missing"]
+        a["o1"]["refs"] = ["loc"]
+        a["loc"]["validated_candidate"] = None
+        self.assertEqual(PR.ref_order(a, "o1"), ["c"])
+        a["loc"]["validated_candidate"] = 0
+        self.assertEqual(PR.ref_order(a, "o1"), ["c", "loc"])
+
+    def test_outfit_request_names_the_base_outfit_as_image_one(self):
+        st = {"settings": {"style": "aquarelle"}, "idea": "", "synopsis": "", "chapters": []}
+        _, user = PR.build_request(st, self.assets(), "o2")
+        self.assertIn("Reference image 1 : the man wearing Chemise", user)
+        self.assertIn("Reference image 2 : the old man", user)

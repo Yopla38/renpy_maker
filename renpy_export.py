@@ -79,6 +79,15 @@ def has_image(plan: dict, assets: dict) -> bool:
     return idx is not None and 0 <= idx < len(a.get("candidates", []))
 
 
+def _say_line(out: list, speaker: str, text_value: str, expr) -> None:
+    text = rpy_text(text_value)
+    note = f"  # expression : {expr}" if expr else ""
+    if speaker == S.NARRATOR:
+        out.append(f'    "{text}"{note}')
+    else:
+        out.append(f'    {char_var(speaker)} "{text}"{note}')
+
+
 def exportable_plans(sc: dict, assets: dict) -> list[dict]:
     return [p for p in sc.get("plans", []) if has_image(p, assets)]
 
@@ -152,20 +161,24 @@ def build_story(st: dict, assets: dict | None = None) -> str:
         out.append(f"label {sc['id']}:")
         out.append(f"    # {sc['title']}")
         plans = exportable_plans(sc, assets)
-        for i, line in enumerate(sc.get("dialogue", [])):
-            here = [p for p in plans if p["from_line"] == i]
-            for j, plan in enumerate(here):
-                img = image_name(sc, plan)
-                out.append(f"    scene {img} with dissolve")
-                if j < len(here) - 1:
+        dialogue = sc.get("dialogue", [])
+        # Même ordre que la lecture : une image seule avant sa réplique (ou après la dernière), avec sa
+        # réplique si elle en a une, sinon un clic pour la garder à l'écran.
+        for i in range(len(dialogue) + 1):
+            for plan in [p for p in plans if p["from_line"] == i and p.get("pause")]:
+                out.append(f"    scene {image_name(sc, plan)} with dissolve")
+                if plan.get("speech"):
+                    _say_line(out, plan.get("speaker") or S.NARRATOR, plan["speech"], None)
+                else:
+                    out.append('    ""')
+            normal = [p for p in plans if p["from_line"] == i and not p.get("pause")]
+            for j, plan in enumerate(normal):
+                out.append(f"    scene {image_name(sc, plan)} with dissolve")
+                if j < len(normal) - 1:
                     out.append("    with Pause(1.0)")
-            text = rpy_text(line["text"])
-            expr = line.get("expression")
-            note = f"  # expression : {expr}" if expr else ""
-            if line["speaker"] == S.NARRATOR:
-                out.append(f'    "{text}"{note}')
-            else:
-                out.append(f'    {char_var(line["speaker"])} "{text}"{note}')
+            if i < len(dialogue):
+                line = dialogue[i]
+                _say_line(out, line["speaker"], line["text"], line.get("expression"))
         last = n == len(scenes) - 1
         if last:
             out.append("    return")

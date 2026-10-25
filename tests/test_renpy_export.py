@@ -116,3 +116,31 @@ class ExportTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ImageOnlyPlanExportTests(unittest.TestCase):
+    def test_image_only_plans_are_exported_in_playback_order(self):
+        st, data = sample()
+        s1 = st["chapters"][0]["scenes"][0]
+        s1["plans"] = [
+            {"id": "p1", "from_line": 0, "characters": [], "asset": "scene_s1_p1"},
+            {"id": "p2", "from_line": 1, "characters": [], "asset": "scene_s1_p2", "pause": True,
+             "speaker": "Eve", "speech": "Je reste là."},
+            {"id": "p3", "from_line": 1, "characters": [], "asset": "scene_s1_p3", "pause": True},
+            {"id": "p4", "from_line": 2, "characters": [], "asset": "scene_s1_p1", "pause": True},
+        ]
+        text = RE.build_story(st, data["assets"])
+        block = text.split("label s1:")[1].split("label s2:")[0]
+        lines = [l.strip() for l in block.splitlines() if l.strip()]
+        self.assertEqual(lines, [
+            "# Arrivée",
+            "scene s1_p1 with dissolve",
+            '"Il fait jour."  # expression : neutre',
+            "scene s1_p2 with dissolve",
+            'c_eve "Je reste là."',
+            "scene s1_p3 with dissolve",
+            '""',
+            'c_eve "Dit \\"bonjour\\" {{ok}"  # expression : sourire',
+            "scene s1_p4 with dissolve",
+            '""',
+        ])

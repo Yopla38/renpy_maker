@@ -90,8 +90,19 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
     refs, labels, missing = [], [], []
     auto_out = []
     people = set(plan_characters(sc, plan))
+    # Une tenue ajoutée à la main remplace la tenue automatique du même personnage : le choix manuel prime
+    # sur la tenue notée dans la scène.
+    overridden = set()
+    for ref in plan.get("refs_extra", []):
+        aid, _ = split_ref(ref)
+        a = assets.get(aid)
+        if a and a.get("kind") == "outfit" and a.get("parent"):
+            owner = assets.get(a["parent"], {}).get("name", "")
+            if owner:
+                overridden.add(f"tenue:{S.norm(owner)}")
     for it in auto:
-        is_excluded = (it["id"] is not None and it["id"] in excluded) or (it.get("key") in excluded)
+        is_excluded = ((it["id"] is not None and it["id"] in excluded) or (it.get("key") in excluded)
+                       or it.get("key") in overridden)
         if it["id"] is not None:
             auto_out.append({"id": it["id"], "key": it["key"], "label": it["label"], "excluded": is_excluded,
                              "ok": it["ok"], "why": it["why"]})

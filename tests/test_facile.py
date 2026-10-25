@@ -107,6 +107,7 @@ class FacileFlow(Setup, unittest.TestCase):
         self.assertIn("watercolor", A.reference_style()["positive_suffix"])
 
         job = self.wait(FA.write_story("", "Léa et Noé trouvent une carte.", 3, False))
+        self.wait(FA.write_dialogues())
         self.assertEqual(job["state"], "done", job.get("error"))
         v = FA.view()
         self.assertEqual(len(v["scenes"]), 2)
@@ -143,6 +144,7 @@ class FacileFlow(Setup, unittest.TestCase):
     def test_outfit_waits_for_its_character_and_uses_it_as_reference(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         outfit = FA.view()["outfits"][0]
         self.assertTrue(outfit["blocked"])
         with self.assertRaises(ValueError):
@@ -157,6 +159,7 @@ class FacileFlow(Setup, unittest.TestCase):
     def test_prompt_can_be_edited_and_is_used_for_redraw(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
         self.wait(FA.redo_card(lea["aid"], "Léa, watercolor, red scarf"))
         self.assertEqual(A.load()["assets"][lea["aid"]]["prompt"], "Léa, watercolor, red scarf")
@@ -170,6 +173,7 @@ class FacileFlow(Setup, unittest.TestCase):
     def test_scene_image_refuses_missing_anchor(self):
         FA.set_style("dessin_anime")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         self.wait(FA.propose_plans("s1"))
         job = self.wait(FA.make_plan_image("s1", "p1"))
         self.assertEqual(job["state"], "error")
@@ -178,12 +182,14 @@ class FacileFlow(Setup, unittest.TestCase):
     def test_style_cannot_change_once_written(self):
         FA.set_style("huile")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         with self.assertRaises(ValueError):
             FA.set_style("aquarelle")
 
     def test_unknown_scene_is_refused(self):
         FA.set_style("realiste")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         with self.assertRaises(ValueError):
             FA.redo_dialogue("s99")
 
@@ -201,9 +207,22 @@ class Plans(Setup, unittest.TestCase):
         self.assertEqual(FA.normalize_shots({"plans": []}, 3, 5)[0]["from_line"], 0)
         self.assertEqual(len(FA.normalize_shots(raw, 2, 1)), 1)
 
+    def test_hand_made_plans_have_no_limit(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": f"r{i}", "expression": ""} for i in range(10)]
+        S.save(st)
+        FA.set_max_plans(0)  # autant que l'on veut pour les propositions
+        self.assertEqual(FA.view()["max_plans"], 0)
+        FA.save_plans(sid, [{"id": None, "from_line": i, "text": f"plan {i}"} for i in range(10)])
+        self.assertEqual(len(FA._find_scene(S.load(), sid)["plans"]), 10)
+
     def test_max_plans_is_editable_and_enforced(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         FA.set_max_plans(2)
         self.assertEqual(FA.view()["max_plans"], 2)
         with self.assertRaises(ValueError):
@@ -222,6 +241,7 @@ class Plans(Setup, unittest.TestCase):
     def test_saved_text_sets_the_visible_character(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         FA.save_plans("s1", [{"from_line": 0, "text": "Plan d'ensemble"},
                              {"from_line": 1, "text": "Gros plan sur Léa en riant"}])
         plans = A.load() and S.all_scenes(S.load())[0]["plans"]
@@ -231,6 +251,7 @@ class Plans(Setup, unittest.TestCase):
     def test_chosen_characters_win_over_text_and_must_not_be_empty(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         FA.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": ["Léa"]},
                              {"from_line": 1, "text": "Gros plan sur Noé", "characters": None}])
         plans = S.all_scenes(S.load())[0]["plans"]
@@ -243,6 +264,7 @@ class Plans(Setup, unittest.TestCase):
         import scenes as SC_
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         FA.save_plans("s1", [{"from_line": 0, "text": "Plan", "characters": ["Léa"]}])
         st = S.load()
         sc = S.all_scenes(st)[0]
@@ -254,6 +276,7 @@ class Plans(Setup, unittest.TestCase):
         import tempfile
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         self.wait(FA.propose_plans("s1"))
         plans = FA.view()["scenes"][0]["plans"]
         tmp = Path(tempfile.mkdtemp())
@@ -274,6 +297,7 @@ class Plans(Setup, unittest.TestCase):
     def test_changed_text_clears_stale_prompt_and_framing(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         self.wait(FA.propose_plans("s1"))
         v = FA.view()
         for c in v["characters"] + v["locations"]:
@@ -292,6 +316,7 @@ class Plans(Setup, unittest.TestCase):
     def test_new_chapter_continues_and_lists_new_elements(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         job = self.wait(FA.add_chapter(3, "Ils trouvent la chapelle"))
         self.assertEqual(job["state"], "done", job.get("error"))
         v = FA.view()
@@ -300,11 +325,14 @@ class Plans(Setup, unittest.TestCase):
         self.assertEqual([s["chapter"] for s in v["scenes"]], [1, 1, 2, 2, 2])
         self.assertIn("Chapelle", [c["name"] for c in v["locations"]])
         self.assertFalse(v["done"]["lieux"])   # la chapelle reste à dessiner
-        self.assertTrue(all(s["dialogue"] for s in v["scenes"]))  # répliques écrites automatiquement
+        self.assertEqual([bool(s["dialogue"]) for s in v["scenes"]], [True, True, False, False, False])
+        self.wait(FA.write_dialogues())  # les répliques des nouveaux chapitres viennent à l'étape Histoire
+        self.assertTrue(all(s["dialogue"] for s in FA.view()["scenes"]))
 
     def test_last_chapter_can_be_removed_but_not_the_only_one(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         with self.assertRaises(ValueError):
             FA.delete_last_chapter()
         self.wait(FA.add_chapter(3))
@@ -325,6 +353,7 @@ class Plans(Setup, unittest.TestCase):
     def test_inserted_plan_never_shares_an_image(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         self.wait(FA.propose_plans("s1"))
         before = FA.view()["scenes"][0]["plans"]  # p1 à la réplique 0, p2 à la réplique 1
         # Le plan p2 est gardé et passe en première position ; un nouveau plan prend la place suivante.
@@ -340,6 +369,7 @@ class Plans(Setup, unittest.TestCase):
     def test_fine_tuning_excludes_and_adds_references(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         self.wait(FA.propose_plans("s1"))
         for c in FA.view()["characters"] + FA.view()["locations"]:
             self.wait(FA.redo_card(c["aid"]))
@@ -373,9 +403,260 @@ class Plans(Setup, unittest.TestCase):
         self.assertEqual(p2["refs_extra"], [])
         self.assertNotIn("tenue:léa", p2["refs_exclude"])
 
+    def test_renaming_a_character_reaches_the_whole_story(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        FA.update_element(lea["aid"], name="Lisa")
+        sc = S.all_scenes(S.load())[0]
+        self.assertIn("Lisa", sc["characters"])
+        self.assertNotIn("Léa", sc["characters"])
+        self.assertIn("Lisa", sc["outfits"])
+        self.assertTrue(all(l["speaker"] != "Léa" for l in sc["dialogue"]))
+        self.assertEqual(A.load()["assets"][lea["aid"]]["name"], "Lisa")
+
+    def test_renaming_an_outfit_updates_the_scene_text(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        outfit = FA.view()["outfits"][0]
+        FA.update_element(outfit["aid"], name="Robe d'été")
+        self.assertEqual(S.all_scenes(S.load())[0]["outfits"]["Léa"], "Robe d'été")
+
+    def test_designer_refuses_duplicate_names_and_bad_descriptors(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        chars = FA.view()["characters"]
+        with self.assertRaises(ValueError):
+            FA.update_element(chars[0]["aid"], name=chars[1]["name"])
+        with self.assertRaises(ValueError):
+            FA.update_element(chars[0]["aid"], descriptor="i can't tell")
+        FA.update_element(chars[0]["aid"], descriptor="young woman")
+        self.assertEqual(A.load()["assets"][chars[0]["aid"]]["descriptor"], "young woman")
+
+    def test_atelier_creates_an_outfit_worn_in_the_chosen_scenes(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        new = FA.create_outfit(lea["aid"], "Pull vert, jean brut, baskets blanches", "pull vert bouteille", ["s2"])
+        self.assertEqual(A.load()["assets"][new["aid"]]["parent"], lea["aid"])
+        worn = S.all_scenes(S.load())
+        self.assertEqual(worn[1]["outfits"]["Léa"], "Pull vert, jean brut, baskets blanches")
+        self.assertEqual(worn[0]["outfits"]["Léa"], "Jean et baskets")  # la scène non choisie ne change pas
+        with self.assertRaises(ValueError):
+            FA.create_outfit(lea["aid"], "pull vert, jean brut, baskets blanches", "", [])
+
+    def test_character_mode_is_stored_and_checked(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.assertIsNone(FA.view()["character_mode"])
+        FA.set_character_mode("designer")
+        self.assertEqual(FA.view()["character_mode"], "designer")
+        with self.assertRaises(ValueError):
+            FA.set_character_mode("hasard")
+
+    def test_identity_suggestion_comes_from_the_story(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        answer = '{"description": "Jeune femme rousse aux yeux verts.", "descriptor": "young woman"}'
+        with mock.patch.object(FA.llm, "complete_task", return_value=answer) as m:
+            result = FA.suggest_identity(lea["aid"])
+        self.assertEqual(result, {"description": "Jeune femme rousse aux yeux verts.", "descriptor": "young woman"})
+        self.assertIn("Léa", m.call_args[0][2])
+
+    def test_identity_suggestion_rejects_an_invalid_gender(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        with mock.patch.object(FA.llm, "complete_task", return_value='{"description": "x", "descriptor": "je ne sais pas"}'):
+            self.assertEqual(FA.suggest_identity(lea["aid"])["descriptor"], "")
+
+    def test_editing_the_identity_clears_the_stale_prompt(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        A.load()["assets"][lea["aid"]]  # présent
+        data = A.load(); data["assets"][lea["aid"]]["prompt"] = "ancien prompt"; A.save(data)
+        FA.update_element(lea["aid"], description="rousse, yeux verts")
+        self.assertEqual(A.load()["assets"][lea["aid"]]["prompt"], "")
+
+    def test_outfit_is_refused_while_its_character_image_is_stale(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        outfit = next(o for o in FA.view()["outfits"] if o["parent"] == "Léa")
+        data = A.load()
+        data["assets"][lea["aid"]]["validated_candidate"] = 0
+        data["assets"][lea["aid"]]["image_stale"] = True
+        A.save(data)
+        with self.assertRaises(ValueError):
+            FA._refs_for(A.load()["assets"], outfit["aid"])
+
+    def test_changing_the_gender_marks_the_character_image_stale(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        data = A.load(); data["assets"][lea["aid"]]["validated_candidate"] = 0; A.save(data)
+        FA.update_element(lea["aid"], descriptor="adult man")
+        self.assertTrue(A.load()["assets"][lea["aid"]].get("image_stale"))
+
+    def test_outfit_prompt_naming_the_wrong_person_is_rejected(self):
+        assets = {"c": {"kind": "character", "name": "Victor", "descriptor": "old man"},
+                  "o": {"kind": "outfit", "name": "Chemise", "parent": "c"}}
+        self.assertTrue(FA._wrong_person("Keep the woman from image 1 exactly as she is.", assets, "o"))
+        self.assertTrue(FA._wrong_person("Keep the man from image 1. She wears a shirt.", assets, "o"))
+        self.assertFalse(FA._wrong_person("Keep the man from image 1 exactly as they are.", assets, "o"))
+
+    def test_element_refs_and_starting_outfit_are_validated(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        lea = next(c for c in FA.view()["characters"] if c["name"] == "Léa")
+        first = FA.create_outfit(lea["aid"], "Chemise", "chemise sombre", [])["aid"]
+        second = FA.create_outfit(lea["aid"], "Lunettes", "lunettes fines", [])["aid"]
+        data = A.load()
+        data["assets"][lea["aid"]]["validated_candidate"] = 0
+        for aid in (first, second):
+            data["assets"][aid]["validated_candidate"] = 0
+        A.save(data)
+        FA.set_element_refs(second, [], first)
+        self.assertEqual(A.load()["assets"][second]["based_on"], first)
+        with self.assertRaises(ValueError):
+            FA.set_element_refs(second, [], second)          # pas sa propre tenue de départ
+        with self.assertRaises(ValueError):
+            FA.set_element_refs(lea["aid"], [], first)       # un personnage n'a pas de tenue de départ
+        data = A.load(); data["assets"][first]["validated_candidate"] = None; A.save(data)
+        with self.assertRaises(ValueError):
+            FA.set_element_refs(second, [first])             # image non retenue
+
+    def test_line_tags_are_checked_and_drive_plan_characters(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sc = FA.view()["scenes"][0]
+        sid = sc["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
+        S.save(st)
+        with self.assertRaises(ValueError):
+            FA.set_line_tags(sid, 0, ["Personne inventée"], "", {})
+        FA.set_line_tags(sid, 0, ["Léa"], "", {})
+        FA.set_line_tags(sid, 1, ["Léa"], "", {})
+        target = FA._find_scene(S.load(), sid)
+        self.assertEqual(FA._chars_from_tags(target, 0, 1), ["Léa"])
+        self.assertEqual(FA._chars_from_tags(target, 2, 3), [])
+
+    def test_line_tags_are_preselected_by_default(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["characters"] = ["Léa"]
+        target["location"] = "Studio"
+        target["outfits"] = {"Léa": "Chemise"}
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Narration", "text": "b", "expression": ""}]
+        target.pop("line_tags", None)
+        S.save(st)
+        tags = FA.view()["scenes"][0]["line_tags"]
+        self.assertEqual(tags["0"], {"characters": ["Léa"], "location": "Studio", "outfits": {"Léa": "Chemise"}})
+        self.assertEqual(tags["1"]["characters"], [])  # la narration n'ajoute personne
+
+    def test_image_only_plan_sits_before_its_line_and_is_played_without_text(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
+        S.save(st)
+        # deux plans sur la réplique 1 : le premier est une image seule, sans réplique
+        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+                            {"id": None, "from_line": 1, "text": "silence", "pause": True},
+                            {"id": None, "from_line": 1, "text": "gros plan"}])
+        plans = FA._find_scene(S.load(), sid)["plans"]
+        self.assertEqual(sum(1 for p in plans if p.get("pause")), 1)
+        with mock.patch.object(FA, "_url", return_value="img.png"):  # les plans n'ont pas encore d'image
+            scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
+            self.assertEqual([l.get("pause", False) for l in scene["lines"]], [False, True, False])
+            starts = [i["from_line"] for i in scene["images"]]
+        self.assertEqual(starts, [0, 1, 2])  # l'image seule est à l'index 1, puis la réplique 1 à l'index 2
+
+    def test_several_image_only_plans_can_follow_each_other(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
+        S.save(st)
+        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+                            {"id": None, "from_line": 1, "text": "silence 1", "pause": True},
+                            {"id": None, "from_line": 1, "text": "silence 2", "pause": True},
+                            {"id": None, "from_line": 1, "text": "réplique"}])
+        self.assertEqual(len(FA._find_scene(S.load(), sid)["plans"]), 4)
+
+    def test_image_only_plan_can_follow_the_last_line(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
+        S.save(st)
+        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+                            {"id": None, "from_line": 2, "text": "fin", "pause": True}])
+        with mock.patch.object(FA, "_url", return_value="img.png"):
+            scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
+        self.assertEqual([l.get("pause", False) for l in scene["lines"]], [False, False, True])
+        self.assertEqual([i["from_line"] for i in scene["images"]], [0, 2])
+        with self.assertRaises(ValueError):  # un plan normal ne peut pas commencer après la fin
+            FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "x"}, {"id": None, "from_line": 2, "text": "y"}])
+
+    def test_image_only_plan_can_carry_a_typed_line(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
+        S.save(st)
+        FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "ouverture"},
+                            {"id": None, "from_line": 1, "text": "silence", "pause": True,
+                             "speaker": "Léa", "speech": "Je ne sais pas."},
+                            {"id": None, "from_line": 1, "text": "réplique"}])
+        with mock.patch.object(FA, "_url", return_value="img.png"):
+            scene = next(s for s in FA.play_view()["scenes"] if s["id"] == sid)
+        self.assertEqual(scene["lines"][1], {"speaker": "Léa", "text": "Je ne sais pas."})
+        self.assertFalse(scene["lines"][1].get("pause", False))
+        with self.assertRaises(ValueError):
+            FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "x", "pause": True, "speaker": "Inconnu", "speech": "a"},
+                                {"id": None, "from_line": 1, "text": "y"}])
+
+    def test_existing_line_can_be_corrected_but_not_emptied_or_given_a_stranger(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": "joyeuse"}]
+        S.save(st)
+        FA.update_line(sid, 0, "Narration", "Le vent se lève.")
+        line = FA._find_scene(S.load(), sid)["dialogue"][0]
+        self.assertEqual((line["speaker"], line["text"], line["expression"]), ("Narration", "Le vent se lève.", "joyeuse"))
+        with self.assertRaises(ValueError):
+            FA.update_line(sid, 0, "Léa", "   ")
+        with self.assertRaises(ValueError):
+            FA.update_line(sid, 0, "Personne", "bonjour")
+
+    def test_two_plans_cannot_share_a_line_without_an_image_only_plan(self):
+        FA.set_style("aquarelle")
+        self.wait(FA.write_story("", "Une histoire", 3, False))
+        sid = FA.view()["scenes"][0]["id"]
+        st = S.load(); target = FA._find_scene(st, sid)
+        target["dialogue"] = [{"speaker": "Léa", "text": "a", "expression": ""}, {"speaker": "Léa", "text": "b", "expression": ""}]
+        S.save(st)
+        with self.assertRaises(ValueError):
+            FA.save_plans(sid, [{"id": None, "from_line": 0, "text": "x"}, {"id": None, "from_line": 1, "text": "y"},
+                                {"id": None, "from_line": 1, "text": "z"}])
+
     def test_text_edit_keeps_existing_image(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         self.wait(FA.propose_plans("s1"))
         first = FA.view()["scenes"][0]["plans"][0]
         FA.save_plans("s1", [{"id": first["id"], "from_line": 0, "text": "Plan large, texte modifié"}])

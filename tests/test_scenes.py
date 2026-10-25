@@ -302,3 +302,22 @@ class ReuseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ManualOutfitPriorityTests(unittest.TestCase):
+    def test_manual_outfit_replaces_the_scene_outfit_of_the_same_person(self):
+        import scenes as SC
+        assets = {
+            "c": {"kind": "character", "name": "Léa", "status": "validated", "validated_candidate": 0,
+                  "descriptor": "young woman", "candidates": [{}]},
+            "culotte": {"kind": "outfit", "name": "petite culotte", "parent": "c", "status": "validated",
+                        "validated_candidate": 0, "candidates": [{}]},
+            "jupe": {"kind": "outfit", "name": "Jupe courte", "parent": "c", "status": "validated",
+                     "validated_candidate": 0, "candidates": [{}]},
+        }
+        sc = {"id": "s2", "title": "T", "location": "", "characters": ["Léa"], "outfits": {"Léa": "petite culotte"},
+              "dialogue": [{"speaker": "Léa", "text": "x"}], "plans": []}
+        plan = {"id": "p1", "from_line": 0, "asset": "scene_x", "characters": ["Léa"], "refs_extra": ["jupe"]}
+        info = SC.plan_refs(assets, sc, plan)
+        self.assertIn("jupe", info["refs"])
+        self.assertNotIn("culotte", info["refs"])

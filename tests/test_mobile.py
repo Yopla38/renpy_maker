@@ -47,6 +47,7 @@ class KidsModeTests(Setup, unittest.TestCase):
         FA.set_style("aquarelle")
         with mock.patch.object(paths, "KIDS", True):
             self.wait(FA.write_story("", "Une histoire pour enfants", 3, True))
+            self.wait(FA.write_dialogues())
             self.assertFalse(FA.S.load()["settings"]["explicit_content"])
             self.assertFalse(FA.view()["explicit"])
             self.assertEqual(FA.S.load()["settings"]["providers"]["text"], "replicate")
@@ -89,6 +90,7 @@ class PlayTests(Setup, unittest.TestCase):
     def test_play_view_gives_scenes_and_lines_in_order(self):
         FA.set_style("aquarelle")
         self.wait(FA.write_story("Le trésor", "Une histoire", 3, False))
+        self.wait(FA.write_dialogues())
         view = FA.play_view()
         self.assertEqual(view["title"], "Le trésor")
         self.assertEqual(len(view["scenes"]), 2)

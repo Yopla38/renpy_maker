@@ -131,29 +131,75 @@ def story_context(st: dict, assets: dict, aid: str) -> list[str]:
 EDIT_SYSTEM = """You write prompts for FLUX.2 Klein, an image EDITING model. The reference image 1 is the character
 as they already look. Your prompt is an instruction to edit that image, not a description of a new person.
 Output ONLY the prompt, in English, one paragraph of 30 to 80 words, never more than 100.
-- Start with what must stay identical: 'Keep the woman from image 1 exactly as she is: her face, hair, body, pose and framing.'
+- Start with what must stay identical: 'Keep the {noun} from image 1 exactly as they are: their face, hair, body, pose and framing.'
 - Then state the change: the clothing to put on, and what to remove (any garment or accessory not in the outfit).
 - Do not re-describe her face, hair or body: the reference already shows them.
 - Describe the clothes concretely (garments, colours, fit, footwear, accessories). No negative terms, no quality words.
-- Never write a first name: say 'the woman from image 1', 'the man', 'the girl'.
+- Never write a first name. Refer to the person only as 'the {noun} from image 1'.
 - Finish with this rendering style, word for word: {style}"""
+
+
+def person_noun(descriptor: str | None) -> str:
+    """Le mot de genre du personnage (« man », « girl »…), tel qu'il figure dans son descriptif."""
+    words = (descriptor or "").lower().split()
+    return words[-1] if words and words[-1] in GENDER_WORDS else "person"
+
+
+def _retained(assets: dict, rid: str) -> bool:
+    return rid in assets and assets[rid].get("validated_candidate") is not None
+
+
+def ref_order(assets: dict, aid: str) -> list[str]:
+    """Images de référence d'un élément, dans l'ordre où le prompt les nomme (image 1, image 2…).
+    Une tenue commence par la tenue de départ si elle en a une, puis par son personnage ; viennent ensuite
+    les images choisies à la main. Seules les images retenues comptent."""
+    a = assets[aid]
+    order: list[str] = []
+    if a["kind"] == "outfit":
+        base = a.get("based_on") or ""
+        if base and base != aid and _retained(assets, base):
+            order.append(base)
+        parent = a.get("parent") or ""
+        if parent and _retained(assets, parent) and parent not in order:
+            order.append(parent)
+    for rid in a.get("refs", []):
+        if rid != aid and _retained(assets, rid) and rid not in order:
+            order.append(rid)
+    return order
+
+
+def _ref_line(assets: dict, number: int, rid: str) -> str:
+    r = assets[rid]
+    if r["kind"] == "character":
+        return f"Reference image {number} : the {r.get('descriptor') or 'person'}, as they look now."
+    if r["kind"] == "outfit":
+        return f"Reference image {number} : clothes worn by the person ({anonymize(r['name'], assets)})."
+    return f"Reference image {number} : {anonymize(r['name'], assets)}, use it as a visual reference."
 
 
 def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     a = assets[aid]
     if a["kind"] == "outfit" and a.get("parent") and assets.get(a["parent"]):
-        # Tenue : la référence est le personnage, on demande une retouche de ses vêtements.
+        # Tenue : la référence est le personnage, ou la tenue de départ si elle en a une.
         parent = assets[a["parent"]]
-        system = EDIT_SYSTEM.format(style=llm_style())
+        system = EDIT_SYSTEM.format(style=llm_style(), noun=person_noun(parent.get("descriptor")))
+        order = ref_order(assets, aid)
+        base = a.get("based_on") if a.get("based_on") in order else None
+        if base:
+            first = (f"Reference image 1 : the {person_noun(parent.get('descriptor'))} wearing "
+                     f"{anonymize(assets[base]['name'], assets)}, as they look now. Keep those garments "
+                     f"unless the outfit below replaces them.")
+        else:
+            first = f"Reference image 1 : the {parent.get('descriptor') or 'person'}, as they look now."
         lines = [
             f"Outfit to put on the character : {a['name']}",
             f"Notes (French) : {a.get('description', '')}" if a.get("description") else "",
-            f"Reference image 1 : the {parent.get('descriptor') or 'person'}, as they look now.",
+            first,
         ]
-        ctx = story_context(st, assets, aid)
-        if ctx:
-            lines.append("Story context (French) :")
-            lines += [f"- {anonymize(c, assets)}" for c in ctx]
+        # La première image est décrite plus haut ; les suivantes (personnage, images choisies) ici.
+        lines += [_ref_line(assets, i + 2, rid) for i, rid in enumerate(order[1:])]
+        # Pas de résumé de scène ici : il décrit souvent l'autre personnage (ici Léa, une femme) et le
+        # modèle l'applique à la personne à habiller. La description de la tenue suffit.
         return system, "\n".join(l for l in lines if l)
     style = llm_style()
     framing = FRAMING.get(a["kind"], "")
@@ -177,6 +223,8 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
             if parent.get("prompt"):
                 lines.append(f"Character appearance (English, from the existing prompt) : "
                              f"{anonymize(parent['prompt'], assets)}")
+    for i, rid in enumerate(ref_order(assets, aid), start=1):
+        lines.append(_ref_line(assets, i, rid))
     ctx = story_context(st, assets, aid)
     if a["kind"] in ("object", "location"):
         # Un objet ou un lieu : seulement le titre de la scène, pour ne pas y faire entrer les personnages.
@@ -206,10 +254,15 @@ def clean(text: str) -> str:
 
 
 def with_style(text: str, style: str) -> str:
-    """Le style du projet doit terminer le prompt. Le LLM l'oublie parfois : on le remet, visible dans le champ."""
-    if not style or style in text:
+    """Le style du projet doit terminer le prompt, une seule fois. Le LLM l'oublie ou le répète parfois."""
+    text = text.replace(" .", ".").replace(" ,", ",").strip()
+    if not style:
         return text
-    return text.rstrip(" .") + ". " + style
+    if style in text:
+        body = text.replace(style, "").rstrip(" .,")
+    else:
+        body = text.rstrip(" .,")
+    return f"{body}. {style}" if body else style
 
 
 def suggest(st: dict, assets_data: dict, aid: str, provider: str | None = None) -> str:
