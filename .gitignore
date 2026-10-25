@@ -17,3 +17,6 @@ game_project/game/options.rpy
 
 # Clés saisies dans l application (jamais versionnées)
 secrets.json
+
+# Environnement uv local
+.venv/

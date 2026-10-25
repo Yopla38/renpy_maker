@@ -1,0 +1,17 @@
+[project]
+name = "renpy-maker"
+version = "0.1.0"
+description = "Éditeur d'histoires visuelles (Ren'Py) : scénario, personnages, lieux, plans et export"
+requires-python = ">=3.10"
+# Le reste repose sur la bibliothèque standard (serveur HTTP, urllib, threading…).
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
