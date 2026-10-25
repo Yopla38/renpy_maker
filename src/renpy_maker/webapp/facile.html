@@ -287,6 +287,70 @@ a.catalog-btn { text-decoration: none; display: inline-block; }
 .bubble.place.on { background: var(--ink); border-color: var(--ink); }
 .bubble.outfit.on { background: #6b8f6b; border-color: #6b8f6b; }
 .bubble.extra { border-style: dashed; color: var(--muted); }
+.mapwrap { border: 1px solid var(--line); border-radius: 16px; background: #F4F8EE; padding: 10px; overflow-x: auto; }
+.map-title { font: 700 15px Nunito, sans-serif; fill: #2b2730; }
+.map-sub { font: 600 12px Nunito, sans-serif; fill: #7b7282; }
+.map-label { font: 700 13px Nunito, sans-serif; fill: #2F6FD6; paint-order: stroke; stroke: #F4F8EE; stroke-width: 5px; }
+.map-h { font: 700 18px Fraunces, Georgia, serif; margin: 24px 0 8px; }
+.routes { padding-left: 20px; margin: 0; display: grid; gap: 6px; }
+.routes li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.route-end { font-weight: 800; color: var(--sage); white-space: nowrap; }
+.route-end.bad { color: #F08A3C; }
+.warn-box { border: 1px solid #F08A3C; background: #FFF4EA; border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; }
+.warn-box p { margin: 4px 0; }
+.map-node { cursor: pointer; }
+.map-editor { margin-top: 18px; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; background: var(--card); }
+.map-editor h3 { font: 700 18px Fraunces, Georgia, serif; margin: 0 0 6px; }
+.choice-list { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 6px; }
+.choice-list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.map-form { display: grid; gap: 8px; margin-top: 8px; }
+.route-form { display: grid; gap: 8px; margin-top: 10px; padding: 12px; border: 1px dashed #2F6FD6; border-radius: 14px; background: var(--paper); }
+.route-note { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 15px; margin: 4px 0 10px; color: var(--muted); }
+.route-note.warn { color: var(--ink); background: #FFF4EA; border: 1px solid #F08A3C; border-radius: 14px; padding: 10px 14px; display: grid; gap: 8px; }
+.lanes { display: grid; gap: 18px; min-width: 0; max-width: 100%; }
+.lane { min-width: 0; max-width: 100%; box-sizing: border-box; border-left: 6px solid var(--c); background: #FBF8F1; border-radius: 0 18px 18px 0; padding: 10px 14px 14px; }
+.lane.main { border-left-color: #8C8294; }
+.lane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.lane-title { font: 800 14px Nunito, sans-serif; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+.lane-remove { background: none; border: 1px solid var(--line); border-radius: 999px; width: 30px; height: 30px; padding: 0; color: var(--danger); font-size: 18px; line-height: 1; }
+.track { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; padding-bottom: 6px; }
+.segment { min-width: 0; border-radius: 16px; background: var(--card); border: 1px solid var(--line); padding: 10px 12px; box-shadow: 0 1px 2px rgba(70,45,20,.05); }
+.segment-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 15px; }
+.seg-actions { display: flex; gap: 12px; }
+.seg-actions .link { color: var(--accent); font-size: 14px; padding: 2px 0; }
+.cards { display: flex; align-items: center; gap: 8px; overflow-x: auto; min-width: 0; padding: 10px 2px 4px; }
+.pcard { flex: 0 0 132px; display: grid; gap: 6px; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(70,45,20,.07); transition: transform .12s, border-color .12s; }
+.pcard:hover { transform: translateY(-2px); border-color: var(--c, var(--accent)); }
+.pcard.empty { background: var(--paper); }
+.pimg { display: block; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: #EFE7D9; display: grid; place-items: center; }
+.pimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pimg .ph { font: 600 12px Nunito, sans-serif; color: var(--muted); padding: 6px; text-align: center; }
+.pmeta { font: 800 12px Nunito, sans-serif; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.pmeta b { color: var(--ink); }
+.pmeta i { font-style: normal; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 7px; }
+.ptext { font: 400 13px/1.35 Nunito, sans-serif; color: var(--ink); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pjoin { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--line); background: var(--card); color: var(--accent); font: 800 16px Nunito, sans-serif; padding: 0; }
+.pjoin:not(:disabled):hover { border-color: var(--accent); background: var(--accent-soft); }
+.padd { flex: 0 0 44px; height: 132px; border-radius: 14px; border: 2px dashed var(--line); background: transparent; color: var(--muted); font: 700 24px Nunito, sans-serif; padding: 0; }
+.padd:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+.join-chip { display: inline-block; margin-top: 8px; font: 700 13px Nunito, sans-serif; color: var(--sage); background: #E6F1EC; border-radius: 999px; padding: 4px 12px; }
+.rejoin { display: flex; align-items: center; gap: 8px; margin-top: 10px; font: 700 14px Nunito, sans-serif; color: var(--muted); }
+.rejoin select { font: 400 14px Nunito, sans-serif; border-radius: 10px; padding: 6px 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+.overlay { position: fixed; inset: 0; background: rgba(43, 39, 48, .45); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--paper); border-radius: 22px; box-shadow: var(--shadow); width: min(860px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { margin: 0; font: 700 20px Fraunces, Georgia, serif; }
+.close { background: var(--card); border: 1px solid var(--line); border-radius: 50%; width: 36px; height: 36px; padding: 0; font-size: 22px; line-height: 1; color: var(--ink); }
+.modal-body { overflow-y: auto; padding: 16px 20px 22px; display: grid; gap: 12px; }
+.modal-body label { display: grid; gap: 6px; font: 800 14px Nunito, sans-serif; color: var(--muted); }
+.modal-body input { font: 400 16px Nunito, sans-serif; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; }
+.reserve { margin-top: 26px; border: 2px dashed var(--line); border-radius: 20px; padding: 16px 18px; }
+.reserve h3 { margin: 0; font: 700 18px Fraunces, Georgia, serif; }
+.rcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 10px; }
+.rcard { display: grid; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+.rcard select, .rcard input { font: 400 14px Nunito, sans-serif; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+.route-form input { font: 400 16px Nunito, sans-serif; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; width: 100%; }
+.map-form input, .map-form select, .map-form textarea { font: 400 16px Nunito, sans-serif; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; width: 100%; }
 @media (max-width: 560px) { .dz-outfit.has-img { grid-template-columns: 1fr; } .dz-thumb { width: 100%; height: auto; aspect-ratio: 2 / 3; } }
 @media (max-width: 560px) { .cat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .cat-caption b { font-size: 15px; } }
 @media (max-width: 560px) { .plan { grid-template-columns: minmax(0, 1fr); } }
@@ -319,6 +383,8 @@ const STEPS = [
     lead: "Le style est choisi une fois pour toutes : toutes les images de l'histoire seront dans ce style." },
   { id: "idee", label: "Idée", title: "De quoi parle votre histoire ?",
     lead: "Racontez-la en quelques phrases. Le plan, les personnages et les répliques sont écrits à partir de ce texte." },
+  { id: "carte", label: "Carte", title: "La carte de l'histoire",
+    lead: "Les scènes et les chemins qui les relient. Vérifiez qu'aucune scène n'est isolée et qu'aucun chemin ne s'arrête brusquement, puis validez." },
   { id: "personnages", label: "Personnages", title: "Les personnages",
     lead: "Voici les personnages de l'histoire. Refaites l'image si elle ne vous plaît pas, puis passez au suivant." },
   { id: "lieux", label: "Lieux", title: "Les lieux",
@@ -732,6 +798,197 @@ function bodyStyle() {
 }
 
 // --- étape Idée ---
+// --- Carte de l'histoire : scènes reliées par leurs choix (ou par l'ordre de l'histoire).
+function bodyCarte() {
+  if (!V.written || !V.map) {
+    return {
+      body: `<p class="lead">Écrivez d'abord l'histoire à l'étape Idée : la carte se dessine à partir des scènes.</p>`,
+      foot: `<div class="actions"><button class="ghost" onclick="prev()">Retour</button></div>`,
+    };
+  }
+  const m = V.map;
+  const problems = m.problems.length
+    ? `<div class="warn-box">${m.problems.map((p) => `<p>${esc(p)}</p>`).join("")}</div>` : "";
+  const routes = m.routes.length
+    ? `<ol class="routes">${m.routes.map((r) => {
+        const names = r.path.map((id) => (m.nodes.find((n) => n.id === id) || { title: id }).title || id);
+        return `<li><span class="route-path">${names.map(esc).join(" → ")}</span>
+          <span class="route-end ${r.ending ? "" : "bad"}">${r.ending ? "fin" : "impasse"}</span></li>`;
+      }).join("")}</ol>${m.routes_truncated ? `<p class="notice">Plus de chemins existent : seuls les premiers sont listés.</p>` : ""}`
+    : `<p class="notice">Aucun chemin : ajoutez une scène.</p>`;
+  return {
+    body: `${problems}<div class="mapwrap">${mapSvg(m)}</div>
+      ${mapSel && m.nodes.some((n) => n.id === mapSel) ? mapEditorHtml(m, mapSel) : `<p class="notice">Cliquez sur une scène pour lui ajouter un chemin.</p>`}
+      <h3 class="map-h">Chemins de l'histoire</h3>${routes}`,
+    foot: `<div class="actions"><button class="ghost" onclick="prev()" ${job ? "disabled" : ""}>Retour</button>
+      <div class="right">${V.done.carte
+        ? `<button class="primary" onclick="next()" ${job ? "disabled" : ""}>Continuer</button>`
+        : `<button class="primary" onclick="validateMap()" ${job ? "disabled" : ""}>Valider la carte</button>`}</div></div>`,
+  };
+}
+
+let mapSel = null;   // scène choisie sur la carte
+
+function titleOf(m, sid) {
+  const n = m.nodes.find((x) => x.id === sid);
+  return n ? n.title || n.id : sid;
+}
+
+function explicitOf(m, sid) {
+  return m.edges.filter((e) => e.source === sid && e.kind === "choice");
+}
+
+function mapEditorHtml(m, sid) {
+  const sc = m.nodes.find((n) => n.id === sid);
+  const explicit = explicitOf(m, sid);
+  const implicit = m.edges.find((e) => e.source === sid && e.kind === "next");
+  const status = explicit.length
+    ? "Chemins depuis cette scène :"
+    : implicit ? `Passage automatique vers « ${esc(titleOf(m, implicit.target))} ». Ajouter un chemin le remplace par un choix « Continuer ».`
+    : "Aucun chemin : cette scène est une fin.";
+  const list = explicit.map((e, i) => `<li><span><strong>${esc(e.label || "(sans libellé)")}</strong> → ${esc(titleOf(m, e.target))}</span>
+      <button class="link" onclick="removeChoice('${esc(sid)}', ${i})" ${job ? "disabled" : ""}>Retirer</button></li>`).join("");
+  const others = m.nodes.filter((n) => n.id !== sid)
+    .map((n) => `<option value="${esc(n.id)}">${esc(n.title || n.id)}</option>`).join("");
+  const full = explicit.length >= 4;
+  return `<div class="map-editor">
+    <h3>${esc(sc.title || sid)}</h3>
+    <p class="notice">${status}</p>
+    ${list ? `<ul class="choice-list">${list}</ul>` : ""}
+    ${full ? `<p class="notice">Quatre chemins au plus.</p>` : `
+    <div class="map-form">
+      <input id="ch-label" maxlength="60" placeholder="Libellé du choix, ex. : Prendre la clé">
+      <select id="ch-target" onchange="toggleNewScene(this.value)">
+        <option value="">— vers une scène existante —</option>${others}
+        <option value="__new">+ Nouvelle scène après celle-ci</option>
+      </select>
+      <div id="ch-new" hidden>
+        <input id="ch-new-title" placeholder="Titre de la nouvelle scène">
+        <textarea id="ch-new-summary" rows="2" placeholder="Ce qui s'y passe (facultatif)"></textarea>
+      </div>
+      <div class="actions"><button class="ghost small" onclick="selectScene(null)">Fermer</button>
+        <button class="primary small" onclick="addChoice('${esc(sid)}')" ${job ? "disabled" : ""}>Ajouter ce chemin</button></div>
+    </div>`}
+  </div>`;
+}
+
+function selectScene(sid) {
+  if (job) return;
+  mapSel = sid;
+  err = "";
+  render();
+}
+
+function toggleNewScene(value) {
+  $("ch-new").hidden = value !== "__new";
+}
+
+async function saveChoices(sid, items) {
+  try {
+    await api("POST", "/api/facile/map/choices", { scene: sid, choices: items });
+    V = await api("GET", "/api/facile");
+    err = "";
+  } catch (e) {
+    err = e.message;
+  }
+  render();
+}
+
+function explicitItems(m, sid) {
+  return explicitOf(m, sid).map((e) => ({ label: e.label, target: e.target }));
+}
+
+async function addChoice(sid) {
+  const m = V.map;
+  const label = $("ch-label").value.trim();
+  const sel = $("ch-target").value;
+  if (!label) { err = "Donnez un libellé au chemin."; return render(); }
+  let item;
+  if (sel === "__new") {
+    const title = $("ch-new-title").value.trim();
+    if (!title) { err = "Donnez un titre à la nouvelle scène."; return render(); }
+    item = { label, new: { title, summary: $("ch-new-summary").value.trim() } };
+  } else if (sel) {
+    item = { label, target: sel };
+  } else {
+    err = "Choisissez la scène d'arrivée."; return render();
+  }
+  let items = explicitItems(m, sid);
+  if (!items.length) {
+    // Le passage automatique devient un premier choix, pour ne pas le perdre.
+    const implicit = m.edges.find((e) => e.source === sid && e.kind === "next");
+    if (implicit) items = [{ label: "Continuer", target: implicit.target }];
+  }
+  await saveChoices(sid, [...items, item]);
+}
+
+async function removeChoice(sid, index) {
+  const items = explicitItems(V.map, sid).filter((_, i) => i !== index);
+  await saveChoices(sid, items);
+}
+
+function mapSvg(m) {
+  if (!m.nodes.length) return `<p class="notice">Aucune scène.</p>`;
+  const W = 190, H = 64, GX = 90, GY = 26, PAD = 20;
+  const cols = {}, unreached = [];
+  for (const n of m.nodes) {
+    if (n.reachable) (cols[n.depth] ||= []).push(n);
+    else unreached.push(n);
+  }
+  const depths = Object.keys(cols).map(Number).sort((a, b) => a - b);
+  const pos = {};
+  depths.forEach((d, ci) => cols[d].forEach((n, ri) => { pos[n.id] = { x: PAD + ci * (W + GX), y: PAD + ri * (H + GY) }; }));
+  const extra = depths.length;
+  unreached.forEach((n, ri) => { pos[n.id] = { x: PAD + extra * (W + GX), y: PAD + ri * (H + GY) }; });
+  const cols_n = extra + (unreached.length ? 1 : 0);
+  const rows = Math.max(1, ...Object.values(cols).map((c) => c.length), unreached.length);
+  const width = PAD * 2 + cols_n * W + (cols_n - 1) * GX;
+  const height = PAD * 2 + rows * H + (rows - 1) * GY;
+  const withOut = new Set(m.edges.map((e) => e.source));
+
+  const edges = m.edges.filter((e) => pos[e.source] && pos[e.target]).map((e) => {
+    const a = pos[e.source], b = pos[e.target];
+    const x1 = a.x + W, y1 = a.y + H / 2, x2 = b.x, y2 = b.y + H / 2, mx = (x1 + x2) / 2;
+    const color = e.kind === "choice" ? "#2F6FD6" : "#B9AE9C";
+    const label = e.label ? `<text x="${mx}" y="${(y1 + y2) / 2 - 6}" text-anchor="middle" class="map-label">${esc(e.label)}</text>` : "";
+    return `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${color}" stroke-width="3"
+      ${e.kind === "choice" ? "" : 'stroke-dasharray="6 6"'} marker-end="url(#arrow-${e.kind})"/>${label}`;
+  }).join("");
+
+  const nodes = m.nodes.filter((n) => pos[n.id]).map((n) => {
+    const p = pos[n.id];
+    const dead = !n.ending && !withOut.has(n.id);
+    const fill = n.ending ? "#FFF1C2" : n.reachable ? "#FFFFFF" : "#F1EEE8";
+    const picked = n.id === mapSel;
+    const stroke = picked ? "#2F6FD6" : dead ? "#F08A3C" : n.reachable ? "#D9CBB0" : "#B9AE9C";
+    const title = n.title.length > 24 ? n.title.slice(0, 23) + "…" : n.title;
+    const sub = n.ending ? "Fin" : dead ? "Impasse" : `Chapitre ${n.chapter}`;
+    return `<g class="map-node" onclick="selectScene('${esc(n.id)}')">
+      <rect x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="16" fill="${fill}" stroke="${stroke}" stroke-width="${picked ? 4 : 2.5}" ${dead ? 'stroke-dasharray="6 4"' : ""}/>
+      <text x="${p.x + 16}" y="${p.y + 28}" class="map-title">${esc(title)}</text>
+      <text x="${p.x + 16}" y="${p.y + 48}" class="map-sub">${esc(sub)}</text></g>`;
+  }).join("");
+
+  return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Carte de l'histoire">
+    <defs>
+      <marker id="arrow-choice" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2F6FD6"/></marker>
+      <marker id="arrow-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#B9AE9C"/></marker>
+    </defs>${edges}${nodes}</svg>`;
+}
+
+async function validateMap() {
+  if (job) return;
+  try {
+    const res = await api("POST", "/api/facile/map/validate", {});
+    err = res.problems.length ? "Carte validée. Des impasses restent à corriger plus tard." : "";
+    V = await api("GET", "/api/facile");
+    next();
+  } catch (e) {
+    err = e.message;
+    render();
+  }
+}
+
 function bodyIdee() {
   if (V.written) {
     const lines = V.chapters.map((c, i) => `<div class="summary-block"><span class="okmark">Chapitre ${i + 1}</span> · ${esc(c.title)} <span class="notice">(${c.scenes} scène(s))</span></div>`).join("");
@@ -1355,6 +1612,10 @@ function solineHtml(s, r, k, busy) {
   </div>`;
 }
 
+
+
+
+
 function planHtml(s, r, k, busy) {
   const vp = s.plans.find((p) => p.id === r.id);
   const rows = planRows(s);
@@ -1365,6 +1626,7 @@ function planHtml(s, r, k, busy) {
   const chips = s.characters.map((name) => `<button class="chip ${shown.includes(name) ? "on" : ""}"
       onclick="togglePlanChar('${s.id}', ${k}, '${esc(name)}')" ${busy ? "disabled" : ""}>${esc(name)}</button>`).join("");
   const pauseNote = r.pause ? `<span class="pause-tag">Image seule : sans réplique</span>` : "";
+
   const after = r.from_line >= s.dialogue.length ? `<option value="${s.dialogue.length}" selected>après la dernière réplique</option>` : "";
   const opts = after + s.dialogue.map((l, i) => `<option value="${i}" ${i === r.from_line ? "selected" : ""}>${i + 1}. ${esc(l.speaker)} : ${esc(l.text.slice(0, 60))}${l.text.length > 60 ? "…" : ""}</option>`).join("");
   const drag = vp && vp.image ? `draggable="true" ondragstart="dragImage(event, '${vp.aid}', ${vp.candidate})"` : "";
@@ -1512,23 +1774,211 @@ function addRef(sid, pid, aid) {
   });
 }
 
-function sceneBlock(s, n, busy) {
+
+
+
+
+// --- Étape Plans : les routes en lignes, chaque image en carte ; un clic ouvre son encart complet.
+let planOpen = null;     // {sid, k} : image ouverte dans l'encart
+let branchDraft = null;  // {sid, pid, label, title} : bifurcation en cours de saisie
+const ROUTE_COLORS = ["#2F6FD6", "#F08A3C", "#5D8B7B", "#A13A3A", "#8F6FD6"];
+
+function routeLanes() {
+  const m = V.map;
+  if (!m || !m.start) return [];
+  const out = (sid) => m.edges.filter((e) => e.source === sid);
+  const placed = new Set(), rows = [], queue = [{ start: m.start, parent: null, label: "" }];
+  while (queue.length) {
+    const job = queue.shift();
+    const row = { scenes: [], parent: job.parent, label: job.label, joinTo: null, joins: [],
+      depth: job.parent === null ? 0 : rows[job.parent].depth + 1 };
+    rows.push(row);
+    const idx = rows.length - 1;
+    let cur = job.start;
+    while (cur) {
+      if (placed.has(cur)) { row.joinTo = cur; break; }   // la ligne rejoint une scène déjà placée
+      placed.add(cur);
+      row.scenes.push(cur);
+      const es = out(cur);
+      const choices = es.filter((e) => e.kind === "choice");
+      if (choices.length) {
+        // « Continuer » reste dans la même ligne ; les autres chemins ouvrent une ligne en dessous.
+        const cont = choices.find((e) => e.label === "Continuer");
+        choices.filter((e) => e !== cont).forEach((c) => queue.push({ start: c.target, parent: idx, label: c.label }));
+        cur = cont ? cont.target : null;
+      } else {
+        const nx = es.find((e) => e.kind === "next");
+        cur = nx ? nx.target : null;
+      }
+    }
+  }
+  const rest = V.scenes.map((s) => s.id).filter((id) => !placed.has(id));
+  if (rest.length) rows.push({ scenes: rest, parent: null, label: "À rattacher", joinTo: null, joins: [], depth: 0, orphan: true });
+  return rows;
+}
+
+function routeColor(row) {
+  return row.parent === null ? "#8C8294" : ROUTE_COLORS[(row.depth - 1) % ROUTE_COLORS.length];
+}
+
+function planCardHtml(s, r, k, busy) {
+  const vp = s.plans.find((p) => p.id === r.id);
+  const shown = vp && vp.image;
+  const img = shown ? `<img src="${esc(vp.image)}" alt="">` : `<span class="ph">${vp ? "Pas encore d'image" : "À enregistrer"}</span>`;
+  const text = (r.text || "").trim();
+  return `<button class="pcard ${shown ? "" : "empty"}" onclick="openPlan('${esc(s.id)}', ${k})">
+    <span class="pimg">${img}</span>
+    <span class="pmeta"><b>${k + 1}</b>${r.pause ? `<i>seule</i>` : ""}</span>
+    <span class="ptext">${esc(text.slice(0, 64) || "Sans description")}</span></button>`;
+}
+
+function cardJoinHtml(s, r, busy) {
+  const ready = !!r.id;
+  return `<button class="pjoin" title="${ready ? "Bifurquer ici : la suite devient une route" : "Enregistrez d'abord le découpage"}"
+    onclick="openBranch('${esc(s.id)}', '${esc(r.id || "")}')" ${busy || !ready ? "disabled" : ""}>＋</button>`;
+}
+
+function segmentHtml(sid, busy) {
+  const s = V.scenes.find((x) => x.id === sid);
+  if (!s) return "";
   const rows = planRows(s);
   const dirty = !!planDraft[s.id];
-  const room = true;  // pas de plafond pour les plans créés à la main
-  return `<article class="scene">
-    <header><span class="num">Scène ${n + 1}</span><h3>${esc(s.title)}</h3></header>
-    <div class="prompt-actions">
-      <button class="ghost small" onclick="proposePlans('${s.id}')" ${busy || !s.dialogue.length ? "disabled" : ""}>${s.plans.length ? "Reproposer le découpage" : "Proposer le découpage"}</button>
-      <button class="ghost small" onclick="addPlanRow('${s.id}')" ${busy || !room || !s.dialogue.length ? "disabled" : ""}>+ Ajouter un plan</button>
-      <button class="primary small" onclick="savePlans('${s.id}')" ${busy || !dirty || planSaving[s.id] ? "disabled" : ""}>${planSaving[s.id] ? "Enregistrement…" : "Enregistrer le découpage"}</button>
-    </div>
-    <p class="notice">${rows.length} plan(s)${V.max_plans ? ` · l'IA en propose jusqu'à ${V.max_plans}` : " · l'IA en propose autant qu'elle juge utile"}</p>
-    <div class="plans">${rows.length
-      ? rows.map((r, k) => (k > 0 ? insertHtml(s, k, busy) : "") + planHtml(s, r, k, busy)).join("") + insertHtml(s, rows.length, busy)
-      : `<p class="notice">Pas encore de découpage : proposez-en un.</p>`}</div>
-  </article>`;
+  const cards = rows.map((r, k) => (k > 0 ? cardJoinHtml(s, r, busy) : "") + planCardHtml(s, r, k, busy)).join("");
+  return `<div class="segment">
+    <div class="segment-head"><b>${esc(s.title)}</b>
+      <span class="seg-actions">
+        <button class="link" onclick="proposePlans('${esc(s.id)}')" ${busy || !s.dialogue.length ? "disabled" : ""}>${s.plans.length ? "Reproposer" : "Proposer le découpage"}</button>
+        <button class="link" onclick="savePlans('${esc(s.id)}')" ${busy || !dirty || planSaving[s.id] ? "disabled" : ""}>${planSaving[s.id] ? "Enregistrement…" : dirty ? "Enregistrer" : "Enregistré"}</button>
+      </span></div>
+    <div class="cards">${cards || `<p class="notice">Pas encore d'images.</p>`}
+      <button class="padd" title="Ajouter une image" onclick="addPlanRow('${esc(s.id)}')" ${busy || !s.dialogue.length ? "disabled" : ""}>+</button></div>
+  </div>`;
 }
+
+function laneHtml(row, busy) {
+  const color = routeColor(row);
+  const first = row.scenes[0];
+  const title = row.parent === null ? (row.orphan ? "Scènes à rattacher" : "Histoire principale") : `↳ ${row.label}`;
+  const detach = row.parent !== null && first
+    ? `<button class="lane-remove" title="Retirer cette route : son contenu part dans la réserve" onclick="detachRoute('${esc(first)}')" ${busy ? "disabled" : ""}>−</button>` : "";
+  const last = row.scenes[row.scenes.length - 1];
+  const endNode = last ? V.map.nodes.find((n) => n.id === last) : null;
+  const hasOut = last ? V.map.edges.some((e) => e.source === last) : true;
+  const rejoin = !row.joinTo && last && endNode && !endNode.ending && !hasOut && V.scenes.length > 1
+    ? `<label class="rejoin">Suite :
+        <select onchange="rejoinScene('${esc(last)}', this.value)" ${busy ? "disabled" : ""}>
+          <option value="">— choisir la scène qui suit —</option>
+          ${V.scenes.filter((x) => x.id !== last).map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join("")}
+        </select></label>` : "";
+  const joined = row.joinTo ? `<span class="join-chip">↪ rejoint « ${esc(titleOf(V.map, row.joinTo))} »</span>` : "";
+  return `<section class="lane ${row.parent === null ? "main" : "branch"}" style="--c: ${color}; margin-left: ${row.depth * 26}px">
+    <header class="lane-head"><span class="lane-title">${esc(title)}</span>${detach}</header>
+    <div class="track">${row.scenes.map((sid) => segmentHtml(sid, busy)).join("")}${joined}${rejoin}</div>
+  </section>`;
+}
+
+function reserveHtml(busy) {
+  const blocks = V.reserve || [];
+  if (!blocks.length) return "";
+  return `<section class="reserve">
+    <h3>Réserve</h3>
+    <p class="notice">Contenus retirés des routes. Rien n'est perdu : vous pouvez les rattacher à une autre scène.</p>
+    <div class="rcards">${blocks.map((b) => `<div class="rcard">
+      <b>${esc(b.title)}</b>
+      <span class="notice">${b.plans.length} image(s) · ${b.dialogue.length} réplique(s)</span>
+      <select id="rs-${esc(b.id)}">${V.scenes.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join("")}</select>
+      <input id="rl-${esc(b.id)}" maxlength="60" placeholder="Libellé du choix, ex. : Revenir">
+      <button class="primary small" onclick="attachBlock('${esc(b.id)}')" ${busy ? "disabled" : ""}>Rattacher</button>
+    </div>`).join("")}</div>
+  </section>`;
+}
+
+function modalHtml(title, inner, close) {
+  return `<div class="overlay" onclick="if (event.target === this) ${close}">
+    <div class="modal" role="dialog" aria-label="${esc(title)}">
+      <div class="modal-head"><h3>${title}</h3><button class="close" onclick="${close}" aria-label="Fermer">×</button></div>
+      <div class="modal-body">${inner}</div>
+    </div></div>`;
+}
+
+function overlayHtml(busy) {
+  if (planOpen) {
+    const s = V.scenes.find((x) => x.id === planOpen.sid);
+    const r = s ? planRows(s)[planOpen.k] : null;
+    if (s && r) return modalHtml(`${esc(s.title)} · image ${planOpen.k + 1}`, planHtml(s, r, planOpen.k, busy), "closePlan()");
+  }
+  if (branchDraft) {
+    const inner = `<p class="notice">La suite reste dans cette scène jusqu'à cette image. Le choix envoie vers une route vide,
+        à remplir ici avec ses propres images.</p>
+      <label>Libellé du choix<input id="br-label" maxlength="60" placeholder="ex. : Accepter" value="${esc(branchDraft.label)}"
+        oninput="branchDraft.label = this.value"></label>
+      <label>Titre de la route<input id="br-title" maxlength="80" placeholder="ex. : Le rôle" value="${esc(branchDraft.title)}"
+        oninput="branchDraft.title = this.value"></label>
+      <div class="actions"><button class="ghost small" onclick="closeBranch()">Annuler</button>
+        <button class="primary small" onclick="createBranch()" ${busy ? "disabled" : ""}>Créer la route</button></div>`;
+    return modalHtml("Nouvelle bifurcation", inner, "closeBranch()");
+  }
+  return "";
+}
+
+function openPlan(sid, k) {
+  if (job) return;
+  planOpen = { sid, k };
+  err = "";
+  render();
+}
+
+function closePlan() {
+  planOpen = null;
+  render();
+}
+
+function openBranch(sid, pid) {
+  if (job || !pid) return;
+  branchDraft = { sid, pid, label: "", title: "" };
+  err = "";
+  render();
+}
+
+function closeBranch() {
+  branchDraft = null;
+  render();
+}
+
+async function reloadView() {
+  V = await api("GET", "/api/facile");
+}
+
+async function createBranch() {
+  if (!branchDraft || job) return;
+  try {
+    await api("POST", "/api/facile/branch", { scene: branchDraft.sid, plan: branchDraft.pid,
+      label: branchDraft.label, title: branchDraft.title });
+    branchDraft = null;
+    await reloadView();
+    err = "";
+  } catch (e) {
+    err = e.message;
+  }
+  render();
+}
+
+async function reshape(body) {
+  if (job) return;
+  try {
+    await api("POST", "/api/facile/reshape", body);
+    await reloadView();
+    err = "";
+  } catch (e) {
+    err = e.message;
+  }
+  render();
+}
+
+const detachRoute = (sid) => reshape({ action: "detach", scene: sid });
+const rejoinScene = (sid, target) => { if (target) reshape({ action: "rejoin", scene: sid, target }); };
+const attachBlock = (bid) => reshape({ action: "attach", block: bid,
+  scene: $("rs-" + bid).value, label: $("rl-" + bid).value.trim() });
 
 function bodyPlans() {
   const busy = job || V.busy;
@@ -1537,11 +1987,13 @@ function bodyPlans() {
     <select onchange="setMaxPlans(this.value)" ${busy ? "disabled" : ""}>
       ${V.plan_limits.map((n) => `<option value="${n}" ${n === V.max_plans ? "selected" : ""}>${n || "Autant que je veux"}</option>`).join("")}
     </select></label>`;
+  const lanes = routeLanes().map((row) => laneHtml(row, busy)).join("");
   return {
     body: `<div class="planbar">${select}</div>
-      <p class="hint">Astuces : le « + » entre deux plans en ajoute un. Glissez l'image d'un plan sur un autre pour la réutiliser
-      (sur ordinateur : la tablette ne permet pas le glisser-déposer).</p>
-      ${V.scenes.map((s, n) => chapterHead(V.scenes, n) + sceneBlock(s, n, busy)).join("")}`,
+      <p class="hint">Cliquez une image pour l'ouvrir. Le « ＋ » entre deux images crée une bifurcation : la suite devient une route.</p>
+      <div class="lanes">${lanes || `<p class="notice">Pas encore de scènes.</p>`}</div>
+      ${reserveHtml(busy)}
+      ${overlayHtml(busy)}`,
     foot: `<div class="actions">
       <button class="ghost" onclick="prev()" ${busy ? "disabled" : ""}>Retour</button>
       <div class="right">${missing ? `<button class="ghost" onclick="allPlanImages()" ${busy ? "disabled" : ""}>Créer toutes les images (${missing})</button>` : ""}
@@ -1613,6 +2065,7 @@ function render() {
   const parts = {
     style: () => bodyStyle(),
     idee: () => bodyIdee(),
+    carte: () => bodyCarte(),
     personnages: () => bodyCards("characters", "p2", "personnage"),
     lieux: () => bodyCards("locations", "p169", "lieu"),
     tenues: () => bodyCards("outfits", "p2", "tenue"),
@@ -1663,6 +2116,8 @@ window.addEventListener("load", async () => {
   try {
     await load();
     render();
+    // Depuis « Mes histoires » : on configure les modèles et moteurs avant toute création.
+    if (new URLSearchParams(location.search).has("reglages")) toggleSettings();
     if (V.kids) {
       const d = await api("GET", "/api/facile/settings");
       if (!d.replicate_key) toggleSettings();

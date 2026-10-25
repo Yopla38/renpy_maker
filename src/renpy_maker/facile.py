@@ -19,6 +19,7 @@ from renpy_maker import paths
 from renpy_maker import pipeline as PL
 from renpy_maker import plan as P
 from renpy_maker import projects as PJ
+from renpy_maker import story_graph
 from renpy_maker import renpy_export as RE
 from renpy_maker import story as S
 from renpy_maker.facile_base import (
@@ -114,6 +115,74 @@ def play_view() -> dict:
                            "lines": lines, "images": images})
     return {"title": st.get("title") or "Mon histoire", "scenes": scenes}
 
+def validate_map() -> dict:
+    """La carte est validée : l'étape suivante (personnages) s'ouvre. Les impasses signalées restent à corriger."""
+    with S.LOCK:
+        st = S.load()
+        if not st["chapters"]:
+            raise ValueError("Il n'y a pas encore d'histoire à relier")
+        st["map_validated"] = True
+        S.save(st)
+    return {"ok": True, "problems": story_graph.build(st)["problems"]}
+
+
+def save_choices(body: dict) -> dict:
+    """Remplace les chemins d'une scène (voir story_graph.set_choices)."""
+    with S.LOCK:
+        st = S.load()
+        created = story_graph.set_choices(st, body.get("scene", ""), body.get("choices") or [])
+        S.save(st)
+    return {"ok": True, "created": created, "map": story_graph.build(st)}
+
+
+def save_route(body: dict) -> dict:
+    """Commence une route à partir d'une image (voir story_graph.start_route)."""
+    with S.LOCK:
+        st = S.load()
+        new_id = story_graph.start_route(st, body.get("scene", ""), body.get("plan", ""),
+                                         body.get("label", ""), body.get("title", ""))
+        S.save(st)
+    return {"ok": True, "scene": new_id}
+
+
+def undo_route_api(body: dict) -> dict:
+    """Annule une route : sa suite revient dans la scène d'origine (voir story_graph.undo_route)."""
+    with S.LOCK:
+        st = S.load()
+        source = story_graph.undo_route(st, body.get("scene", ""))
+        S.save(st)
+    return {"ok": True, "scene": source}
+
+
+def branch_api(body: dict) -> dict:
+    """Bifurcation à une image : une route vide, reliée par un choix (voir story_graph.branch_at)."""
+    with S.LOCK:
+        st = S.load()
+        route = story_graph.branch_at(st, body.get("scene", ""), body.get("plan", ""),
+                                      body.get("label", ""), body.get("title", ""))
+        S.save(st)
+    return {"ok": True, "scene": route}
+
+
+def reshape_api(body: dict) -> dict:
+    """Rattacher une route à une scène, retirer une route (vers la réserve) ou la rattacher depuis la réserve."""
+    action = body.get("action", "")
+    with S.LOCK:
+        st = S.load()
+        result: dict = {"ok": True}
+        if action == "rejoin":
+            story_graph.rejoin(st, body.get("scene", ""), body.get("target", ""))
+        elif action == "detach":
+            story_graph.detach(st, body.get("scene", ""))
+        elif action == "attach":
+            result["scene"] = story_graph.attach(st, body.get("scene", ""), body.get("block", ""),
+                                                 body.get("label", ""))
+        else:
+            raise ValueError("Action inconnue")
+        S.save(st)
+    return result
+
+
 def view() -> dict:
     with S.LOCK:
         st = S.load()
@@ -129,7 +198,8 @@ def view() -> dict:
               "candidates": line_candidates(st, sc),
               "location": sc.get("location", ""),
               "line_tags": {str(n): _effective_tags(sc, n) for n in range(len(sc.get("dialogue", [])))},
-              "plans": [_plan_view(sc, p, assets) for p in sc.get("plans", [])]}
+              "plans": [_plan_view(sc, p, assets) for p in sc.get("plans", [])],
+              "route_from": story_graph.route_from(st, sc["id"])}
              for ci, ch in enumerate(st["chapters"]) for sc in ch["scenes"]]
     done = {
         "style": S.style_of(st) is not None,
@@ -139,6 +209,7 @@ def view() -> dict:
         "tenues": written and all(c["ready"] for c in outfits),
         "histoire": written and all(c["dialogue"] for c in cards),
         "images": written and all(c["plans"] and all(p["image"] for p in c["plans"]) for c in cards),
+        "carte": written and bool(st.get("map_validated")),
     }
     return {
         "style": S.style_of(st), "styles": S.style_choices(),
@@ -147,6 +218,8 @@ def view() -> dict:
         "count": st["settings"].get("total_scenes") or SCENE_COUNTS[1], "counts": list(SCENE_COUNTS),
         "max_plans": _max_plans(st), "plan_limits": list(PLAN_LIMITS),
         "written": written, "characters": characters, "locations": locations, "outfits": outfits, "scenes": cards,
+        "map": story_graph.build(st) if written else None,
+        "reserve": st.get("reserve", []),
         "chapters": [{"title": ch["title"], "scenes": len(ch["scenes"])} for ch in st["chapters"]],
         "lora_names": available_loras(),
         "character_mode": st["settings"].get("character_mode"),
@@ -346,6 +419,12 @@ def route(method: str, path: str, body: dict) -> dict:
     elif method == "POST":
         routes = {
             "/api/facile/style": lambda: set_style(body["style"]),
+            "/api/facile/map/validate": validate_map,
+            "/api/facile/map/choices": lambda: save_choices(body),
+            "/api/facile/route/start": lambda: save_route(body),
+            "/api/facile/route/undo": lambda: undo_route_api(body),
+            "/api/facile/branch": lambda: branch_api(body),
+            "/api/facile/reshape": lambda: reshape_api(body),
             "/api/facile/projects/create": lambda: PJ.open_project(PJ.create(body.get("name", ""), body.get("idea", "")), _busy.locked()),
             "/api/facile/projects/open": lambda: PJ.open_project(body.get("id", ""), _busy.locked()),
             "/api/facile/projects/rename": lambda: PJ.rename(body.get("id", ""), body.get("name", "")),

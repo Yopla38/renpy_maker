@@ -180,7 +180,8 @@ function cardActions(p) {
       <div class="row" style="width:100%; justify-content:flex-end"><button class="ghost" data-act="cancel">Non, garder</button>
       <button class="danger" data-act="delete" data-id="${esc(p.id)}">Oui, supprimer</button></div>`;
   }
-  const open = `<button class="primary" data-act="open" data-id="${esc(p.id)}" ${ui.busy ? "disabled" : ""}>${p.current ? "Continuer" : "Ouvrir"}</button>`;
+  const open = `<button class="primary" data-act="open" data-id="${esc(p.id)}" ${ui.busy ? "disabled" : ""}>${p.current ? "Continuer" : "Ouvrir"}</button>
+    <button class="ghost small" data-act="settings" data-id="${esc(p.id)}" ${ui.busy ? "disabled" : ""} title="Modèles de texte, moteurs d'image, ComfyUI">Réglages</button>`;
   const rename = p.origin ? "" : `<button class="quiet" data-act="rename" data-id="${esc(p.id)}">Renommer</button>`;
   const del = p.origin || p.current ? "" : `<button class="quiet" data-act="confirm-delete" data-id="${esc(p.id)}">Supprimer</button>`;
   return `${open}${rename}${del}`;
@@ -253,10 +254,10 @@ async function run(fn) {
   render();
 }
 
-async function openProject(id) {
+async function openProject(id, toSettings = false) {
   await run(async () => {
     await api("POST", "/api/facile/projects/open", { id });
-    location.href = "/facile";
+    location.href = toSettings ? "/facile?reglages=1" : "/facile";
   });
 }
 
@@ -266,6 +267,7 @@ document.addEventListener("click", (ev) => {
   const act = btn.dataset.act;
   const id = btn.dataset.id;
   if (act === "open") return openProject(id);
+  if (act === "settings") return openProject(id, true);
   if (act === "new") { ui.creating = true; say(""); return render(); }
   if (act === "cancel-new") { ui.creating = false; return render(); }
   if (act === "rename") { ui.renaming = id; ui.confirming = null; return render(); }
@@ -296,7 +298,7 @@ document.addEventListener("submit", (ev) => {
   const idea = document.getElementById("new-idea").value;
   return run(async () => {
     await api("POST", "/api/facile/projects/create", { name, idea });
-    location.href = "/facile";
+    location.href = "/facile?reglages=1";  // configurer les moteurs et les modèles avant d'écrire quoi que ce soit
   });
 });
 
