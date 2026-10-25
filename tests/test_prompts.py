@@ -211,3 +211,78 @@ class ReferenceOrderTests(unittest.TestCase):
         _, user = PR.build_request(st, self.assets(), "o2")
         self.assertIn("Reference image 1 : the man wearing Chemise", user)
         self.assertIn("Reference image 2 : the old man", user)
+
+
+class NudeBaseTests(unittest.TestCase):
+    """Corps de base nu : seulement avec ComfyUI, histoire explicite, hors application enfants."""
+
+    def request(self, engine, explicit, kids=False):
+        st = {"idea": "Une femme.", "synopsis": "", "settings": {"explicit_content": explicit}, "chapters": []}
+        assets = {"c": {"kind": "character", "name": "Léa", "descriptor": "young woman", "description": "",
+                        "candidates": [], "validated_candidate": None}}
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": engine, "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", kids):
+            return PR.build_request(st, assets, "c")[1]
+
+    def test_comfyui_with_explicit_story_asks_for_a_nude_base(self):
+        self.assertIn("nude", self.request("comfyui", True))
+
+    def test_replicate_keeps_the_clothed_base(self):
+        self.assertNotIn("nude", self.request("replicate", True))
+
+    def test_without_explicit_content_the_base_stays_clothed(self):
+        self.assertNotIn("nude", self.request("comfyui", False))
+
+    def test_kids_never_get_a_nude_base(self):
+        self.assertNotIn("nude", self.request("comfyui", True, kids=True))
+
+
+class PhysicalOnlyBaseTests(unittest.TestCase):
+    """Corps nu : la description ne donne que les traits physiques ; les vêtements vont aux tenues."""
+
+    def setUp(self):
+        self.st = {"idea": "Une femme.", "synopsis": "", "settings": {"explicit_content": True}, "chapters": []}
+        self.assets = {"c": {"kind": "character", "name": "Clara", "descriptor": "young woman",
+                             "description": "Cheveux blonds, yeux verts. Un pull trop grand.",
+                             "candidates": [], "validated_candidate": None}}
+
+    def test_clothing_in_the_notes_is_marked_as_to_ignore(self):
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": "comfyui", "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", False):
+            _, user = PR.build_request(self.st, self.assets, "c")
+        self.assertIn("Physical traits only", user)
+        self.assertIn("IGNORE any clothing", user)
+
+    def test_a_prompt_that_still_describes_clothing_is_asked_again_then_refused(self):
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": "comfyui", "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", False), \
+                mock.patch.object(PR.llm, "complete_task", return_value="A woman in a sweater.") as m, \
+                mock.patch.object(PR.appsettings, "provider", return_value="ollama"):
+            with self.assertRaises(ValueError):
+                PR.suggest(self.st, {"assets": self.assets}, "c")
+        self.assertEqual(m.call_count, 2)
+
+    def test_a_physical_prompt_is_kept(self):
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": "comfyui", "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", False), \
+                mock.patch.object(PR.llm, "complete_task", return_value="A woman with blonde hair and green eyes."), \
+                mock.patch.object(PR.appsettings, "provider", return_value="ollama"):
+            text = PR.suggest(self.st, {"assets": self.assets}, "c")
+        self.assertIn("blonde hair", text)
+
+
+class CharacterPromptFormTests(unittest.TestCase):
+    def test_every_character_prompt_starts_with_full_body_shot(self):
+        self.assertEqual(PR.character_prompt_rules("A young woman with green eyes.", False),
+                         "full body shot, a young woman with green eyes.")
+
+    def test_full_body_shot_is_not_repeated(self):
+        self.assertEqual(PR.character_prompt_rules("full body shot, a man.", False), "full body shot, a man.")
+
+    def test_nude_goes_right_before_the_gender_word(self):
+        self.assertEqual(PR.character_prompt_rules("A young woman with green eyes.", True),
+                         "full body shot, a young nude woman with green eyes.")
+
+    def test_nude_is_not_added_twice(self):
+        out = PR.character_prompt_rules("a young nude woman", True)
+        self.assertEqual(out.lower().count("nude"), 1)

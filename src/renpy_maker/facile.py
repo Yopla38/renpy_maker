@@ -19,6 +19,7 @@ from renpy_maker import paths
 from renpy_maker import pipeline as PL
 from renpy_maker import plan as P
 from renpy_maker import projects as PJ
+from renpy_maker import atelier as AT
 from renpy_maker import story_graph
 from renpy_maker import renpy_export as RE
 from renpy_maker import story as S
@@ -38,6 +39,7 @@ from renpy_maker.facile_base import (
 from renpy_maker.facile_elements import (
     _element_card,
     create_outfit,
+    edit_outfit,
     redo_card,
     set_asset_loras,
     set_character_mode,
@@ -189,9 +191,27 @@ def view() -> dict:
     with A.LOCK:
         assets = A.load()["assets"]
     written = bool(st["chapters"])
-    characters = [_element_card(assets, "character", n) for n in _characters(st)]
+    # Un personnage accepté, pas encore placé dans une scène, existe déjà dans le registre : il est listé.
+    names = _characters(st)
+    names += [a["name"] for a in assets.values() if a["kind"] == "character" and a["name"] not in names]
+    characters = [_element_card(assets, "character", n) for n in names]
     locations = [_element_card(assets, "location", n) for n in _locations(st)]
-    outfits = [_element_card(assets, "outfit", o, parent=c) for c, o in _outfits(st)]
+    # Une tenue de la garde-robe, pas encore portée par une scène, existe déjà dans le registre : elle est listée.
+    pairs = list(_outfits(st))
+    for a in assets.values():
+        if a["kind"] == "outfit" and a.get("parent") in assets:
+            pair = (assets[a["parent"]]["name"], a["name"])
+            if pair not in pairs:
+                pairs.append(pair)
+    outfits = [_element_card(assets, "outfit", o, parent=c) for c, o in pairs]
+    # La tenue par défaut sert de vignette au personnage (son image de base reste disponible).
+    by_aid = {o["aid"]: o for o in outfits}
+    for c in characters:
+        default = by_aid.get(assets.get(c["aid"], {}).get("default_outfit", ""))
+        c["default_outfit"] = default["aid"] if default else ""
+        c["base_image"] = c["image"]
+        if default and default.get("image"):
+            c["image"] = default["image"]
     cards = [{"id": sc["id"], "title": sc["title"], "summary": sc.get("summary", ""),
               "chapter": ci + 1, "chapter_title": ch["title"],
               "dialogue": sc.get("dialogue", []), "characters": sc.get("characters", []),
@@ -424,6 +444,24 @@ def route(method: str, path: str, body: dict) -> dict:
             "/api/facile/route/start": lambda: save_route(body),
             "/api/facile/route/undo": lambda: undo_route_api(body),
             "/api/facile/branch": lambda: branch_api(body),
+            "/api/atelier/idea": lambda: (AT.set_idea(body.get("title", ""), body.get("idea", "")), {"ok": True})[1],
+            "/api/atelier/characters/propose": lambda: {"characters": AT.propose_characters(
+                body.get("idea", ""), body.get("existing", []), int(body.get("count", 3)))},
+            "/api/atelier/characters/add": lambda: {"aid": AT.add_character(
+                body.get("name", ""), body.get("description", ""), body.get("descriptor", ""))},
+            "/api/atelier/location/propose": lambda: AT.propose_location(
+                body.get("idea", ""), body.get("existing", []), body.get("context", "")),
+            "/api/atelier/scene/start": lambda: {"scene": AT.start_scene(
+                body.get("title", ""), body.get("location", ""), body.get("characters", []), body.get("summary", ""))},
+            "/api/atelier/outfit/default": lambda: (AT.set_default_outfit(body.get("character", ""), body.get("outfit", "")), {"ok": True})[1],
+            "/api/facile/outfit/edit": lambda: edit_outfit(body.get("aid", ""), body.get("mode", ""),
+                                                           body.get("text", ""), body.get("ref") or None),
+            "/api/atelier/outfits/propose": lambda: {"outfits": AT.propose_outfits(
+                body.get("character", ""), body.get("description", ""), body.get("idea", ""),
+                body.get("existing", []), int(body.get("count", 3)))},
+            "/api/atelier/line/propose": lambda: AT.propose_line(body.get("scene", "")),
+            "/api/atelier/moment/add": lambda: {"plan": AT.add_moment(
+                body.get("scene", ""), body.get("speaker", ""), body.get("text", ""))},
             "/api/facile/reshape": lambda: reshape_api(body),
             "/api/facile/projects/create": lambda: PJ.open_project(PJ.create(body.get("name", ""), body.get("idea", "")), _busy.locked()),
             "/api/facile/projects/open": lambda: PJ.open_project(body.get("id", ""), _busy.locked()),
@@ -442,7 +480,7 @@ def route(method: str, path: str, body: dict) -> dict:
             "/api/facile/outfit/create": lambda: create_outfit(body["character"], body.get("name", ""),
                                                                body.get("description", ""), body.get("scenes", [])),
             "/api/facile/element/update": lambda: update_element(body["aid"], body.get("name"), body.get("description"),
-                                                                 body.get("descriptor")),
+                                                                 body.get("descriptor"), body.get("prompt")),
             "/api/facile/settings/max-plans": lambda: set_max_plans(int(body["max_plans"])),
             "/api/facile/story": lambda: write_story(body.get("title", ""), body.get("idea", ""),
                                                      int(body.get("count", 4)), bool(body.get("explicit"))),

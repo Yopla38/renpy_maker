@@ -6,7 +6,7 @@ Rien n'est envoyé au modèle image sans l'accord de l'auteur.
 
 from __future__ import annotations
 
-from renpy_maker import appsettings
+from renpy_maker import appsettings, paths
 import re
 
 from renpy_maker import llm
@@ -29,9 +29,8 @@ Rules:
 {framing}"""
 
 FRAMING = {
-    "character": ("- Show the character alone against a plain neutral studio backdrop, in a clear portrait or "
-                  "three-quarter framing. No location, no props, no other people. The story's mood may shape the "
-                  "lighting and the expression only."),
+    "character": ("- Show the character alone, full body, against a plain neutral studio backdrop. No location, no "
+                  "props, no other people. The story's mood may shape the lighting and the expression only."),
     "outfit": "- Show the character wearing the outfit, full body, the clothing clearly visible.",
     "location": "- Describe the place only: a wide establishing shot with no people in it.",
     "object": "- Show the object alone, centred, clearly lit. No people, no hands, no body parts, no characters at all.",
@@ -159,10 +158,11 @@ def ref_order(assets: dict, aid: str) -> list[str]:
     a = assets[aid]
     order: list[str] = []
     if a["kind"] == "outfit":
-        base = a.get("based_on") or ""
+        parent = a.get("parent") or ""
+        # Tenue de départ choisie, sinon la tenue par défaut du personnage (si elle existe et est dessinée).
+        base = a.get("based_on") or (assets.get(parent, {}).get("default_outfit") or "")
         if base and base != aid and _retained(assets, base):
             order.append(base)
-        parent = a.get("parent") or ""
         if parent and _retained(assets, parent) and parent not in order:
             order.append(parent)
     for rid in a.get("refs", []):
@@ -178,6 +178,13 @@ def _ref_line(assets: dict, number: int, rid: str) -> str:
     if r["kind"] == "outfit":
         return f"Reference image {number} : clothes worn by the person ({anonymize(r['name'], assets)})."
     return f"Reference image {number} : {anonymize(r['name'], assets)}, use it as a visual reference."
+
+
+def nude_base(st: dict) -> bool:
+    """Corps de base nu : seulement avec ComfyUI pour le dessin de base, contenu explicite autorisé dans
+    l'histoire, et jamais dans l'application enfants. Les tenues sont ensuite ajoutées par retouche (Klein)."""
+    return (appsettings.image_for("base")["engine"] == "comfyui"
+            and bool(st.get("settings", {}).get("explicit_content")) and not paths.KIDS)
 
 
 def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
@@ -215,7 +222,20 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     ]
     # Un lieu se décrit par son nom seulement : ses notes reprennent le résumé des scènes, pleines de personnages.
     if a.get("description") and a["kind"] != "location":
-        lines.append(f"Notes (French) : {a['description']}")
+        if a["kind"] == "character" and nude_base(st):
+            # Corps nu : seuls les traits physiques comptent. Les vêtements des notes vont aux tenues.
+            lines.append("Physical traits only, from these French notes: face, hair, eyes, build, age. IGNORE any "
+                         "clothing, underwear or accessory they mention: garments are added later as outfits. "
+                         f"Notes : {a['description']}")
+        else:
+            lines.append(f"Notes (French) : {a['description']}")
+    if a["kind"] == "character":
+        lines.append("Start the prompt with 'full body shot'.")
+    if a["kind"] == "character" and nude_base(st):
+        lines.append("Write 'nude' right before the gender word (for example 'a young nude woman').")
+        # Corps de base : la personne nue, sans vêtement ni accessoire. La tenue viendra par retouche.
+        lines.append("The person is nude : a neutral full-body figure, no clothing, no accessories, natural "
+                     "anatomy, plain studio backdrop. Garments will be added later by editing this image.")
     if a["kind"] == "character":
         # Le genre et l'âge choisis sont la seule source : le contexte de l'histoire parle souvent d'un autre
         # personnage (une héroïne, pour un homme) et le modèle l'appliquerait à celui-ci.
@@ -292,10 +312,41 @@ def shows_person(text: str) -> bool:
     return bool(PERSON_WORDS.search(text))
 
 
+CLOTHING = re.compile(r"\b(sweater|shirt|blouse|dress|skirt|miniskirt|jeans|trousers|pants|jacket|coat|suit|"
+                      r"sweatshirt|underwear|lingerie|bra|panties|thong|stockings|shorts|clothes|clothing|garment|"
+                      r"outfit|scarf|hat|shoes|boots|uniform|robe|costume|tie)\b", re.IGNORECASE)
+
+
+def shows_clothing(text: str) -> bool:
+    return bool(CLOTHING.search(text))
+
+
+GENDER_NOUN = re.compile(r"\b(woman|man|girl|boy)\b", re.IGNORECASE)
+
+
+def character_prompt_rules(text: str, nude: bool) -> str:
+    """Règles de forme d'un prompt de personnage : il commence par « full body shot » ; en corps nu,
+    « nude » est écrit juste avant le mot de genre (« a young nude woman »)."""
+    text = text.strip()
+    if not text.lower().startswith("full body shot"):
+        text = "full body shot, " + text[:1].lower() + text[1:] if text else "full body shot"
+    if nude and "nude" not in text.lower():
+        text = GENDER_NOUN.sub(lambda m: "nude " + m.group(0), text, count=1)
+    return text
+
+
 def suggest(st: dict, assets_data: dict, aid: str, provider: str | None = None) -> str:
     system, user = build_request(st, assets_data["assets"], aid)
     provider = provider or appsettings.provider("text")
     text = clean(llm.complete_task("prompt", system, user, provider))
+    if assets_data["assets"][aid]["kind"] == "character":
+        text = character_prompt_rules(text, nude_base(st))
+    if assets_data["assets"][aid]["kind"] == "character" and nude_base(st) and shows_clothing(text):
+        # Corps nu : pas de vêtement dans le prompt. On redemande une fois, puis on refuse.
+        strict = system + "\nThe previous attempt described clothing. The person is NUDE: no garment, no underwear, no accessory."
+        text = clean(llm.complete_task("prompt", strict, user, provider))
+        if shows_clothing(text):
+            raise ValueError("Le prompt décrit encore des vêtements : les tenues se règlent dans la garde-robe.")
     if assets_data["assets"][aid]["kind"] == "location" and shows_person(text):
         # Un lieu doit rester vide : on redemande une fois, avec une consigne plus stricte.
         strict = system + "\nThe previous attempt showed people. The place must be EMPTY: no person, no figure, no silhouette."

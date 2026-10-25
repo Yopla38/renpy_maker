@@ -88,7 +88,7 @@ def _rename_outfit(st: dict, character: str, old: str, new: str) -> None:
                          for k, v in sc.get("outfits", {}).items()}
 
 def update_element(aid: str, name: str | None = None, description: str | None = None,
-                   descriptor: str | None = None) -> dict:
+                   descriptor: str | None = None, prompt: str | None = None) -> dict:
     """Designer, onglet Identité : nom, description, genre et âge (personnage ou tenue)."""
     with S.LOCK:
         st = S.load()
@@ -137,6 +137,8 @@ def update_element(aid: str, name: str | None = None, description: str | None = 
         a["image_stale"] = True
     if changed:
         a["prompt"] = ""  # le prompt sera rédigé de nouveau à partir de la description modifiée
+    if prompt is not None:  # mode expert : le prompt écrit par l'auteur l'emporte
+        a["prompt"] = prompt.strip()
     with A.LOCK:
         A.save(data)
     with S.LOCK:
@@ -286,13 +288,13 @@ def _wrong_person(text: str, assets: dict, aid: str) -> bool:
         return True
     return noun in ("man", "boy") and bool(re.search(r"\b(she|her)\b", low))
 
-def _card_work(job_id: str, aid: str, prompt: str | None = None) -> None:
+def _card_work(job_id: str, aid: str, prompt: str | None = None, extra_refs=(), store_prompt: bool = True) -> None:
     with S.LOCK:
         _ensure_descriptors(S.load())
     with A.LOCK:
         data = A.load()
     a = data["assets"][aid]
-    refs = _refs_for(data["assets"], aid)
+    refs = _refs_for(data["assets"], aid) + [r for r in extra_refs if r not in _refs_for(data["assets"], aid)]
     if not prompt:
         prompt = a.get("prompt")
     if prompt and a["kind"] == "outfit" and _wrong_person(prompt, data["assets"], aid):
@@ -304,10 +306,11 @@ def _card_work(job_id: str, aid: str, prompt: str | None = None) -> None:
             st = S.load()
         prompt = PR.suggest(st, data, aid)
     prompt = prompt.strip()
-    with A.LOCK:
-        data = A.load()
-        data["assets"][aid]["prompt"] = prompt
-        A.save(data)
+    if store_prompt:  # une retouche ne remplace pas le prompt de la tenue
+        with A.LOCK:
+            data = A.load()
+            data["assets"][aid]["prompt"] = prompt
+            A.save(data)
     _say(job_id, f"Dessin de « {a['name']} » (une à deux minutes)…")
     _check_cancel(job_id)
     idx = A.generate_candidate(aid, refs, prompt, None, "replicate", None, on_progress=_progress(job_id),
@@ -338,3 +341,48 @@ def suggest_prompt(kind: str, target: str) -> dict:
                     return {"prompt": SC.suggest(st, data, sc, k)}
         raise ValueError("Plan inconnu")
     raise ValueError("Type inconnu")
+
+
+def _english(text: str) -> str:
+    """Le nom d'un vêtement ou d'un accessoire en anglais, court : le moteur d'image ne lit que l'anglais."""
+    try:
+        out = llm.complete_task("prompt", "Translate the clothing item to English. Answer only the phrase, 1 to 6 words.",
+                                text, appsettings.provider("text")).strip().strip("\"'. ")
+        return out or text
+    except Exception:  # sans modèle disponible, on garde le texte tel quel
+        return text
+
+
+def _edit_work(job_id: str, aid: str, mode: str, text: str, ref: str) -> None:
+    item = _english(text)
+    with A.LOCK:
+        assets = A.load()["assets"]
+    n = len(PR.ref_order(assets, aid)) + 1  # numéro de l'image de référence ajoutée
+    if mode == "add":
+        take = f" Take the {item} from reference image {n}." if ref else ""
+        body = (f"Add the {item} to the outfit, keeping everything else exactly as it is: same person, same face, "
+                f"same pose, same other garments.{take}")
+    else:
+        body = (f"Remove the {item} from the outfit, keeping everything else exactly as it is: same person, "
+                "same face, same pose, same other garments.")
+    prompt = PR.with_style(body, PR.llm_style())
+    _card_work(job_id, aid, prompt, [ref] if ref else [], False)
+
+
+def edit_outfit(aid: str, mode: str, text: str, ref: str | None = None) -> dict:
+    """Retouche d'une tenue : ajouter (texte ou image de référence) ou retirer un élément. L'ancienne image
+    reste dans la bibliothèque des images de la tenue."""
+    if mode not in ("add", "remove"):
+        raise ValueError("Mode inconnu : ajouter ou retirer")
+    text = " ".join(str(text).split())
+    if not text:
+        raise ValueError("Décrivez l'élément à ajouter ou à retirer")
+    with A.LOCK:
+        assets = A.load()["assets"]
+    a = assets.get(aid)
+    if a is None or a["kind"] != "outfit":
+        raise ValueError("Tenue inconnue")
+    _refs_for(assets, aid)  # refuse une tenue dont le personnage n'est pas encore dessiné
+    if ref and not (ref in assets and PR._retained(assets, ref)):
+        raise ValueError("Cette image n'est pas une image retenue")
+    return _start("Retouche de la tenue", _edit_work, aid, mode, text, ref or "")

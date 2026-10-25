@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="/vendor/cytoscape-3.34.3.min.js"></script>
+<style>
+:root {
+  --paper: #F2EDE3; --frame: #FBF8F2; --ink: #1C1A17; --ink-soft: #6B655B;
+  --route: #1F4E79; --branch: #D9512C; --select: #E0A526; --done: #7C9A86; --line: #D8CFBE;
+  --serif: "Instrument Serif", Georgia, serif; --sans: "Hanken Grotesk", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: var(--paper); font: 400 16px/1.5 var(--sans); min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--select); outline-offset: 2px; }
+#modal { display: contents; }
+#lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(20, 18, 15, .94); display: grid; place-items: center; padding: 24px; cursor: zoom-out; }
+#lightbox img { max-width: 100%; max-height: calc(100vh - 80px); object-fit: contain; border: 2px solid var(--paper); }
+#lightbox p { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: var(--paper); font-size: 14px; margin: 0; }
+#lightbox .hint { position: absolute; top: 14px; right: 18px; color: var(--paper); font-size: 13px; opacity: .7; }  /* conteneur de la fenêtre de réglages : ne prend pas de place dans la mise en page */
+
+/* En-tête */
+header.bar { display: flex; align-items: center; gap: 22px; padding: 14px 24px; border-bottom: 1px solid var(--line); }
+.title { font: 400 26px/1 var(--serif); margin: 0; min-width: 0; }
+.title small { display: block; font: 400 14px var(--sans); color: var(--ink-soft); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62ch; }
+.where { margin-left: auto; font-size: 14px; color: var(--ink-soft); }
+.head-link { font-weight: 700; font-size: 14px; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); padding: 6px 12px; }
+.head-link:hover { background: var(--select); }
+.gear { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); font-size: 18px; padding: 0; }
+.gear:hover { background: var(--select); }
+.overlay { position: fixed; inset: 0; background: rgba(28, 26, 23, .45); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--paper); border: 2px solid var(--ink); width: min(680px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { font: 400 24px var(--serif); margin: 0; }
+.modal-body { overflow-y: auto; padding: 16px 18px 20px; }
+.modal-body h4 { font: 400 20px var(--serif); margin: 18px 0 4px; }
+.modal-body h4:first-child { margin-top: 0; }
+.setrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; margin-top: 8px; }
+@media (max-width: 600px) { .setrow { grid-template-columns: 1fr; } }
+
+/* Corps : fil de l'histoire à gauche, atelier à droite */
+main { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); min-height: 0; }
+.story { border-right: 1px solid var(--line); padding: 18px 18px 40px; overflow-y: auto; background: var(--frame); }
+.work { padding: 22px 26px 40px; overflow-y: auto; min-width: 0; }
+@media (max-width: 960px) { main { grid-template-columns: 1fr; } .story { border-right: 0; border-bottom: 1px solid var(--line); } }
+
+h2.step { font: 400 28px/1.1 var(--serif); margin: 0 0 6px; }
+.lead { color: var(--ink-soft); margin: 0 0 18px; max-width: 60ch; }
+.note { color: var(--ink-soft); font-size: 14px; }
+.msg { padding: 10px 14px; border-left: 4px solid var(--branch); background: #F8E6DE; font-size: 14px; margin: 0 0 14px; }
+.msg.ok { border-left-color: var(--done); background: #E3EEE7; }
+
+/* Boutons et champs */
+.btn { border: 2px solid var(--ink); background: var(--paper); padding: 8px 16px; font-weight: 700; font-size: 15px; }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.quiet { border-color: var(--line); }
+.btn:hover:not(:disabled) { background: var(--select); color: var(--ink); border-color: var(--ink); }
+.link { background: none; border: 0; padding: 2px 0; color: var(--branch); font-weight: 700; font-size: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+label.field { display: grid; gap: 6px; font-weight: 700; font-size: 14px; margin: 14px 0 0; }
+input[type=text], input:not([type]), select, textarea {
+  width: 100%; padding: 9px 11px; background: var(--paper); border: 1px solid var(--line); font: 400 15px/1.45 var(--sans);
+}
+textarea { min-height: 84px; resize: vertical; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip { border: 2px solid var(--ink); background: var(--paper); padding: 4px 11px; font-size: 14px; font-weight: 600; }
+.chip.on { background: var(--ink); color: var(--paper); }
+
+/* Fil de l'histoire */
+.scene-head { font: 400 20px var(--serif); margin: 18px 0 8px; padding-top: 10px; border-top: 2px solid var(--ink); }
+.scene-head:first-child { margin-top: 0; }
+.moment { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; padding: 10px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.moment:hover { background: #F5F0E4; }
+.moment.on { background: #FFF6D8; }
+.moment img, .moment .none { width: 74px; height: 56px; object-fit: cover; border: 2px solid var(--ink); background: var(--paper); display: block; }
+.moment .none { display: grid; place-items: center; font-size: 11px; color: var(--ink-soft); }
+.mspeaker { font-weight: 700; font-size: 13px; margin: 0; }
+.mtext { font-size: 14px; margin: 2px 0 0; color: var(--ink-soft); }
+
+/* Cartes de proposition */
+.card { background: var(--frame); border: 2px solid var(--ink); padding: 16px; margin-bottom: 14px; max-width: 720px; }
+.card h3 { font: 400 22px var(--serif); margin: 0 0 4px; }
+
+/* Cartes d'éléments (tenues de la garde-robe) */
+.elm { background: var(--frame); border: 2px solid var(--ink); text-align: left; padding: 0; }
+.elm img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: #111; }
+.elm .none { display: grid; place-items: center; aspect-ratio: 3 / 4; background: var(--paper); color: var(--ink-soft); font-size: 13px; padding: 10px; text-align: center; }
+.elm .body { padding: 10px 12px 12px; border-top: 2px solid var(--ink); }
+.elm .nm { font: 400 19px/1.15 var(--serif); margin: 0 0 4px; }
+.elm .sub { font-size: 13px; color: var(--ink-soft); margin: 0; }
+
+.pick-strip { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px; }
+.pick { flex: 0 0 76px; border: 2px solid var(--line); padding: 0; background: #111; }
+.pick img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.pick.on { border-color: var(--ink); outline: 3px solid var(--select); outline-offset: 1px; }
+/* Retouche d'une tenue : boutons + et − discrets, en bas à droite */
+.edit-btns { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 6px; z-index: 1; }
+.round { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink); background: var(--frame); font-weight: 800; font-size: 16px; line-height: 1; padding: 0; }
+.round:hover:not(:disabled) { background: var(--select); }
+.edit-form { display: grid; gap: 6px; margin: 10px 0; padding: 10px; border: 1px dashed var(--ink); background: var(--paper); }
+.edit-form input { margin: 0; }
+.elm .body { padding-bottom: 42px; }
+
+/* Dessin en cours sur un élément */
+.card, .elm, .moment { position: relative; }
+.working { position: absolute; inset: 0; z-index: 2; background: rgba(242, 237, 227, .86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.spin { width: 30px; height: 30px; border: 3px solid var(--ink); border-top-color: transparent; border-radius: 50%; animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+
+/* Panneau de création d'image */
+.panel { border: 2px solid var(--ink); background: var(--frame); padding: 18px; margin-top: 8px; }
+.panel-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 1100px) { .panel-grid { grid-template-columns: 1fr; } }
+#refgraph { width: 100%; height: 360px; background: #EFE8DA; border: 1px dashed var(--line); position: relative; }
+#refgraph.over { border-color: var(--select); background: #FFF6D8; }
+.graph-hint { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0; }
+.prompt-box textarea { min-height: 170px; }
+.lora-row { display: grid; grid-template-columns: 1fr 64px auto; gap: 6px; align-items: center; font-size: 14px; margin-top: 6px; }
+.lora-row input { padding: 5px 6px; }
+
+/* Bobine */
+footer.reel { border-top: 1px solid var(--line); padding: 10px 24px 12px; background: var(--frame); overflow-x: auto; }
+.reel-head { display: flex; gap: 14px; align-items: baseline; margin-bottom: 6px; }
+.reel h3 { font: 400 18px var(--serif); margin: 0; }
+.reel-strip { display: flex; gap: 8px; }
+.reel-item { flex: 0 0 96px; border: 2px solid var(--ink); padding: 0; background: #111; }
+.reel-item img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.reel-item span { display: block; font-size: 11px; text-align: left; padding: 3px 5px; background: var(--frame); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reel-item[draggable="true"] { cursor: grab; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 class="title"><span id="title">Atelier</span><small id="subtitle"></small></h1>
+  <div class="where" id="where"></div>
+  <a class="head-link" href="/projets">Mes histoires</a>
+  <button class="gear" title="Réglages : modèles, moteurs d'image, clés" onclick="openSettings()" aria-label="Réglages">⚙</button>
+</header>
+<div id="modal"></div>
+
+<main>
+  <aside class="story" id="story" aria-label="Fil de l'histoire"></aside>
+  <section class="work" id="work" aria-live="polite"></section>
+</main>
+
+<footer class="reel" id="reel">
+  <div class="reel-head"><h3>Bobine</h3><span class="note">Glissez une image sur le panneau pour la donner en référence.</span></div>
+  <div class="reel-strip" id="reel-strip"></div>
+</footer>
+
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const GENDER = ["young woman", "adult woman", "young man", "adult man", "teenage girl", "teenage boy", "child"];
+const GENDER_LABEL = { "young woman": "Jeune femme", "adult woman": "Femme adulte", "young man": "Jeune homme",
+  "adult man": "Homme adulte", "teenage girl": "Adolescente", "teenage boy": "Adolescent", "child": "Enfant" };
+
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method, headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data;
+}
+
+// --- État ----------------------------------------------------------------------------
+let V = null;                  // vue de l'histoire (/api/facile)
+let msg = "", msgOk = false;   // message affiché
+let working = false;           // une action tourne
+let selPlan = null;            // {sid, pid} : le moment ouvert dans le panneau
+let proposal = {};             // propositions en attente : characters, location, present, line
+let theme = null;              // brouillon du thème
+let cy = null;                 // graphe du panneau de référence
+let promptFor = null;          // plan pour lequel le prompt a été proposé
+let promptText = "";           // prompt proposé (modifiable)
+let promptAid = null;          // personnage dont la fenêtre de prompt est ouverte (roue)
+let wardrobeAid = null;        // personnage dont la garde-robe est ouverte
+let outfitProposal = null;     // tenues proposées par l'IA pour cette garde-robe
+let editOutfit = null;         // retouche en cours : {aid, mode: "add"|"remove", text, ref}
+let cardPrompts = {};          // brouillons de prompts par personnage (mode expert)
+const workingOn = new Set();   // éléments en cours de dessin : identifiant d'un élément, ou "plan:<id>"
+const GEAR = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+const HANGER = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7V5a2 2 0 1 1 2 2"/><path d="M12 7 3 14.5h18L12 7"/></svg>';
+
+async function load() {
+  V = await api("GET", "/api/facile");
+  if (!theme) theme = { title: V.title || "", idea: V.idea || "" };
+  render();
+  if (location.hash === "#reglages" && !settings) openSettings();
+  if (location.hash.startsWith("#prompt=") && !promptAid) promptAid = decodeURIComponent(location.hash.slice(8));
+  if (location.hash.startsWith("#garde=") && !wardrobeAid) wardrobeAid = decodeURIComponent(location.hash.slice(7));
+  if (promptAid || wardrobeAid) render();
+}
+
+function setMsg(text, ok = false) { msg = text; msgOk = ok; }
+
+// Une action qui modifie l'histoire : on recharge la vue après.
+async function act(fn, okText = "") {
+  working = true; setMsg(""); render();
+  try {
+    await fn();
+    working = false;
+    setMsg(okText, !!okText);
+    await load();
+  } catch (e) {
+    working = false;
+    setMsg(e.message, false);
+    render();
+  }
+}
+
+// Une tâche longue du moteur (dessin) : on suit son avancement jusqu'à la fin.
+async function job(start, label, key = "") {
+  working = true; setMsg(label); if (key) workingOn.add(key); render();
+  try {
+    const { job: id } = await start();
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 1100));
+      const j = await api("GET", `/api/facile/jobs/${id}`);
+      if (j.state === "running") { setMsg(j.message || label); render(); continue; }
+      if (j.state === "error") throw new Error(j.error || "La tâche a échoué");
+      if (j.state === "cancelled") throw new Error("Tâche arrêtée");
+      break;
+    }
+    setMsg("Image terminée.", true);
+  } catch (e) {
+    setMsg(e.message, false);
+  }
+  if (key) workingOn.delete(key);
+  working = false;
+  promptFor = null;
+  await load();
+}
+
+// Voile et animation sur l'élément en cours de dessin.
+function busyHtml(key) {
+  return workingOn.has(key) ? `<div class="working" role="status"><span class="spin" aria-hidden="true"></span><span>Dessin en cours…</span></div>` : "";
+}
+
+// --- Étape courante, déduite de l'histoire -----------------------------------------------
+function currentScene() { return V.scenes[V.scenes.length - 1] || null; }
+
+function phase() {
+  if (!V.idea || !V.style) return "theme";
+  const sc = currentScene();
+  // Sans scène, on reste sur les personnages jusqu'à « Passer au premier lieu » (ou « Proposer un lieu »).
+  if (!sc || proposal.newLocation) return proposal.newLocation ? "location" : "characters";
+  const last = sc.plans[sc.plans.length - 1];
+  if (last && !last.image) return "image";
+  return "line";
+}
+
+function render() {
+  if (!V) return;
+  document.getElementById("title").textContent = V.title || "Atelier";
+  document.getElementById("subtitle").textContent = V.idea || "Décrivez votre histoire pour commencer";
+  const sc = currentScene();
+  document.getElementById("where").textContent = sc ? `Lieu : ${sc.location || sc.title}` : "";
+  renderStory();
+  renderWork();
+  renderReel();
+  renderModal();
+}
+
+function renderModal() {
+  const box = document.getElementById("modal");
+  if (settings) renderSettings();
+  else if (promptAid) box.innerHTML = promptHtml();
+  else if (wardrobeAid) box.innerHTML = wardrobeHtml();
+  else box.innerHTML = "";
+}
+
+// --- Fil de l'histoire (gauche) -------------------------------------------------------
+function renderStory() {
+  const box = document.getElementById("story");
+  if (!V.scenes.length) {
+    box.innerHTML = `<p class="note">Le fil de l'histoire apparaît ici, moment après moment.</p>`;
+    return;
+  }
+  box.innerHTML = V.scenes.map((s) => `
+    <div class="scene-head">${esc(s.location || s.title)}</div>
+    ${s.plans.map((p) => {
+      const line = s.dialogue[p.from_line];
+      const on = selPlan && selPlan.pid === p.id && selPlan.sid === s.id;
+      return `<div class="moment ${on ? "on" : ""}" onclick="openMoment('${esc(s.id)}', '${esc(p.id)}')">
+        ${busyHtml("plan:" + p.id)}
+        ${p.image ? `<img src="${esc(p.image)}" alt="">` : `<div class="none">Pas encore d'image</div>`}
+        <div>
+          <p class="mspeaker">${esc(line ? line.speaker : "")}</p>
+          <p class="mtext">${esc(line ? line.text : "")}</p>
+        </div></div>`;
+    }).join("")}`).join("");
+}
+
+function openMoment(sid, pid) {
+  if (working) return;
+  selPlan = { sid, pid };
+  promptFor = null;
+  render();
+}
+
+// --- Zone de travail (droite) --------------------------------------------------------
+function renderWork() {
+  const work = document.getElementById("work");
+  const msgHtml = msg ? `<p class="msg ${msgOk ? "ok" : ""}">${esc(msg)}</p>` : "";
+  let html;
+  if (selPlan) html = momentPanelHtml();
+  else {
+    const ph = phase();
+    html = { theme: themeHtml, characters: charactersHtml, location: locationHtml, image: () => momentPanelHtml(), line: lineHtml }[ph]();
+  }
+  work.innerHTML = msgHtml + html;
+  if (selectedPlan()) setTimeout(mountRefGraph, 0);
+}
+
+// Étape 0 : le thème (titre, idée, style)
+function themeHtml() {
+  const styles = (V.styles || []).map((s) => `<button class="chip ${V.style === s.key ? "on" : ""}" onclick="chooseStyle('${s.key}')" title="${esc(s.desc)}">${esc(s.name)}</button>`).join("");
+  return `<h2 class="step">De quoi parle votre histoire ?</h2>
+    <p class="lead">Quelques phrases suffisent. Ensuite, l'IA propose les personnages, puis le premier lieu.</p>
+    <div class="card">
+      <label class="field">Titre <span class="note">(facultatif)</span>
+        <input type="text" value="${esc(theme.title)}" oninput="theme.title=this.value"></label>
+      <label class="field">Votre histoire
+        <textarea rows="5" oninput="theme.idea=this.value">${esc(theme.idea)}</textarea></label>
+      <label class="field">Style des images</label>
+      <div class="chips">${styles}</div>
+      <div class="row"><button class="btn primary" onclick="saveTheme()" ${working || !theme.idea.trim() ? "disabled" : ""}>Continuer</button></div>
+    </div>`;
+}
+
+function saveTheme() {
+  act(() => api("POST", "/api/atelier/idea", theme), "Thème enregistré.");
+}
+
+function chooseStyle(key) {
+  act(() => api("POST", "/api/facile/style", { style: key }), "Style choisi.");
+}
+
+// Étape 1 : les personnages (propositions à accepter, modifier ou refuser)
+function charactersHtml() {
+  const accepted = V.characters.map((c) => {
+    const wardrobe = (V.outfits || []).filter((o) => o.parent === c.name).length;
+      return `<div class="card" style="display:flex;gap:14px;align-items:flex-start;max-width:none">
+      ${busyHtml(c.aid)}
+      ${c.image ? `<img src="${esc(c.image)}" alt="${esc(c.name)}" style="width:72px;height:96px;object-fit:cover;border:2px solid var(--ink);flex:0 0 72px">`
+        : `<div style="width:72px;height:96px;background:var(--paper);border:2px dashed var(--line);display:grid;place-items:center;font-size:12px;color:var(--ink-soft);flex:0 0 72px">Sans image</div>`}
+      <div style="flex:1;min-width:0"><h3 style="margin:0">${esc(c.name)}</h3>
+        <p class="note" style="margin:2px 0 8px">${esc(GENDER_LABEL[c.descriptor] || "Genre à choisir")}</p>
+        <div class="row" style="margin-top:0">
+          <button class="btn ${c.ready ? "quiet" : "primary"}" onclick="drawCharacter('${esc(c.aid)}')" ${working || !c.descriptor ? "disabled" : ""}>${c.ready ? "Refaire l'image" : "Dessiner"}</button>
+          <button class="btn quiet" title="Garde-robe" onclick="openWardrobe('${esc(c.aid)}')" style="display:inline-flex;align-items:center;gap:6px">${HANGER} Garde-robe${wardrobe ? ` (${wardrobe})` : ""}</button>
+          <button class="btn quiet" title="Prompt de l'image : le réglage du dessin" aria-label="Prompt de l'image" onclick="openPromptEditor('${esc(c.aid)}')" style="display:inline-flex;align-items:center;gap:6px">${GEAR} Prompt</button>
+        </div>
+        ${c.descriptor ? "" : `<p class="note" style="margin:6px 0 0">Choisissez son genre pour le dessiner.</p>`}
+      </div></div>`;
+  }).join("");
+  const pending = (proposal.characters || []).map((c, i) => `<div class="card">
+      <h3>${esc(c.name)}</h3>
+      <label class="field">Description<textarea id="pc-desc-${i}">${esc(c.description)}</textarea></label>
+      <label class="field">Genre et âge
+        <select id="pc-genre-${i}"><option value="">— à choisir —</option>
+          ${GENDER.map((g) => `<option value="${g}" ${c.descriptor === g ? "selected" : ""}>${GENDER_LABEL[g]}</option>`).join("")}</select></label>
+      <div class="row">
+        <button class="btn primary" onclick="acceptCharacter(${i})" ${working ? "disabled" : ""}>Accepter</button>
+        <button class="btn quiet" onclick="refuseCharacter(${i})" ${working ? "disabled" : ""}>Refuser</button>
+      </div></div>`).join("");
+  return `<h2 class="step">Les personnages</h2>
+    <p class="lead">Acceptez ceux qui vous plaisent, changez leur description ou leur genre, puis dessinez-les.</p>
+    ${accepted ? `<div style="margin:0 0 16px">${accepted}</div>` : ""}
+    ${pending}
+    <div class="row">
+      <button class="btn primary" onclick="proposeCharacters()" ${working ? "disabled" : ""}>${proposal.characters ? "Proposer d'autres personnages" : "Proposer des personnages"}</button>
+      <button class="btn" onclick="proposeLocation()" ${working ? "disabled" : ""}>Passer au premier lieu</button>
+    </div>`;
+}
+
+// Roue d'un personnage : son prompt, modifiable, proposé par l'IA ou écrit par l'auteur.
+function openPromptEditor(aid) {
+  if (working) return;
+  promptAid = aid;
+  render();
+}
+
+function closePromptEditor() {
+  promptAid = null;
+  render();
+}
+
+function promptHtml() {
+  const c = V.characters.find((x) => x.aid === promptAid) || (V.outfits || []).find((x) => x.aid === promptAid);
+  if (!c) return "";
+  const isOutfit = !V.characters.some((x) => x.aid === c.aid);
+  const cannotDraw = isOutfit ? c.blocked : !c.descriptor;
+  const text = cardPrompts[c.aid] !== undefined ? cardPrompts[c.aid] : (c.prompt || "");
+  return `<div class="overlay" onclick="if (event.target === this) closePromptEditor()">
+    <div class="modal" role="dialog" aria-label="Prompt de ${esc(c.name)}">
+      <div class="modal-head"><h3>Prompt · ${esc(c.name)}${isOutfit ? " (tenue)" : ""}</h3><button class="btn quiet" onclick="closePromptEditor()">Fermer</button></div>
+      <div class="modal-body">
+        <label class="field">Description <span class="note">(en français : sert à rédiger le prompt)</span>
+          <textarea id="pd-${esc(c.aid)}" rows="3">${esc(c.description || "")}</textarea></label>
+        <div class="row"><button class="btn quiet" onclick="saveDescription('${esc(c.aid)}')" ${working ? "disabled" : ""}>Enregistrer la description</button></div>
+        <p class="note" style="margin-top:16px">C'est le texte envoyé au moteur pour dessiner. Il est en anglais.</p>
+        <label class="field">Prompt de l'image
+          <textarea id="cp-${esc(c.aid)}" rows="7" oninput="cardPrompts['${esc(c.aid)}']=this.value">${esc(text)}</textarea></label>
+        <div class="row">
+          <button class="btn quiet" onclick="suggestCardPrompt('${esc(c.aid)}')" ${working ? "disabled" : ""}>Proposer un prompt</button>
+          <button class="btn quiet" onclick="saveCardPrompt('${esc(c.aid)}')" ${working ? "disabled" : ""}>Enregistrer le prompt</button>
+          <button class="btn primary" onclick="drawWithPrompt('${esc(c.aid)}')" ${working || cannotDraw ? "disabled" : ""}>Dessiner avec ce prompt</button>
+        </div>
+      </div></div></div>`;
+}
+
+function saveDescription(aid) {
+  const text = document.getElementById(`pd-${aid}`).value;
+  act(async () => {
+    await api("POST", "/api/facile/element/update", { aid, description: text });
+    delete cardPrompts[aid];  // le prompt se refait à partir de la nouvelle description
+  }, "Description enregistrée : refaites le prompt.");
+}
+
+function drawWithPrompt(aid) {
+  const text = document.getElementById(`cp-${aid}`).value;
+  promptAid = null;
+  delete cardPrompts[aid];
+  job(() => api("POST", "/api/facile/card", { aid, prompt: text }), "Dessin en cours…", aid);
+}
+
+function suggestCardPrompt(aid) {
+  working = true; render();
+  api("POST", "/api/facile/prompt/suggest", { kind: "card", id: aid }).then((out) => {
+    cardPrompts[aid] = out.prompt;
+    working = false; setMsg("Prompt proposé : modifiez-le si besoin, puis enregistrez.", true); render();
+  }).catch((e) => { working = false; setMsg(e.message, false); render(); });
+}
+
+function saveCardPrompt(aid) {
+  const text = document.getElementById(`cp-${aid}`).value;
+  act(async () => {
+    await api("POST", "/api/facile/element/update", { aid, prompt: text });
+    delete cardPrompts[aid];
+  }, "Prompt enregistré.");
+}
+
+// --- Garde-robe : les tenues d'un personnage ------------------------------------------
+function openWardrobe(aid) {
+  if (working) return;
+  wardrobeAid = aid;
+  outfitProposal = null;
+  render();
+}
+
+function closeWardrobe() {
+  wardrobeAid = null;
+  outfitProposal = null;
+  render();
+}
+
+// Image de départ d'une tenue : le corps de base (nu) par défaut, ou une autre tenue du même personnage.
+function referenceOf(o, c, outfits) {
+  const base = outfits.find((x) => x.aid === o.based_on);
+  if (base) return { label: base.name, image: base.image, others: outfits.filter((x) => x.aid !== o.aid) };
+  return { label: "Corps de base (personnage)", image: c.image, others: outfits.filter((x) => x.aid !== o.aid) };
+}
+
+function referenceHtml(o, c, outfits) {
+  const r = referenceOf(o, c, outfits);
+  const options = [`<option value="" ${!o.based_on ? "selected" : ""}>Corps de base (personnage)</option>`]
+    .concat(r.others.map((x) => `<option value="${esc(x.aid)}" ${o.based_on === x.aid ? "selected" : ""}>${esc(x.name)}</option>`)).join("");
+  return `<div class="row" style="margin-top:0;align-items:center">
+    ${r.image ? `<img src="${esc(r.image)}" alt="${esc(r.label)}" style="width:44px;height:58px;object-fit:cover;border:2px solid var(--ink)">` : `<span class="note">Pas d'image de départ</span>`}
+    <label class="field" style="margin:0;flex:1;min-width:0">Image de départ
+      <select onchange="setReference('${esc(o.aid)}', this.value)" ${working ? "disabled" : ""}>${options}</select></label></div>`;
+}
+
+function setReference(aid, basedOn) {
+  const o = (V.outfits || []).find((x) => x.aid === aid);
+  act(() => api("POST", "/api/facile/element/refs", { aid, refs: o ? o.refs : [], based_on: basedOn || null }),
+    basedOn ? "Image de départ changée : redessinez la tenue." : "Image de départ : le corps de base.");
+}
+
+function wardrobeHtml() {
+  const c = V.characters.find((x) => x.aid === wardrobeAid);
+  if (!c) return "";
+  const outfits = (V.outfits || []).filter((o) => o.parent === c.name);
+  const cards = outfits.map((o) => `<div class="elm" style="width:260px">
+      ${busyHtml(o.aid)}
+      ${o.image ? `<img src="${esc(o.image)}" alt="${esc(o.name)}">` : `<div class="none">${o.blocked ? "Dessinez d'abord le personnage" : "Pas encore d'image"}</div>`}
+      <div class="body"><p class="nm">${esc(o.name)}</p>
+        <p class="sub" style="margin-bottom:8px">${esc(o.description || "")}</p>
+        ${referenceHtml(o, c, outfits)}
+        <div class="row" style="margin-top:0"><button class="btn ${c.default_outfit === o.aid ? "primary" : "quiet"}" onclick="setDefaultOutfit('${esc(o.aid)}', ${c.default_outfit !== o.aid})" ${working ? "disabled" : ""}>${c.default_outfit === o.aid ? "Tenue par défaut" : "Par défaut"}</button></div>
+        ${editOutfit && editOutfit.aid === o.aid ? editFormHtml() : ""}
+        <div class="row" style="margin-top:0"><button class="btn quiet" onclick="drawOutfit('${esc(o.aid)}')" ${working || o.blocked ? "disabled" : ""}>${o.image ? "Refaire" : "Dessiner"}</button>
+        <button class="btn quiet" onclick="openPromptEditor('${esc(o.aid)}')" style="display:inline-flex;align-items:center;gap:6px">${GEAR} Prompt</button></div></div>
+      <div class="edit-btns"><button class="round" title="Ajouter un élément oublié" aria-label="Ajouter un élément" onclick="openEdit('${esc(o.aid)}', 'add')" ${working || o.blocked ? "disabled" : ""}>+</button>
+        <button class="round" title="Retirer un élément" aria-label="Retirer un élément" onclick="openEdit('${esc(o.aid)}', 'remove')" ${working || o.blocked ? "disabled" : ""}>−</button></div></div>`).join("");
+  return `<div class="overlay" onclick="if (event.target === this) closeWardrobe()">
+    <div class="modal" role="dialog" aria-label="Garde-robe de ${esc(c.name)}">
+      <div class="modal-head"><h3>Garde-robe · ${esc(c.name)}</h3><button class="btn quiet" onclick="closeWardrobe()">Fermer</button></div>
+      <div class="modal-body">
+        ${cards ? `<div style="display:flex;flex-wrap:wrap;gap:14px">${cards}</div>` : `<p class="note">Aucune tenue pour l'instant.</p>`}
+        <div class="row"><button class="btn primary" onclick="proposeOutfits()" ${working ? "disabled" : ""}>Proposer des tenues</button></div>
+        ${outfitProposal ? outfitProposal.map((o, i) => `<div class="card" style="margin:12px 0 0">
+            <label class="field" style="margin-top:0">Nom<input type="text" id="op-name-${i}" value="${esc(o.name)}"></label>
+            <label class="field">Description<textarea id="op-desc-${i}" rows="2">${esc(o.description)}</textarea></label>
+            <div class="row"><button class="btn primary" onclick="addProposedOutfit(${i})" ${working ? "disabled" : ""}>Ajouter cette tenue</button>
+            <button class="btn quiet" onclick="refuseProposedOutfit(${i})">Refuser</button></div></div>`).join("")
+          : ""}
+        <h4>Ajouter une tenue</h4>
+        <label class="field">Nom<input type="text" id="ow-name" placeholder="ex. : Robe du soir"></label>
+        <label class="field">Description<textarea id="ow-desc" rows="2" placeholder="Ce qu'elle porte, la matière, la couleur"></textarea></label>
+        <div class="row"><button class="btn primary" onclick="addOutfit()" ${working ? "disabled" : ""}>Ajouter à la garde-robe</button></div>
+      </div></div></div>`;
+}
+
+function proposeOutfits() {
+  const c = V.characters.find((x) => x.aid === wardrobeAid);
+  if (!c) return;
+  const existing = (V.outfits || []).filter((o) => o.parent === c.name).map((o) => o.name);
+  act(async () => {
+    const out = await api("POST", "/api/atelier/outfits/propose", { character: c.name, description: c.description || "",
+      idea: V.idea, existing, count: 3 });
+    outfitProposal = out.outfits;
+  }, "Tenues proposées : modifiez-les puis ajoutez celles qui vous plaisent.");
+}
+
+function addProposedOutfit(i) {
+  const name = document.getElementById(`op-name-${i}`).value.trim();
+  const description = document.getElementById(`op-desc-${i}`).value.trim();
+  act(async () => {
+    await api("POST", "/api/facile/outfit/create", { character: wardrobeAid, name, description, scenes: [] });
+    outfitProposal = outfitProposal.filter((_, j) => j !== i);
+    if (!outfitProposal.length) outfitProposal = null;
+  }, `Tenue « ${name} » ajoutée.`);
+}
+
+function refuseProposedOutfit(i) {
+  outfitProposal = outfitProposal.filter((_, j) => j !== i);
+  if (!outfitProposal.length) outfitProposal = null;
+  render();
+}
+
+// La tenue par défaut sert de vignette au personnage et de référence aux autres tenues.
+function setDefaultOutfit(aid, on) {
+  act(() => api("POST", "/api/atelier/outfit/default", { character: wardrobeAid, outfit: on ? aid : "" }),
+    on ? "Tenue par défaut : elle sert de référence et de vignette." : "Plus de tenue par défaut.");
+}
+
+// Retouche d'une tenue : ajouter un élément oublié (texte ou image de la bobine) ou en retirer un.
+function openEdit(aid, mode) {
+  if (working) return;
+  editOutfit = { aid, mode, text: "", ref: "" };
+  render();
+}
+
+function closeEdit() {
+  editOutfit = null;
+  render();
+}
+
+function editFormHtml() {
+  const add = editOutfit.mode === "add";
+  return `<div class="edit-form">
+    <label class="field" style="margin-top:0">${add ? "Ce qu'il faut ajouter" : "Ce qu'il faut retirer"}
+      <input type="text" id="eo-text" value="${esc(editOutfit.text)}" placeholder="${add ? "ex. : des chaussures noires" : "ex. : le collier"}" oninput="editOutfit.text=this.value"></label>
+    ${add ? `<p class="note" style="margin:0">Facultatif : choisissez une image de référence (par exemple les chaussures).</p>
+      <div class="pick-strip">${pickableImages().map((it) => `<button class="pick ${editOutfit.ref === it.aid ? "on" : ""}" title="${esc(it.label)}" onclick="pickRef('${esc(it.aid)}')"><img src="${esc(it.image)}" alt="${esc(it.label)}"></button>`).join("") || `<span class="note">Aucune image pour l'instant.</span>`}</div>
+      ${editOutfit.ref ? `<div class="row" style="margin-top:0"><span class="note">Image de référence choisie.</span><button class="link" onclick="pickRef('')">Ne pas utiliser d'image</button></div>` : ""}` : ""}
+    <div class="row"><button class="btn primary" onclick="submitEdit()" ${working ? "disabled" : ""}>Dessiner la retouche</button>
+      <button class="btn quiet" onclick="closeEdit()">Annuler</button></div>
+    <p class="note">L'image actuelle reste dans la bibliothèque : vous pouvez revenir à une version précédente.</p>
+  </div>`;
+}
+
+// Toutes les images de l'histoire, pour les choisir comme référence (la bobine, en bas, est masquée par la fenêtre).
+function pickableImages() {
+  const items = [];
+  for (const s of V.scenes) for (const p of s.plans) if (p.image && p.aid) items.push({ aid: p.aid, image: p.image, label: s.location || s.title });
+  for (const c of V.characters) if (c.image && c.aid) items.push({ aid: c.aid, image: c.image, label: c.name });
+  for (const l of V.locations) if (l.image && l.aid) items.push({ aid: l.aid, image: l.image, label: l.name });
+  return items;
+}
+
+function pickRef(aid) {
+  if (!editOutfit) return;
+  editOutfit.ref = aid;
+  render();
+}
+
+function dropEditRef(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove("over");
+  let image;
+  try { image = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch (e) { return; }
+  if (image && image.aid && editOutfit) { editOutfit.ref = image.aid; render(); }
+}
+
+function submitEdit() {
+  const e = editOutfit;
+  if (!e.text.trim()) { setMsg("Décrivez l'élément.", false); return render(); }
+  job(() => api("POST", "/api/facile/outfit/edit", { aid: e.aid, mode: e.mode, text: e.text, ref: e.ref || null }),
+    e.mode === "add" ? "Ajout en cours…" : "Retrait en cours…", e.aid);
+  editOutfit = null;
+}
+
+function addOutfit() {
+  const name = document.getElementById("ow-name").value.trim();
+  const description = document.getElementById("ow-desc").value.trim();
+  if (!name) { setMsg("Donnez un nom à la tenue.", false); return render(); }
+  act(() => api("POST", "/api/facile/outfit/create", { character: wardrobeAid, name, description, scenes: [] }),
+    `Tenue « ${name} » ajoutée.`);
+}
+
+function drawOutfit(aid) {
+  job(() => api("POST", "/api/facile/card", { aid }), "Dessin de la tenue…", aid);
+}
+
+function proposeCharacters() {
+  act(async () => {
+    const existing = V.characters.map((c) => c.name);
+    const out = await api("POST", "/api/atelier/characters/propose", { idea: V.idea, existing, count: 3 });
+    proposal.characters = out.characters;
+  });
+}
+
+function acceptCharacter(i) {
+  const c = proposal.characters[i];
+  const description = document.getElementById(`pc-desc-${i}`).value;
+  const descriptor = document.getElementById(`pc-genre-${i}`).value;
+  act(async () => {
+    await api("POST", "/api/atelier/characters/add", { name: c.name, description, descriptor });
+    proposal.characters = proposal.characters.filter((_, j) => j !== i);
+  }, `${c.name} est ajouté. Dessinez-le quand vous voulez.`);
+}
+
+function drawCharacter(aid) {
+  job(() => api("POST", "/api/facile/card", { aid }), "Dessin du personnage…", aid);
+}
+
+function refuseCharacter(i) {
+  proposal.characters = proposal.characters.filter((_, j) => j !== i);
+  render();
+}
+
+// Étape 2 : le lieu et les personnages présents. Un nouveau lieu commence une nouvelle scène.
+function locationHtml() {
+  const loc = proposal.location;
+  const present = V.characters.map((c) => `<button class="chip ${(proposal.present || []).includes(c.name) ? "on" : ""}" onclick="togglePresent('${esc(c.name)}')">${esc(c.name)}</button>`).join("");
+  const card = loc
+    ? `<div class="card">
+        <label class="field">Lieu<input type="text" id="lc-name" value="${esc(loc.name)}"></label>
+        <label class="field">Décor<textarea id="lc-desc">${esc(loc.description)}</textarea></label>
+        <label class="field">Qui est là ?</label>
+        <div class="chips">${present || `<span class="note">Aucun personnage accepté.</span>`}</div>
+        <div class="row"><button class="btn primary" onclick="startScene()" ${working ? "disabled" : ""}>Commencer la scène ici</button>
+        <button class="btn quiet" onclick="proposeLocation()" ${working ? "disabled" : ""}>Un autre lieu</button></div>
+      </div>`
+    : "";
+  const first = !currentScene();
+  return `<h2 class="step">${first ? "Le premier lieu" : "Un nouveau lieu"}</h2>
+    <p class="lead">Un nouveau lieu commence une nouvelle scène.</p>
+    ${card}
+    ${loc ? "" : `<div class="row"><button class="btn primary" onclick="proposeLocation()" ${working ? "disabled" : ""}>Proposer un lieu</button></div>`}`;
+}
+
+function proposeLocation() {
+  act(async () => {
+    const existing = [...new Set(V.scenes.map((s) => s.location).filter(Boolean))];
+    proposal.location = await api("POST", "/api/atelier/location/propose", { idea: V.idea, existing, context: lastLineText() });
+    proposal.present = [];
+    proposal.newLocation = true;
+  });
+}
+
+function lastLineText() {
+  const sc = currentScene();
+  if (!sc || !sc.dialogue.length) return "";
+  const l = sc.dialogue[sc.dialogue.length - 1];
+  return `${l.speaker} : ${l.text}`;
+}
+
+function togglePresent(name) {
+  const cur = proposal.present || [];
+  proposal.present = cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name];
+  render();
+}
+
+function startScene() {
+  const name = document.getElementById("lc-name").value.trim();
+  const summary = document.getElementById("lc-desc").value.trim();
+  const present = proposal.present || [];
+  act(async () => {
+    await api("POST", "/api/atelier/scene/start", { title: name, location: name, characters: present, summary });
+    proposal.location = null;
+    proposal.newLocation = false;
+    proposal.line = null;
+  }, `Scène « ${name} » commencée.`);
+}
+
+// Étape 3 : la réplique suivante (une seule, à accepter ou changer)
+function lineHtml() {
+  const sc = currentScene();
+  if (!proposal.line || proposal.line.scene !== sc.id) {
+    if (!working) proposeLine(sc.id);
+    return `<h2 class="step">La réplique suivante</h2><p class="lead">L'IA écrit une réplique…</p>`;
+  }
+  const speakers = [...(sc.characters || []), "Narration"];
+  return `<h2 class="step">La réplique suivante</h2>
+    <p class="lead">Gardez-la, changez-la, ou demandez-en une autre. Chaque réplique aura son image.</p>
+    <div class="card">
+      <label class="field">Qui parle ?
+        <select id="ln-speaker">${speakers.map((n) => `<option ${n === proposal.line.speaker ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
+      <label class="field">Réplique<textarea id="ln-text" rows="3">${esc(proposal.line.text)}</textarea></label>
+      <div class="row">
+        <button class="btn primary" onclick="keepLine()" ${working ? "disabled" : ""}>Garder cette réplique</button>
+        <button class="btn quiet" onclick="proposeLine('${esc(sc.id)}')" ${working ? "disabled" : ""}>Une autre</button>
+        <button class="btn quiet" onclick="proposeLocation()" ${working ? "disabled" : ""}>Nouveau lieu</button>
+      </div></div>`;
+}
+
+function proposeLine(sid) {
+  act(async () => {
+    const out = await api("POST", "/api/atelier/line/propose", { scene: sid });
+    proposal.line = { scene: sid, speaker: out.speaker, text: out.text };
+  });
+}
+
+function keepLine() {
+  const sc = currentScene();
+  const speaker = document.getElementById("ln-speaker").value;
+  const text = document.getElementById("ln-text").value;
+  act(async () => {
+    const out = await api("POST", "/api/atelier/moment/add", { scene: sc.id, speaker, text });
+    proposal.line = null;
+    selPlan = { sid: sc.id, pid: out.plan };
+    promptFor = null;
+  }, "Réplique ajoutée : créez son image.");
+}
+
+// Étape 4 : l'image du moment (prompt proposé, références, LoRA)
+function momentPanelHtml() {
+  const plan = selectedPlan();
+  if (!plan) return `<h2 class="step">Choisissez un moment</h2><p class="lead">Cliquez une réplique à gauche pour voir son image.</p>`;
+  const { s, p } = plan;
+  const line = s.dialogue[p.from_line];
+  if (promptFor !== p.id && !p.image && !working) {
+    promptFor = p.id;
+    suggestPrompt(p);
+  }
+  const text = promptFor === p.id ? promptText : (p.prompt || "");
+  const loras = (p.loras || []).map((l, i) => `<div class="lora-row"><span>${esc(l.name)}</span>
+      <input type="number" step="0.1" value="${l.strength}" onchange="setLora('${esc(p.aid)}', ${i}, this.value)">
+      <button class="link" onclick="removeLora('${esc(p.aid)}', ${i})">Retirer</button></div>`).join("");
+  const loraAdd = (V.lora_names || []).length
+    ? `<div class="row"><select id="lora-add" style="width:auto;max-width:100%">${V.lora_names.map((n) => `<option>${esc(n)}</option>`).join("")}</select>
+        <button class="btn quiet" onclick="addLora('${esc(p.aid)}')" ${working ? "disabled" : ""}>Ajouter</button></div>`
+    : `<p class="note">Aucun LoRA trouvé (ComfyUI seulement).</p>`;
+  const last = s.plans[s.plans.length - 1];
+  return `<h2 class="step">${p.image ? "L'image de ce moment" : "Créez l'image de ce moment"}</h2>
+    <p class="lead">${esc(s.title)} · ${esc(line ? line.speaker : "")} : « ${esc(line ? line.text : "")} »</p>
+    <div class="panel"><div class="panel-grid">
+      <div>
+        <div id="refgraph" ondragover="allowRefDrop(event)" ondragleave="this.classList.remove('over')" ondrop="dropRef(event)"></div>
+        <p class="graph-hint">Glissez une image de la bobine dans le cadre pour l'ajouter. Faites sortir une vignette du cadre pour la retirer.</p>
+      </div>
+      <div>
+        <label class="field">Prompt de l'image <span class="note">(proposé par l'IA)</span></label>
+        <div class="prompt-box"><textarea id="pr-text" oninput="promptText=this.value; promptFor='${esc(p.id)}'">${esc(text)}</textarea></div>
+        <div class="row"><button class="btn" onclick="suggestAgain('${esc(p.id)}')" ${working ? "disabled" : ""}>Proposer un autre prompt</button></div>
+        <label class="field">LoRA <span class="note">(ComfyUI)</span></label>
+        ${loras}${loraAdd}
+        <div class="row" style="margin-top:18px">
+          <button class="btn primary" onclick="drawMoment('${esc(s.id)}', '${esc(p.id)}')" ${working ? "disabled" : ""}>${p.image ? "Refaire l'image" : "Créer l'image"}</button>
+        </div>
+        ${p.image && last.id === p.id ? `<div class="row"><button class="btn quiet" onclick="nextLine()">Réplique suivante</button></div>` : ""}
+      </div></div></div>`;
+}
+
+function selectedPlan() {
+  if (selPlan) {
+    const sc = V.scenes.find((x) => x.id === selPlan.sid);
+    const p = sc && sc.plans.find((x) => x.id === selPlan.pid);
+    return p ? { s: sc, p } : null;
+  }
+  if (phase() !== "image") return null;
+  const sc = currentScene();
+  return { s: sc, p: sc.plans[sc.plans.length - 1] };
+}
+
+function suggestPrompt(p) {
+  api("POST", "/api/facile/prompt/suggest", { kind: "plan", id: p.aid }).then((out) => {
+    promptText = out.prompt; promptFor = p.id;
+    render();
+  }).catch((e) => { promptFor = p.id; promptText = ""; setMsg(e.message, false); render(); });
+}
+
+function suggestAgain(pid) {
+  const p = findPlan(pid);
+  if (p) { promptFor = null; suggestPrompt(p); }
+}
+
+function findPlan(pid) {
+  for (const s of V.scenes) for (const p of s.plans) if (p.id === pid) return p;
+  return null;
+}
+
+function drawMoment(sid, pid) {
+  const prompt = document.getElementById("pr-text").value;
+  job(() => api("POST", "/api/facile/plan/image", { scene: sid, plan: pid, prompt }), "Dessin en cours…", "plan:" + pid);
+}
+
+function nextLine() {
+  selPlan = null; proposal.line = null; promptFor = null;
+  render();
+}
+
+// --- Graphe des références (Cytoscape) -----------------------------------------------
+function mountRefGraph() {
+  const box = document.getElementById("refgraph");
+  const plan = selectedPlan();
+  if (!box || !plan || !window.cytoscape) return;
+  const { p } = plan;
+  const refs = [
+    ...(p.refs.auto || []).filter((a) => !a.excluded).map((a) => ({ key: a.key, label: a.label, image: a.image, kind: "auto" })),
+    ...(p.refs.extra || []).map((aid) => {
+      const c = (V.ref_choices || []).find((r) => r.ref === aid) || { label: aid, image: null };
+      return { key: aid, label: c.label, image: c.image, kind: "extra" };
+    }),
+  ];
+  const elements = [{ data: { id: "target", label: "", img: p.image || "" }, classes: "target" }];
+  refs.forEach((r, i) => {
+    elements.push({ data: { id: "r" + i, label: r.label, img: r.image || "", key: r.key, kind: r.kind }, classes: r.kind });
+    elements.push({ data: { id: "e" + i, source: "r" + i, target: "target" } });
+  });
+  if (cy) cy.destroy();
+  cy = cytoscape({
+    container: box, elements,
+    layout: { name: "concentric", concentric: (n) => (n.id() === "target" ? 2 : 1), levelWidth: () => 1, padding: 30, animate: false },
+    style: [
+      { selector: "node", style: { "background-fit": "cover", "background-color": "#E6DCCB", "border-width": 2,
+        "border-color": "#1C1A17", shape: "round-rectangle", width: 96, height: 72, label: "data(label)", "font-size": 11,
+        "text-valign": "bottom", "text-margin-y": 6, color: "#1C1A17", "text-wrap": "ellipsis", "text-max-width": 96 } },
+      { selector: 'node[img != ""]', style: { "background-image": "data(img)" } },
+      { selector: "node.target", style: { width: 200, height: 150, "border-width": 3, "background-color": "#111" } },
+      { selector: "node.auto", style: { "border-style": "dashed", "border-color": "#6B655B" } },
+      { selector: "edge", style: { width: 2, "line-color": "#1F4E79", "curve-style": "bezier", opacity: 0.6 } },
+    ],
+  });
+  cy.on("tap", "node", (evt) => {
+    const src = evt.target.data("img");
+    if (src) openLightbox(src, evt.target.data("label") || "");
+  });
+  cy.on("dragfree", "node", (evt) => {
+    const n = evt.target;
+    if (n.id() === "target") return;
+    const pos = n.renderedPosition();
+    if (pos.x < 0 || pos.y < 0 || pos.x > box.clientWidth || pos.y > box.clientHeight) removeRef(n.data("key"), n.data("kind"));
+  });
+}
+
+function allowRefDrop(ev) {
+  if (!ev.dataTransfer.types.includes("text/plain")) return;
+  ev.preventDefault();
+  ev.currentTarget.classList.add("over");
+}
+
+function dropRef(ev) {
+  ev.preventDefault();
+  document.getElementById("refgraph").classList.remove("over");
+  let image;
+  try { image = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch (e) { return; }
+  const plan = selectedPlan();
+  if (!plan || !image.aid) return;
+  const { s, p } = plan;
+  const extra = [...(p.refs.extra || []).filter((x) => x !== image.aid), image.aid];
+  act(() => api("POST", "/api/facile/plan/refs", { scene: s.id, plan: p.id,
+    exclude: (p.refs.auto || []).filter((a) => a.excluded).map((a) => a.key), extra }), "Référence ajoutée.");
+}
+
+function removeRef(key, kind) {
+  const plan = selectedPlan();
+  if (!plan) return;
+  const { s, p } = plan;
+  const excludedNow = (p.refs.auto || []).filter((a) => a.excluded).map((a) => a.key);
+  if (kind === "extra") {
+    act(() => api("POST", "/api/facile/plan/refs", { scene: s.id, plan: p.id, exclude: excludedNow,
+      extra: (p.refs.extra || []).filter((x) => x !== key) }), "Référence retirée.");
+  } else {
+    act(() => api("POST", "/api/facile/plan/refs", { scene: s.id, plan: p.id, exclude: [...excludedNow, key],
+      extra: p.refs.extra || [] }), "Référence retirée.");
+  }
+}
+
+function setLora(aid, i, value) {
+  const p = findPlanByAid(aid);
+  const loras = p.loras.map((l, j) => (j === i ? { ...l, strength: Number(value) } : l));
+  act(() => api("POST", "/api/facile/asset/loras", { asset: aid, loras }), "LoRA réglé.");
+}
+
+function removeLora(aid, i) {
+  const p = findPlanByAid(aid);
+  act(() => api("POST", "/api/facile/asset/loras", { asset: aid, loras: p.loras.filter((_, j) => j !== i) }), "LoRA retiré.");
+}
+
+function addLora(aid) {
+  const name = document.getElementById("lora-add").value;
+  const p = findPlanByAid(aid);
+  act(() => api("POST", "/api/facile/asset/loras", { asset: aid, loras: [...(p.loras || []), { name, strength: 1.0, clip: false }] }), "LoRA ajouté.");
+}
+
+function findPlanByAid(aid) {
+  for (const s of V.scenes) for (const p of s.plans) if (p.aid === aid) return p;
+  return null;
+}
+
+// --- Bobine : images glissables -------------------------------------------------------
+function renderReel() {
+  const items = [];
+  for (const s of V.scenes) for (const p of s.plans) if (p.image && p.aid) items.push({ aid: p.aid, image: p.image, label: s.location || s.title });
+  for (const c of V.characters) if (c.image && c.aid) items.push({ aid: c.aid, image: c.image, label: c.name });
+  for (const l of V.locations) if (l.image && l.aid) items.push({ aid: l.aid, image: l.image, label: l.name });
+  const strip = document.getElementById("reel-strip");
+  strip.innerHTML = items.length
+    ? items.map((it) => `<button class="reel-item" draggable="true" data-aid="${esc(it.aid)}" title="${esc(it.label)}">
+        <img src="${esc(it.image)}" alt=""><span>${esc(it.label)}</span></button>`).join("")
+    : `<p class="note">Aucune image pour l'instant.</p>`;
+  strip.querySelectorAll(".reel-item").forEach((el) => {
+    el.addEventListener("dragstart", (ev) => {
+      ev.dataTransfer.setData("text/plain", JSON.stringify({ aid: el.dataset.aid }));
+      ev.dataTransfer.effectAllowed = "copy";
+    });
+  });
+}
+
+// --- Visionneuse : toute image s'affiche en plein écran ----------------------------
+function openLightbox(src, caption = "") {
+  if (!src) return;
+  closeLightbox();
+  const box = document.createElement("div");
+  box.id = "lightbox";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-label", caption || "Image");
+  box.innerHTML = `<img src="${esc(src)}" alt="${esc(caption)}"><p>${esc(caption)}</p><span class="hint">Clic ou Échap pour fermer</span>`;
+  box.addEventListener("click", closeLightbox);
+  document.body.appendChild(box);
+}
+
+function closeLightbox() {
+  const box = document.getElementById("lightbox");
+  if (box) box.remove();
+}
+
+// Un clic sur une image (où qu'elle soit dans l'atelier) ouvre la visionneuse, sans déclencher le reste.
+document.addEventListener("click", (ev) => {
+  const img = ev.target.closest && ev.target.closest("img");
+  if (!img || img.closest("#lightbox")) return;  // toute image s'ouvre, y compris dans une fenêtre
+  ev.preventDefault();
+  ev.stopPropagation();
+  openLightbox(img.src, img.alt || img.closest("[title]")?.title || "");
+}, true);
+
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeLightbox(); });
+
+// --- Réglages (mêmes données et mêmes appels que la page /facile) ---------------------
+let settings = null;   // vue des réglages (/api/facile/settings)
+
+async function openSettings() {
+  try {
+    settings = await api("GET", "/api/facile/settings");
+    renderSettings();
+  } catch (e) { setMsg(e.message, false); render(); }
+}
+
+function closeSettings() {
+  document.getElementById("modal").innerHTML = "";
+  settings = null;
+}
+
+function renderSettings() {
+  const t = settings.text;
+  const provider = t.choices.find((c) => c.name === t.provider) || t.choices[0];
+  const engines = { replicate: "Replicate (cloud)", comfyui: "ComfyUI (local)" };
+  const images = settings.image_rows.map((r, i) => `<div class="setrow">
+      <label class="field" style="margin:0">${esc(r.label)}
+        <select id="img-engine-${i}">${Object.entries(engines).map(([k, v]) => `<option value="${k}" ${r.engine === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      <label class="field" style="margin:0">Workflow ComfyUI
+        <select id="img-wf-${i}">${r.choices.map((w) => `<option ${w === r.workflow ? "selected" : ""}>${esc(w)}</option>`).join("")}</select></label>
+    </div>`).join("");
+  document.getElementById("modal").innerHTML = `<div class="overlay" onclick="if (event.target === this) closeSettings()">
+    <div class="modal" role="dialog" aria-label="Réglages">
+      <div class="modal-head"><h3>Réglages</h3><button class="btn quiet" onclick="closeSettings()">Fermer</button></div>
+      <div class="modal-body">
+        <h4>Écriture</h4>
+        <p class="note">Le fournisseur et le modèle qui écrivent les personnages, les lieux et les répliques.</p>
+        <div class="setrow">
+          <label class="field" style="margin:0">Fournisseur
+            <select id="st-provider" onchange="settingsProviderChanged(this.value)">${t.choices.map((c) => `<option value="${esc(c.name)}" ${c.name === t.provider ? "selected" : ""}>${esc(c.label)}</option>`).join("")}</select></label>
+          <label class="field" style="margin:0">Modèle
+            <input type="text" id="st-model" value="${esc(provider.model)}"></label>
+        </div>
+        <p class="note">${provider.key ? "Clé enregistrée." : "Aucune clé enregistrée pour ce fournisseur."}</p>
+        <h4>Images</h4>
+        <p class="note">Le moteur qui dessine chaque image : Replicate (cloud) ou ComfyUI (sur cette machine).</p>
+        ${images}
+        <h4>Clé Replicate</h4>
+        <p class="note">${settings.replicate_key ? "Clé enregistrée sur cet appareil. Elle n'est jamais affichée." : "Aucune clé enregistrée."}</p>
+        <div class="setrow">
+          <input type="text" id="st-key" placeholder="Collez votre clé Replicate" autocomplete="off">
+          <button class="btn" onclick="saveKey()">Enregistrer la clé</button>
+        </div>
+        <div class="row" style="margin-top:22px"><button class="btn primary" onclick="saveSettings()">Enregistrer les réglages</button></div>
+      </div></div></div>`;
+}
+
+function settingsProviderChanged(name) {
+  const c = settings.text.choices.find((x) => x.name === name);
+  if (c) document.getElementById("st-model").value = c.model;
+}
+
+async function saveSettings() {
+  const body = {
+    text_provider: document.getElementById("st-provider").value,
+    text_model: document.getElementById("st-model").value,
+    tasks: settings.tasks.map((r) => ({ task: r.task, provider: r.provider, model: r.model })),
+    images: settings.image_rows.map((r, i) => ({ role: r.role, engine: document.getElementById(`img-engine-${i}`).value,
+      workflow: document.getElementById(`img-wf-${i}`).value, steps: r.steps })),
+  };
+  try {
+    await api("POST", "/api/facile/settings", body);
+    closeSettings();
+    setMsg("Réglages enregistrés.", true);
+    await load();
+  } catch (e) {
+    setMsg(e.message, false);
+    render();
+  }
+}
+
+async function saveKey() {
+  const value = document.getElementById("st-key").value.trim();
+  if (!value) return;
+  try {
+    await api("POST", "/api/facile/secret", { name: "REPLICATE_API_TOKEN", value });
+    setMsg("Clé enregistrée sur cet appareil.", true);
+    closeSettings();
+    await load();
+  } catch (e) { setMsg(e.message, false); render(); }
+}
+
+load().catch((e) => { document.getElementById("work").innerHTML = `<p class="msg">${esc(e.message)}</p>`; });
+</script>
+</body>
+</html>

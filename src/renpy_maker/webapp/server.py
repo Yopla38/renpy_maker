@@ -107,9 +107,17 @@ class Handler(BaseHTTPRequestHandler):
             if not paths.chosen():  # rien d'ouvert depuis le démarrage : on choisit l'histoire d'abord
                 return self._redirect("/projets")
             return self._send(200, FACILE_PAGE.read_bytes(), "text/html; charset=utf-8")
+        if path.startswith("/vendor/"):  # bibliothèques embarquées (pas de CDN : fonctionne hors connexion)
+            name = Path(path).name
+            target = Path(__file__).with_name("vendor") / name
+            if not target.is_file():
+                return self._json(404, {"error": "fichier introuvable"})
+            return self._send(200, target.read_bytes(), "application/javascript; charset=utf-8")
+        if path in ("/atelier", "/atelier/"):
+            return self._send(200, (Path(__file__).with_name("atelier.html")).read_bytes(), "text/html; charset=utf-8")
         if path in ("/projets", "/projets/"):
             return self._send(200, PROJECTS_PAGE.read_bytes(), "text/html; charset=utf-8")
-        if path.startswith("/api/facile"):
+        if path.startswith(("/api/facile", "/api/atelier")):
             return self._facile("GET", path, {})
         if path in ("/jouer", "/jouer/"):
             return self._send(200, PLAY_PAGE.read_bytes(), "text/html; charset=utf-8")
@@ -179,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
     # ----- POST -----
     def do_POST(self):
         path = urlparse(self.path).path
-        if path.startswith("/api/facile"):
+        if path.startswith(("/api/facile", "/api/atelier")):
             return self._facile("POST", path, self._body())
         try:
             body = self._body()
