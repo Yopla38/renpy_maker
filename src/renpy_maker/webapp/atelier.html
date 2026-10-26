@@ -30,8 +30,12 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 header.bar { display: flex; align-items: center; gap: 22px; padding: 14px 24px; border-bottom: 1px solid var(--line); }
 .title { font: 400 26px/1 var(--serif); margin: 0; min-width: 0; }
 .title small { display: block; font: 400 14px var(--sans); color: var(--ink-soft); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62ch; }
-.where { margin-left: auto; font-size: 14px; color: var(--ink-soft); }
-.head-link { font-weight: 700; font-size: 14px; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); padding: 6px 12px; }
+.where { margin-left: auto; font-size: 14px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.steps-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-right: 10px; }
+.steps-nav button { border: 2px solid var(--ink); background: var(--paper); padding: 5px 12px; font-weight: 700; font-size: 13px; }
+.steps-nav button.on { background: var(--ink); color: var(--paper); }
+.steps-nav button:disabled { opacity: .35; }
+.head-link { white-space: nowrap; font-weight: 700; font-size: 14px; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); padding: 6px 12px; }
 .head-link:hover { background: var(--select); }
 .gear { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); font-size: 18px; padding: 0; }
 .gear:hover { background: var(--select); }
@@ -108,6 +112,10 @@ textarea { min-height: 84px; resize: vertical; }
 .edit-form input { margin: 0; }
 .elm .body { padding-bottom: 42px; }
 
+/* Barre d'arrêt : visible pendant toute tâche */
+.stopbar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 120; display: flex; align-items: center; gap: 14px; background: var(--ink); color: var(--paper); padding: 10px 12px 10px 18px; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 14px; }
+.stopbar[hidden] { display: none; }
+.stopbar .btn { border-color: var(--paper); }
 /* Dessin en cours sur un élément */
 .card, .elm, .moment { position: relative; }
 .working { position: absolute; inset: 0; z-index: 2; background: rgba(242, 237, 227, .86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 14px; }
@@ -151,6 +159,11 @@ footer.reel { border-top: 1px solid var(--line); padding: 10px 24px 12px; backgr
   <section class="work" id="work" aria-live="polite"></section>
 </main>
 
+<div class="stopbar" id="stopbar" hidden>
+  <span id="stopbar-text"></span>
+  <button class="btn primary" onclick="stopTask()">Arrêter</button>
+</div>
+
 <footer class="reel" id="reel">
   <div class="reel-head"><h3>Bobine</h3><span class="note">Glissez une image sur le panneau pour la donner en référence.</span></div>
   <div class="reel-strip" id="reel-strip"></div>
@@ -162,11 +175,22 @@ const GENDER = ["young woman", "adult woman", "young man", "adult man", "teenage
 const GENDER_LABEL = { "young woman": "Jeune femme", "adult woman": "Femme adulte", "young man": "Jeune homme",
   "adult man": "Homme adulte", "teenage girl": "Adolescente", "teenage boy": "Adolescent", "child": "Enfant" };
 
+// Les demandes à l'IA (propositions) peuvent être arrêtées : on abandonne l'attente.
+let abortCtl = new AbortController();
+const ABORTABLE = (path) => path.startsWith("/api/atelier/") || path.startsWith("/api/facile/prompt/suggest");
+
 async function api(method, path, body) {
-  const res = await fetch(path, {
-    method, headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      method, headers: { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: ABORTABLE(path) ? abortCtl.signal : undefined,
+    });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("Tâche arrêtée.");
+    throw e;
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return data;
@@ -182,6 +206,18 @@ let theme = null;              // brouillon du thème
 let cy = null;                 // graphe du panneau de référence
 let promptFor = null;          // plan pour lequel le prompt a été proposé
 let promptText = "";           // prompt proposé (modifiable)
+let shotFor = null;            // moment pour lequel une description a été demandée à l'IA
+let shotDraft = {};            // descriptions en cours de modification, par moment
+let stepOverride = null;
+let viewpointFor = null;       // lieu dont la fenêtre des points de vue est ouverte
+let vpProposal = null;         // points de vue proposés par l'IA       // étape choisie à la main dans la rangée du haut (null : étape automatique)
+let currentJob = null;         // tâche de dessin en cours (identifiant serveur), pour l'arrêter
+const writing = new Set();     // champs que l'IA est en train de rédiger : "prompt:<id>" ou "shot:<id>"
+
+// Voile sur un champ pendant que l'IA rédige, pour que l'on voie que ça travaille.
+function writingHtml(key, label) {
+  return writing.has(key) ? `<div class="working" role="status"><span class="spin" aria-hidden="true"></span><span>${esc(label)}</span></div>` : "";
+}
 let promptAid = null;          // personnage dont la fenêtre de prompt est ouverte (roue)
 let wardrobeAid = null;        // personnage dont la garde-robe est ouverte
 let outfitProposal = null;     // tenues proposées par l'IA pour cette garde-robe
@@ -223,6 +259,7 @@ async function job(start, label, key = "") {
   working = true; setMsg(label); if (key) workingOn.add(key); render();
   try {
     const { job: id } = await start();
+    currentJob = id;
     for (;;) {
       await new Promise((r) => setTimeout(r, 1100));
       const j = await api("GET", `/api/facile/jobs/${id}`);
@@ -236,9 +273,23 @@ async function job(start, label, key = "") {
     setMsg(e.message, false);
   }
   if (key) workingOn.delete(key);
+  currentJob = null;
   working = false;
   promptFor = null;
   await load();
+}
+
+// Arrête tout ce qui tourne : le dessin (le serveur l'interrompt) et les propositions (on n'attend plus).
+async function stopTask() {
+  abortCtl.abort();
+  abortCtl = new AbortController();
+  if (currentJob) {
+    try { await api("POST", "/api/facile/job/cancel", { job: currentJob }); } catch (e) { /* déjà terminée */ }
+  }
+  writing.clear();
+  working = false;
+  setMsg("Tâche arrêtée.", false);
+  render();
 }
 
 // Voile et animation sur l'élément en cours de dessin.
@@ -250,6 +301,7 @@ function busyHtml(key) {
 function currentScene() { return V.scenes[V.scenes.length - 1] || null; }
 
 function phase() {
+  if (stepOverride) return stepOverride;
   if (!V.idea || !V.style) return "theme";
   const sc = currentScene();
   // Sans scène, on reste sur les personnages jusqu'à « Passer au premier lieu » (ou « Proposer un lieu »).
@@ -264,30 +316,62 @@ function render() {
   document.getElementById("title").textContent = V.title || "Atelier";
   document.getElementById("subtitle").textContent = V.idea || "Décrivez votre histoire pour commencer";
   const sc = currentScene();
-  document.getElementById("where").textContent = sc ? `Lieu : ${sc.location || sc.title}` : "";
+  document.getElementById("where").innerHTML = stepNavHtml() + (sc ? `<span>Lieu : ${esc(sc.location || sc.title)}</span>` : "");
   renderStory();
   renderWork();
   renderReel();
   renderModal();
+  renderStopBar();
+}
+
+function renderStopBar() {
+  const busy = working || writing.size > 0 || currentJob !== null;
+  const bar = document.getElementById("stopbar");
+  bar.hidden = !busy;
+  if (busy) document.getElementById("stopbar-text").textContent = currentJob ? "Dessin en cours…" : "L'IA travaille…";
 }
 
 function renderModal() {
   const box = document.getElementById("modal");
   if (settings) renderSettings();
   else if (promptAid) box.innerHTML = promptHtml();
+  else if (viewpointFor) box.innerHTML = viewpointsHtml();
   else if (wardrobeAid) box.innerHTML = wardrobeHtml();
   else box.innerHTML = "";
 }
 
 // --- Fil de l'histoire (gauche) -------------------------------------------------------
+// Rangée d'étapes : on peut revenir à un personnage, un lieu, une réplique ou une image.
+function stepNavHtml() {
+  const current = selPlan ? "image" : phase();
+  const sc = currentScene();
+  const hasImageStep = !!sc && sc.plans.length > 0;
+  const steps = [["theme", "Thème", !!V.idea && !!V.style], ["characters", "Personnages", !!V.idea],
+    ["location", "Lieu", !!V.idea], ["line", "Réplique", !!sc], ["image", "Image", hasImageStep]];
+  return `<nav class="steps-nav" aria-label="Étapes">${steps.map(([id, label, enabled]) =>
+    `<button class="${current === id ? "on" : ""}" ${enabled && !working ? "" : "disabled"} onclick="goStep('${id}')">${label}</button>`).join("")}</nav>`;
+}
+
+function goStep(id) {
+  if (working) return;
+  selPlan = null;
+  promptFor = null;
+  stepOverride = id === "image" ? null : id;
+  if (id === "location") proposal.newLocation = true;
+  render();
+}
+
 function renderStory() {
   const box = document.getElementById("story");
   if (!V.scenes.length) {
     box.innerHTML = `<p class="note">Le fil de l'histoire apparaît ici, moment après moment.</p>`;
     return;
   }
-  box.innerHTML = V.scenes.map((s) => `
-    <div class="scene-head">${esc(s.location || s.title)}</div>
+  box.innerHTML = V.scenes.map((s) => {
+    const loc = V.locations.find((l) => l.name === s.location);
+    const draw = loc && !loc.ready ? `<button class="link" onclick="event.stopPropagation(); drawElement('${esc(loc.aid)}')" ${working ? "disabled" : ""}>Dessiner le lieu</button>` : "";
+    return `
+    <div class="scene-head">${esc(s.location || s.title)} ${draw}</div>
     ${s.plans.map((p) => {
       const line = s.dialogue[p.from_line];
       const on = selPlan && selPlan.pid === p.id && selPlan.sid === s.id;
@@ -298,7 +382,8 @@ function renderStory() {
           <p class="mspeaker">${esc(line ? line.speaker : "")}</p>
           <p class="mtext">${esc(line ? line.text : "")}</p>
         </div></div>`;
-    }).join("")}`).join("");
+    }).join("")}`;
+  }).join("");
 }
 
 function openMoment(sid, pid) {
@@ -339,10 +424,12 @@ function themeHtml() {
 }
 
 function saveTheme() {
+  stepOverride = null;
   act(() => api("POST", "/api/atelier/idea", theme), "Thème enregistré.");
 }
 
 function chooseStyle(key) {
+  stepOverride = null;
   act(() => api("POST", "/api/facile/style", { style: key }), "Style choisi.");
 }
 
@@ -356,6 +443,7 @@ function charactersHtml() {
         : `<div style="width:72px;height:96px;background:var(--paper);border:2px dashed var(--line);display:grid;place-items:center;font-size:12px;color:var(--ink-soft);flex:0 0 72px">Sans image</div>`}
       <div style="flex:1;min-width:0"><h3 style="margin:0">${esc(c.name)}</h3>
         <p class="note" style="margin:2px 0 8px">${esc(GENDER_LABEL[c.descriptor] || "Genre à choisir")}</p>
+        <p class="note" style="margin:0 0 8px">${c.default_name ? `Tenue par défaut : <strong style="color:var(--ink)">${esc(c.default_name)}</strong>` : "Pas de tenue par défaut : ouvrez la garde-robe pour en choisir une."}</p>
         <div class="row" style="margin-top:0">
           <button class="btn ${c.ready ? "quiet" : "primary"}" onclick="drawCharacter('${esc(c.aid)}')" ${working || !c.descriptor ? "disabled" : ""}>${c.ready ? "Refaire l'image" : "Dessiner"}</button>
           <button class="btn quiet" title="Garde-robe" onclick="openWardrobe('${esc(c.aid)}')" style="display:inline-flex;align-items:center;gap:6px">${HANGER} Garde-robe${wardrobe ? ` (${wardrobe})` : ""}</button>
@@ -397,14 +485,16 @@ function closePromptEditor() {
 }
 
 function promptHtml() {
-  const c = V.characters.find((x) => x.aid === promptAid) || (V.outfits || []).find((x) => x.aid === promptAid);
+  const c = V.characters.find((x) => x.aid === promptAid) || (V.outfits || []).find((x) => x.aid === promptAid)
+    || V.locations.find((x) => x.aid === promptAid) || viewpointOf(promptAid);
   if (!c) return "";
-  const isOutfit = !V.characters.some((x) => x.aid === c.aid);
-  const cannotDraw = isOutfit ? c.blocked : !c.descriptor;
+  const isOutfit = (V.outfits || []).some((x) => x.aid === c.aid);
+  const isLocation = V.locations.some((x) => x.aid === c.aid) || !!viewpointOf(c.aid);
+  const cannotDraw = isOutfit ? c.blocked : (!isLocation && !c.descriptor);
   const text = cardPrompts[c.aid] !== undefined ? cardPrompts[c.aid] : (c.prompt || "");
   return `<div class="overlay" onclick="if (event.target === this) closePromptEditor()">
     <div class="modal" role="dialog" aria-label="Prompt de ${esc(c.name)}">
-      <div class="modal-head"><h3>Prompt · ${esc(c.name)}${isOutfit ? " (tenue)" : ""}</h3><button class="btn quiet" onclick="closePromptEditor()">Fermer</button></div>
+      <div class="modal-head"><h3>Prompt · ${esc(c.name)}${isOutfit ? " (tenue)" : isLocation ? " (lieu)" : ""}</h3><button class="btn quiet" onclick="closePromptEditor()">Fermer</button></div>
       <div class="modal-body">
         <label class="field">Description <span class="note">(en français : sert à rédiger le prompt)</span>
           <textarea id="pd-${esc(c.aid)}" rows="3">${esc(c.description || "")}</textarea></label>
@@ -654,6 +744,19 @@ function refuseCharacter(i) {
 
 // Étape 2 : le lieu et les personnages présents. Un nouveau lieu commence une nouvelle scène.
 function locationHtml() {
+  const sc = currentScene();
+  // Une scène existe déjà : on montre son lieu et son dialogue. Un nouveau lieu se propose à part.
+  if (sc && !proposal.location) {
+    const lines = sc.dialogue.map((l) => `<p class="mtext" style="font-size:15px;color:var(--ink);margin:0 0 8px"><strong>${esc(l.speaker)}</strong> : ${esc(l.text)}</p>`).join("")
+      || `<p class="note">Pas encore de répliques dans cette scène.</p>`;
+    return `<h2 class="step">${esc(sc.location || sc.title)}</h2>
+      <p class="lead">Lieu de la scène en cours : son image et ses répliques.</p>
+      ${locationBlockHtml(sc)}
+      <h3 style="font:400 20px var(--serif);margin:18px 0 8px">Dialogue de la scène</h3>
+      ${lines}
+      <div class="row"><button class="btn primary" onclick="goStep('line')" ${working ? "disabled" : ""}>Continuer cette scène</button>
+        <button class="btn quiet" onclick="proposeLocation()" ${working ? "disabled" : ""}>Proposer un nouveau lieu</button></div>`;
+  }
   const loc = proposal.location;
   const present = V.characters.map((c) => `<button class="chip ${(proposal.present || []).includes(c.name) ? "on" : ""}" onclick="togglePresent('${esc(c.name)}')">${esc(c.name)}</button>`).join("");
   const card = loc
@@ -679,6 +782,7 @@ function proposeLocation() {
     proposal.location = await api("POST", "/api/atelier/location/propose", { idea: V.idea, existing, context: lastLineText() });
     proposal.present = [];
     proposal.newLocation = true;
+    stepOverride = "location";
   });
 }
 
@@ -701,10 +805,26 @@ function startScene() {
   const present = proposal.present || [];
   act(async () => {
     await api("POST", "/api/atelier/scene/start", { title: name, location: name, characters: present, summary });
+    stepOverride = null;
     proposal.location = null;
     proposal.newLocation = false;
     proposal.line = null;
   }, `Scène « ${name} » commencée.`);
+}
+
+// Le lieu d'une scène : son image, ou un bouton pour la dessiner.
+function locationBlockHtml(sc) {
+  const loc = V.locations.find((l) => l.name === sc.location);
+  if (!loc) return "";
+  return `<div class="card" style="display:flex;gap:14px;align-items:center;max-width:none;margin-bottom:16px">
+    ${loc.image ? `<img src="${esc(loc.image)}" alt="${esc(loc.name)}" style="width:132px;height:88px;object-fit:cover;border:2px solid var(--ink);flex:0 0 132px">`
+      : `<div style="width:132px;height:88px;background:var(--paper);border:2px dashed var(--line);display:grid;place-items:center;font-size:12px;color:var(--ink-soft);flex:0 0 132px">Pas encore d'image</div>`}
+    <div style="flex:1;min-width:0"><p class="note" style="margin:0">Lieu de cette scène</p>
+      <h3 style="margin:2px 0 8px">${esc(loc.name)}</h3>
+      <div class="row" style="margin-top:0"><button class="btn ${loc.ready ? "quiet" : "primary"}" onclick="drawElement('${esc(loc.aid)}')" ${working ? "disabled" : ""}>${loc.ready ? "Refaire le lieu" : "Dessiner le lieu"}</button>
+        <button class="btn quiet" onclick="openPromptEditor('${esc(loc.aid)}')" style="display:inline-flex;align-items:center;gap:6px">${GEAR} Prompt et description</button>
+        <button class="btn quiet" onclick="openViewpoints('${esc(loc.aid)}')">Points de vue (${(loc.viewpoints || []).length})</button></div></div>
+  </div>`;
 }
 
 // Étape 3 : la réplique suivante (une seule, à accepter ou changer)
@@ -715,7 +835,7 @@ function lineHtml() {
     return `<h2 class="step">La réplique suivante</h2><p class="lead">L'IA écrit une réplique…</p>`;
   }
   const speakers = [...(sc.characters || []), "Narration"];
-  return `<h2 class="step">La réplique suivante</h2>
+  return `${locationBlockHtml(sc)}<h2 class="step">La réplique suivante</h2>
     <p class="lead">Gardez-la, changez-la, ou demandez-en une autre. Chaque réplique aura son image.</p>
     <div class="card">
       <label class="field">Qui parle ?
@@ -753,7 +873,11 @@ function momentPanelHtml() {
   if (!plan) return `<h2 class="step">Choisissez un moment</h2><p class="lead">Cliquez une réplique à gauche pour voir son image.</p>`;
   const { s, p } = plan;
   const line = s.dialogue[p.from_line];
-  if (promptFor !== p.id && !p.image && !working) {
+  if (!p.text && !p.image && shotFor !== p.id && !working) {
+    shotFor = p.id;
+    proposeShot(s.id, p.id, "");
+  }
+  if (promptFor !== p.id && !p.image && !working && p.text) {
     promptFor = p.id;
     suggestPrompt(p);
   }
@@ -766,21 +890,53 @@ function momentPanelHtml() {
         <button class="btn quiet" onclick="addLora('${esc(p.aid)}')" ${working ? "disabled" : ""}>Ajouter</button></div>`
     : `<p class="note">Aucun LoRA trouvé (ComfyUI seulement).</p>`;
   const last = s.plans[s.plans.length - 1];
-  return `<h2 class="step">${p.image ? "L'image de ce moment" : "Créez l'image de ce moment"}</h2>
+  // Un moment ne se dessine qu'avec son lieu et ses personnages déjà dessinés.
+  const pending = [];
+  const loc = V.locations.find((l) => l.name === s.location);
+  if (loc && !loc.ready) pending.push(loc);
+  for (const name of p.characters || []) {
+    const c = V.characters.find((x) => x.name === name);
+    if (c && !c.ready) pending.push(c);
+  }
+  const needs = pending.length ? `<div class="card" style="margin-top:8px">
+      <p class="note" style="margin:0 0 8px">Avant ce moment, il faut dessiner :</p>
+      ${pending.map((e) => `<div class="row" style="margin-top:6px"><strong>${esc(e.name)}</strong>
+        <button class="btn primary" onclick="drawElement('${esc(e.aid)}')" ${working || (e.descriptor === "" && V.characters.some((x) => x.aid === e.aid)) ? "disabled" : ""}>Dessiner</button></div>`).join("")}
+    </div>` : "";
+  const shown = p.characters || [];
+  const locView = V.locations.find((l) => l.name === s.location);
+  const viewOptions = locView ? [{ aid: "", name: `${locView.name} (lieu)` }, ...(locView.viewpoints || [])
+    .map((v) => ({ aid: v.aid, name: v.name }))] : [];
+  const viewChoice = viewOptions.length > 1 ? `<label class="field">Point de vue
+      <select onchange="setMomentViewpoint('${esc(s.id)}', '${esc(p.id)}', this.value)" ${working ? "disabled" : ""}>
+        ${viewOptions.map((o) => `<option value="${esc(o.aid)}" ${(p.viewpoint || "") === o.aid ? "selected" : ""}>${esc(o.name)}</option>`).join("")}
+      </select></label>` : "";
+  const castChips = `<label class="field">Personnages visibles dans l'image</label>
+    <div class="chips">${(s.characters || []).map((n) => `<button class="chip ${shown.includes(n) ? "on" : ""}" onclick="togglePlanCharacter('${esc(s.id)}', '${esc(p.id)}', '${esc(n)}')" ${working ? "disabled" : ""}>${esc(n)}</button>`).join("") || `<span class="note">Aucun personnage dans la scène.</span>`}</div>`;
+  return `${locationBlockHtml(s)}<h2 class="step">${p.image ? "L'image de ce moment" : "Créez l'image de ce moment"}</h2>
+    ${needs}${viewChoice}${castChips}
     <p class="lead">${esc(s.title)} · ${esc(line ? line.speaker : "")} : « ${esc(line ? line.text : "")} »</p>
     <div class="panel"><div class="panel-grid">
       <div>
         <div id="refgraph" ondragover="allowRefDrop(event)" ondragleave="this.classList.remove('over')" ondrop="dropRef(event)"></div>
-        <p class="graph-hint">Glissez une image de la bobine dans le cadre pour l'ajouter. Faites sortir une vignette du cadre pour la retirer.</p>
+        <p class="graph-hint">Déposez une image de la bobine sur l'image noire pour la remplacer, ou ailleurs dans le cadre pour l'ajouter comme référence. Faites sortir une vignette du cadre pour la retirer.</p>
       </div>
       <div>
+        <label class="field">Ce que l'on voit à l'écran <span class="note">(proposé par l'IA)</span></label>
+        <div style="position:relative"><textarea id="shot-text" rows="3" oninput="shotDraft['${esc(p.id)}']=this.value">${esc(shotDraft[p.id] !== undefined ? shotDraft[p.id] : (p.text || ""))}</textarea>
+          ${writingHtml("shot:" + p.id, "L'IA décrit ce qui est à l'écran…")}</div>
+        <div class="row" style="margin-top:6px">
+          <button class="btn quiet" onclick="proposeShot('${esc(s.id)}', '${esc(p.id)}', shotText('${esc(p.id)}'))" ${working ? "disabled" : ""}>Une autre proposition</button>
+          <button class="btn quiet" onclick="saveShot('${esc(s.id)}', '${esc(p.id)}')" ${working ? "disabled" : ""}>Enregistrer la description</button>
+        </div>
         <label class="field">Prompt de l'image <span class="note">(proposé par l'IA)</span></label>
-        <div class="prompt-box"><textarea id="pr-text" oninput="promptText=this.value; promptFor='${esc(p.id)}'">${esc(text)}</textarea></div>
+        <div class="prompt-box" style="position:relative"><textarea id="pr-text" oninput="promptText=this.value; promptFor='${esc(p.id)}'">${esc(text)}</textarea>
+          ${writingHtml("prompt:" + p.id, "L'IA rédige le prompt…")}</div>
         <div class="row"><button class="btn" onclick="suggestAgain('${esc(p.id)}')" ${working ? "disabled" : ""}>Proposer un autre prompt</button></div>
         <label class="field">LoRA <span class="note">(ComfyUI)</span></label>
         ${loras}${loraAdd}
         <div class="row" style="margin-top:18px">
-          <button class="btn primary" onclick="drawMoment('${esc(s.id)}', '${esc(p.id)}')" ${working ? "disabled" : ""}>${p.image ? "Refaire l'image" : "Créer l'image"}</button>
+          <button class="btn primary" onclick="drawMoment('${esc(s.id)}', '${esc(p.id)}')" ${working || pending.length ? "disabled" : ""}>${p.image ? "Refaire l'image" : "Créer l'image"}</button>
         </div>
         ${p.image && last.id === p.id ? `<div class="row"><button class="btn quiet" onclick="nextLine()">Réplique suivante</button></div>` : ""}
       </div></div></div>`;
@@ -798,10 +954,11 @@ function selectedPlan() {
 }
 
 function suggestPrompt(p) {
+  writing.add("prompt:" + p.id); render();
   api("POST", "/api/facile/prompt/suggest", { kind: "plan", id: p.aid }).then((out) => {
     promptText = out.prompt; promptFor = p.id;
-    render();
-  }).catch((e) => { promptFor = p.id; promptText = ""; setMsg(e.message, false); render(); });
+    writing.delete("prompt:" + p.id); render();
+  }).catch((e) => { promptFor = p.id; promptText = ""; writing.delete("prompt:" + p.id); setMsg(e.message, false); render(); });
 }
 
 function suggestAgain(pid) {
@@ -812,6 +969,140 @@ function suggestAgain(pid) {
 function findPlan(pid) {
   for (const s of V.scenes) for (const p of s.plans) if (p.id === pid) return p;
   return null;
+}
+
+// Personnages visibles dans une image : tout le casting présent, ou seulement certains.
+function togglePlanCharacter(sid, pid, name) {
+  const s = V.scenes.find((x) => x.id === sid);
+  const rows = s.plans.map((q) => ({ id: q.id, from_line: q.from_line, text: q.text, pause: !!q.pause,
+    speaker: q.speaker || "", speech: q.speech || "", characters: q.characters || [] }));
+  const row = rows.find((r) => r.id === pid);
+  const cur = row.characters;
+  const next = cur.includes(name) ? cur.filter((c) => c !== name) : [...cur, name];
+  if (!next.length) { setMsg("Une image montre au moins un personnage.", false); return render(); }
+  row.characters = next;
+  act(() => api("POST", "/api/facile/scene/plans", { scene: sid, plans: rows }), "Personnages mis à jour : redessinez l'image.");
+}
+
+// Ce que l'on voit à l'écran : proposé par l'IA, modifiable, enregistré avant le prompt.
+function shotText(pid) {
+  if (shotDraft[pid] !== undefined) return shotDraft[pid];
+  const p = findPlan(pid);
+  return p ? (p.text || "") : "";
+}
+
+function proposeShot(sid, pid, previous) {
+  writing.add("shot:" + pid); render();
+  api("POST", "/api/atelier/shot/propose", { scene: sid, plan: pid, previous }).then((out) => {
+    shotDraft[pid] = out.text;
+    writing.delete("shot:" + pid); setMsg("Description proposée : modifiez-la si besoin, puis enregistrez.", true); render();
+  }).catch((e) => { writing.delete("shot:" + pid); setMsg(e.message, false); render(); });
+}
+
+function saveShot(sid, pid) {
+  const text = document.getElementById("shot-text").value;
+  const s = V.scenes.find((x) => x.id === sid);
+  const rows = s.plans.map((q) => ({ id: q.id, from_line: q.from_line, text: q.id === pid ? text : (q.text || ""),
+    pause: !!q.pause, speaker: q.speaker || "", speech: q.speech || "", characters: q.characters || [] }));
+  act(async () => {
+    await api("POST", "/api/facile/scene/plans", { scene: sid, plans: rows });
+    delete shotDraft[pid];
+  }, "Description enregistrée.");
+}
+
+
+// --- Points de vue d'un lieu : comme les tenues d'un personnage ------------------------
+function viewpointOf(aid) {
+  for (const l of V.locations) for (const v of (l.viewpoints || [])) if (v.aid === aid) return v;
+  return null;
+}
+
+function openViewpoints(aid) {
+  if (working) return;
+  viewpointFor = aid;
+  vpProposal = null;
+  render();
+}
+
+function closeViewpoints() {
+  viewpointFor = null;
+  vpProposal = null;
+  render();
+}
+
+function viewpointsHtml() {
+  const loc = V.locations.find((l) => l.aid === viewpointFor);
+  if (!loc) return "";
+  const list = (loc.viewpoints || []).map((v) => `<div class="elm" style="width:260px">
+      ${busyHtml(v.aid)}
+      ${v.image ? `<img src="${esc(v.image)}" alt="${esc(v.name)}">` : `<div class="none">${loc.ready ? "Pas encore d'image" : "Dessinez d'abord le lieu"}</div>`}
+      <div class="body"><p class="nm">${esc(v.name)}</p>
+        <p class="sub" style="margin-bottom:8px">${esc(v.description || "")}</p>
+        <div class="row" style="margin-top:0"><button class="btn quiet" onclick="drawElement('${esc(v.aid)}')" ${working || !loc.ready ? "disabled" : ""}>${v.ready ? "Refaire" : "Dessiner"}</button>
+        <button class="btn quiet" onclick="openPromptEditor('${esc(v.aid)}')" style="display:inline-flex;align-items:center;gap:6px">${GEAR} Prompt</button></div></div></div>`).join("");
+  const proposals = vpProposal ? vpProposal.map((v, i) => `<div class="card" style="margin:12px 0 0">
+      <label class="field" style="margin-top:0">Nom<input type="text" id="vp-name-${i}" value="${esc(v.name)}"></label>
+      <label class="field">Description<textarea id="vp-desc-${i}" rows="2">${esc(v.description)}</textarea></label>
+      <div class="row"><button class="btn primary" onclick="addProposedViewpoint(${i})" ${working ? "disabled" : ""}>Ajouter ce point de vue</button>
+      <button class="btn quiet" onclick="refuseProposedViewpoint(${i})">Refuser</button></div></div>`).join("") : "";
+  return `<div class="overlay" onclick="if (event.target === this) closeViewpoints()">
+    <div class="modal" role="dialog" aria-label="Points de vue de ${esc(loc.name)}">
+      <div class="modal-head"><h3>Points de vue · ${esc(loc.name)}</h3><button class="btn quiet" onclick="closeViewpoints()">Fermer</button></div>
+      <div class="modal-body">
+        <p class="note">Un autre angle du même lieu. Chacun se dessine à partir de l'image du lieu, et le moment choisit celui qu'il montre.</p>
+        ${list ? `<div style="display:flex;flex-wrap:wrap;gap:14px">${list}</div>` : `<p class="note">Aucun point de vue pour l'instant.</p>`}
+        <div class="row"><button class="btn primary" onclick="proposeViewpoints()" ${working ? "disabled" : ""}>Proposer des points de vue</button></div>
+        ${proposals}
+        <h4>Ajouter un point de vue</h4>
+        <label class="field">Nom<input type="text" id="vp-new-name" placeholder="ex. : Depuis la fenêtre"></label>
+        <label class="field">Description<textarea id="vp-new-desc" rows="2" placeholder="Ce que l'on voit de cet angle"></textarea></label>
+        <div class="row"><button class="btn primary" onclick="addViewpoint()" ${working ? "disabled" : ""}>Ajouter</button></div>
+      </div></div></div>`;
+}
+
+function proposeViewpoints() {
+  const loc = V.locations.find((l) => l.aid === viewpointFor);
+  act(async () => {
+    const existing = (loc.viewpoints || []).map((v) => v.name);
+    const out = await api("POST", "/api/atelier/viewpoints/propose", { location: loc.name, description: loc.description || "",
+      idea: V.idea, existing, count: 3 });
+    vpProposal = out.viewpoints;
+  }, "Points de vue proposés : modifiez-les puis ajoutez ceux qui vous plaisent.");
+}
+
+function addProposedViewpoint(i) {
+  const name = document.getElementById(`vp-name-${i}`).value.trim();
+  const description = document.getElementById(`vp-desc-${i}`).value.trim();
+  act(async () => {
+    await api("POST", "/api/atelier/viewpoints/add", { location: viewpointFor, name, description });
+    vpProposal = vpProposal.filter((_, j) => j !== i);
+    if (!vpProposal.length) vpProposal = null;
+  }, `Point de vue « ${name} » ajouté.`);
+}
+
+function refuseProposedViewpoint(i) {
+  vpProposal = vpProposal.filter((_, j) => j !== i);
+  if (!vpProposal.length) vpProposal = null;
+  render();
+}
+
+function addViewpoint() {
+  const name = document.getElementById("vp-new-name").value.trim();
+  const description = document.getElementById("vp-new-desc").value.trim();
+  if (!name) { setMsg("Donnez un nom au point de vue.", false); return render(); }
+  act(() => api("POST", "/api/atelier/viewpoints/add", { location: viewpointFor, name, description }), `Point de vue « ${name} » ajouté.`);
+}
+
+// Le point de vue d'un moment : le lieu par défaut, ou un de ses points de vue.
+function setMomentViewpoint(sid, pid, value) {
+  const s = V.scenes.find((x) => x.id === sid);
+  const rows = s.plans.map((q) => ({ id: q.id, from_line: q.from_line, text: q.text, pause: !!q.pause,
+    speaker: q.speaker || "", speech: q.speech || "", characters: q.characters || [], viewpoint: q.id === pid ? value : undefined }));
+  act(() => api("POST", "/api/facile/scene/plans", { scene: sid, plans: rows }), "Point de vue du moment enregistré : redessinez l'image.");
+}
+
+function drawElement(aid) {
+  job(() => api("POST", "/api/facile/card", { aid }), "Dessin en cours…", aid);
 }
 
 function drawMoment(sid, pid) {
@@ -876,15 +1167,32 @@ function allowRefDrop(ev) {
 
 function dropRef(ev) {
   ev.preventDefault();
-  document.getElementById("refgraph").classList.remove("over");
+  const box = document.getElementById("refgraph");
+  box.classList.remove("over");
   let image;
   try { image = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch (e) { return; }
   const plan = selectedPlan();
   if (!plan || !image.aid) return;
   const { s, p } = plan;
+  // Déposé sur l'image du moment (le nœud noir) : cette image remplace celle du moment, sans rien générer.
+  if (cy && onTarget(ev, box)) {
+    act(() => api("POST", "/api/facile/plan/copy-image", { scene: s.id, plan: p.id, source: image.aid,
+      candidate: Number(image.candidate || 0) }), "Image du moment remplacée par cette image.");
+    return;
+  }
   const extra = [...(p.refs.extra || []).filter((x) => x !== image.aid), image.aid];
   act(() => api("POST", "/api/facile/plan/refs", { scene: s.id, plan: p.id,
     exclude: (p.refs.auto || []).filter((a) => a.excluded).map((a) => a.key), extra }), "Référence ajoutée.");
+}
+
+// Le point du dépôt est-il dans le nœud de l'image du moment ?
+function onTarget(ev, box) {
+  const rect = box.getBoundingClientRect();
+  const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+  const t = cy.getElementById("target");
+  if (!t || t.empty()) return false;
+  const pos = t.renderedPosition();
+  return Math.abs(x - pos.x) <= t.renderedWidth() / 2 && Math.abs(y - pos.y) <= t.renderedHeight() / 2;
 }
 
 function removeRef(key, kind) {
@@ -926,17 +1234,17 @@ function findPlanByAid(aid) {
 // --- Bobine : images glissables -------------------------------------------------------
 function renderReel() {
   const items = [];
-  for (const s of V.scenes) for (const p of s.plans) if (p.image && p.aid) items.push({ aid: p.aid, image: p.image, label: s.location || s.title });
-  for (const c of V.characters) if (c.image && c.aid) items.push({ aid: c.aid, image: c.image, label: c.name });
-  for (const l of V.locations) if (l.image && l.aid) items.push({ aid: l.aid, image: l.image, label: l.name });
+  for (const s of V.scenes) for (const p of s.plans) if (p.image && p.aid) items.push({ aid: p.aid, candidate: p.candidate, image: p.image, label: s.location || s.title });
+  for (const c of V.characters) if (c.image && c.aid) items.push({ aid: c.aid, candidate: c.candidate, image: c.image, label: c.name });
+  for (const l of V.locations) if (l.image && l.aid) items.push({ aid: l.aid, candidate: l.candidate, image: l.image, label: l.name });
   const strip = document.getElementById("reel-strip");
   strip.innerHTML = items.length
-    ? items.map((it) => `<button class="reel-item" draggable="true" data-aid="${esc(it.aid)}" title="${esc(it.label)}">
+    ? items.map((it) => `<button class="reel-item" draggable="true" data-aid="${esc(it.aid)}" data-candidate="${it.candidate ?? 0}" title="${esc(it.label)}">
         <img src="${esc(it.image)}" alt=""><span>${esc(it.label)}</span></button>`).join("")
     : `<p class="note">Aucune image pour l'instant.</p>`;
   strip.querySelectorAll(".reel-item").forEach((el) => {
     el.addEventListener("dragstart", (ev) => {
-      ev.dataTransfer.setData("text/plain", JSON.stringify({ aid: el.dataset.aid }));
+      ev.dataTransfer.setData("text/plain", JSON.stringify({ aid: el.dataset.aid, candidate: Number(el.dataset.candidate) }));
       ev.dataTransfer.effectAllowed = "copy";
     });
   });

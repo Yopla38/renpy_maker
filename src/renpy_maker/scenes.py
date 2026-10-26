@@ -69,6 +69,9 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
 
     if sc.get("location"):
         lid = PR.match_asset(assets, {"kind": "location", "name": sc["location"], "parent_name": None}, chars)
+        view = plan.get("viewpoint")  # point de vue choisi pour ce moment (sinon le lieu lui-même)
+        if view and view in assets and assets[view].get("parent") == lid:
+            lid = view
         auto.append({"id": lid, "key": "decor", "label": f"décor : {sc['location']}",
                      "ok": bool(lid) and assets[lid]["status"] == "validated",
                      "why": f"décor « {sc['location']} » : image à retenir"})
@@ -84,6 +87,10 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
                          "why": f"tenue « {outfit} » de {name} : image à retenir"})
         else:
             cid = chars.get(S.norm(name))
+            # Sans tenue notée dans la scène : la tenue par défaut du personnage, sinon son image de base.
+            dflt = (assets.get(cid) or {}).get("default_outfit") if cid else None
+            if dflt and dflt in assets and assets[dflt].get("validated_candidate") is not None:
+                cid = dflt
             auto.append({"id": cid, "key": f"perso:{S.norm(name)}", "label": name, "person": name,
                          "ok": bool(cid) and assets[cid]["status"] == "validated",
                          "why": f"{name} : image de personnage à retenir"})

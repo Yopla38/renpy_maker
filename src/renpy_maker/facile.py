@@ -196,6 +196,14 @@ def view() -> dict:
     names += [a["name"] for a in assets.values() if a["kind"] == "character" and a["name"] not in names]
     characters = [_element_card(assets, "character", n) for n in names]
     locations = [_element_card(assets, "location", n) for n in _locations(st)]
+    # Points de vue : des éléments rattachés à leur lieu, comme les tenues le sont à leur personnage.
+    for loc in locations:
+        loc_aid = loc.get("aid") or ""
+        loc["viewpoints"] = [{"aid": k, "name": v["name"], "description": v.get("description", ""),
+                              "prompt": v.get("prompt", ""), "image": _url(v, v.get("validated_candidate")),
+                              "candidate": v.get("validated_candidate") or 0,
+                              "ready": v.get("validated_candidate") is not None}
+                             for k, v in assets.items() if v["kind"] == "location" and v.get("parent") == loc_aid]
     # Une tenue de la garde-robe, pas encore portée par une scène, existe déjà dans le registre : elle est listée.
     pairs = list(_outfits(st))
     for a in assets.values():
@@ -209,6 +217,7 @@ def view() -> dict:
     for c in characters:
         default = by_aid.get(assets.get(c["aid"], {}).get("default_outfit", ""))
         c["default_outfit"] = default["aid"] if default else ""
+        c["default_name"] = default["name"] if default else ""
         c["base_image"] = c["image"]
         if default and default.get("image"):
             c["image"] = default["image"]
@@ -456,6 +465,13 @@ def route(method: str, path: str, body: dict) -> dict:
             "/api/atelier/outfit/default": lambda: (AT.set_default_outfit(body.get("character", ""), body.get("outfit", "")), {"ok": True})[1],
             "/api/facile/outfit/edit": lambda: edit_outfit(body.get("aid", ""), body.get("mode", ""),
                                                            body.get("text", ""), body.get("ref") or None),
+            "/api/atelier/shot/propose": lambda: {"text": AT.propose_shot(
+                body.get("scene", ""), body.get("plan", ""), body.get("previous", ""))},
+            "/api/atelier/viewpoints/propose": lambda: {"viewpoints": AT.propose_viewpoints(
+                body.get("location", ""), body.get("description", ""), body.get("idea", ""),
+                body.get("existing", []), int(body.get("count", 3)))},
+            "/api/atelier/viewpoints/add": lambda: {"aid": AT.add_viewpoint(
+                body.get("location", ""), body.get("name", ""), body.get("description", ""))},
             "/api/atelier/outfits/propose": lambda: {"outfits": AT.propose_outfits(
                 body.get("character", ""), body.get("description", ""), body.get("idea", ""),
                 body.get("existing", []), int(body.get("count", 3)))},

@@ -112,6 +112,7 @@ def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
     used = refs["extra"] or any(not r["excluded"] for r in refs["auto"])
     return {"id": plan["id"], "aid": plan["asset"], "from_line": plan["from_line"], "pause": bool(plan.get("pause")),
             "speaker": plan.get("speaker", ""), "speech": plan.get("speech", ""),
+            "viewpoint": plan.get("viewpoint", "") or "",
             "candidate": RE.plan_index(plan, a) if a else None,
             "loras": list(a.get("loras", [])) if a else [],
             "comfy": appsettings.image_for("edit" if used else "base")["engine"] == "comfyui",
@@ -324,7 +325,8 @@ def save_plans(sid: str, items: list[dict]) -> dict:
             raise ValueError("La personne qui parle sur cette image doit être un personnage de la scène")
         cleaned.append({"id": it.get("id"), "from_line": line, "text": str(it.get("text", "")).strip(),
                         "characters": chosen, "pause": bool(it.get("pause")),
-                        "speaker": speaker, "speech": str(it.get("speech", "")).strip()})
+                        "speaker": speaker, "speech": str(it.get("speech", "")).strip(),
+                        "viewpoint": it.get("viewpoint")})  # None : on garde le point de vue existant
     # Un plan « image seule » (sans réplique) peut précéder le plan qui commence sur la même réplique.
     cleaned.sort(key=lambda x: (x["from_line"], 0 if x["pause"] else 1))
     kinds: dict[int, list[bool]] = {}
@@ -366,7 +368,16 @@ def save_plans(sid: str, items: list[dict]) -> dict:
                 pid = f"p{n}"
             taken.add(pid)
             characters = c["characters"] or shot_characters(c["text"], sc, shot["framing"])
-            plan = {"id": pid, "from_line": c["from_line"], "characters": characters, "asset": asset_id, "shot": shot}
+            # Les réglages du plan (références, continuité, point de vue…) survivent à l'enregistrement du découpage.
+            keep = {k: v for k, v in (old.get(pid) or {}).items()
+                    if k not in ("id", "from_line", "characters", "asset", "shot", "pause", "speaker", "speech")}
+            plan = {**keep, "id": pid, "from_line": c["from_line"], "characters": characters, "asset": asset_id,
+                    "shot": shot}
+            if c["viewpoint"] is not None:
+                if c["viewpoint"]:
+                    plan["viewpoint"] = c["viewpoint"]
+                else:
+                    plan.pop("viewpoint", None)
             if c["pause"]:
                 plan["pause"] = True
                 if c["speech"]:  # réplique tapée librement sur une image sans dialogue

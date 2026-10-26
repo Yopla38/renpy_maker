@@ -157,6 +157,9 @@ def ref_order(assets: dict, aid: str) -> list[str]:
     les images choisies à la main. Seules les images retenues comptent."""
     a = assets[aid]
     order: list[str] = []
+    if a["kind"] == "location" and a.get("parent"):  # point de vue : part de l'image de base de son lieu
+        if _retained(assets, a["parent"]):
+            order.append(a["parent"])
     if a["kind"] == "outfit":
         parent = a.get("parent") or ""
         # Tenue de départ choisie, sinon la tenue par défaut du personnage (si elle existe et est dessinée).

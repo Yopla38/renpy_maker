@@ -169,12 +169,105 @@ class OutfitEditTests(unittest.TestCase):
     def test_add_with_a_reference_image_names_it(self):
         args = self.run_edit("add", "Chaussures", ref="shoes")
         prompt, extra, store = args[0][2], args[0][3], args[0][4]
-        self.assertIn("Add the chaussures to the outfit", prompt)
-        self.assertIn("reference image 2", prompt)  # personnage = image 1, chaussures = image 2
-        self.assertEqual(extra, ["shoes"])
+        self.assertIn("Reference image 1 : the current outfit", prompt)  # la tenue actuelle est gardée
+        self.assertIn("reference image 2", prompt)                      # les chaussures : image 2
+        self.assertEqual(extra, [])
+        self.assertEqual(args[0][5], ["outfit_r", "shoes"])  # tenue actuelle, puis chaussures
         self.assertFalse(store)  # le prompt de la tenue n'est pas remplacé
 
     def test_remove_needs_no_reference(self):
         args = self.run_edit("remove", "Collier")
-        self.assertIn("Remove the collier from the outfit", args[0][2])
-        self.assertEqual(args[0][3], [])
+        self.assertIn("Remove only the collier", args[0][2])
+        self.assertEqual(args[0][5], ["outfit_r"])  # seule la tenue actuelle
+
+
+class LocationEditTests(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.patches = [mock.patch.object(paths, "data_root", lambda: self.home),
+                        mock.patch.object(appsettings, "load", return_value={})]
+        for p in self.patches:
+            p.start()
+        S.save(S.new_story(title="Test", idea="x"))
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        shutil.rmtree(self.home, ignore_errors=True)
+
+    def test_a_location_description_and_prompt_can_be_edited(self):
+        from renpy_maker import facile_elements as FE
+        AT.start_scene("T", "Gare", [])
+        aid = next(k for k, v in A.load()["assets"].items() if v["kind"] == "location")
+        FE.update_element(aid, description="Un quai désert.", prompt="An empty platform at night.")
+        loc = A.load()["assets"][aid]
+        self.assertEqual(loc["description"], "Un quai désert.")
+        self.assertEqual(loc["prompt"], "An empty platform at night.")
+
+    def test_a_location_cannot_be_renamed_here(self):
+        from renpy_maker import facile_elements as FE
+        AT.start_scene("T", "Gare", [])
+        aid = next(k for k, v in A.load()["assets"].items() if v["kind"] == "location")
+        with self.assertRaises(ValueError):
+            FE.update_element(aid, name="Autre")
+
+
+class ViewpointTests(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.patches = [mock.patch.object(paths, "data_root", lambda: self.home),
+                        mock.patch.object(appsettings, "load", return_value={})]
+        for p in self.patches:
+            p.start()
+        S.save(S.new_story(title="Test", idea="x"))
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        shutil.rmtree(self.home, ignore_errors=True)
+
+    def test_a_viewpoint_is_attached_to_its_location_and_starts_from_its_image(self):
+        from renpy_maker import prompts as PR
+        AT.start_scene("T", "Gare", [])
+        loc = next(k for k, v in A.load()["assets"].items() if v["kind"] == "location")
+        data = A.load()
+        data["assets"][loc]["validated_candidate"] = 0
+        data["assets"][loc]["candidates"] = [{"index": 0, "file": "g.png"}]
+        A.save(data)
+        view = AT.add_viewpoint(loc, "Depuis la fenêtre", "Le quai vu de la vitre.")
+        child = A.load()["assets"][view]
+        self.assertEqual(child["parent"], loc)
+        self.assertEqual(PR.ref_order(A.load()["assets"], view), [loc])
+
+    def test_a_viewpoint_name_cannot_repeat_for_the_same_location(self):
+        AT.start_scene("T", "Gare", [])
+        loc = next(k for k, v in A.load()["assets"].items() if v["kind"] == "location")
+        AT.add_viewpoint(loc, "Fenêtre", "x")
+        with self.assertRaises(ValueError):
+            AT.add_viewpoint(loc, "fenêtre", "y")
+
+
+class ShotContextTests(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.patches = [mock.patch.object(paths, "data_root", lambda: self.home),
+                        mock.patch.object(appsettings, "load", return_value={})]
+        for p in self.patches:
+            p.start()
+        S.save(S.new_story(title="Test", idea="x"))
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        shutil.rmtree(self.home, ignore_errors=True)
+
+    def test_the_shot_proposal_reads_the_lines_before_the_image(self):
+        sid = AT.start_scene("T", "Salle", ["Léa"])
+        AT.add_moment(sid, "Léa", "Il fait froid ici.")
+        AT.add_moment(sid, "Léa", "Je veux partir.")
+        pid = AT.add_moment(sid, S.NARRATOR, "Elle se lève.")
+        with mock.patch.object(AT.llm, "complete_task", return_value="Gros plan sur Léa qui se lève.") as m:
+            AT.propose_shot(sid, pid)
+        user = m.call_args[0][2]
+        self.assertIn("Il fait froid ici.", user)   # une réplique précédente
+        self.assertIn("Elle se lève.", user)        # la réplique couverte par l'image

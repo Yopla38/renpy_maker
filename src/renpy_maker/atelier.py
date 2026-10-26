@@ -175,7 +175,7 @@ def add_moment(sid: str, speaker: str, text: str, pid: str | None = None) -> str
     used = {p["id"] for p in sc.get("plans", [])}
     plan_id = pid or next(f"p{n}" for n in range(1, len(used) + 2) if f"p{n}" not in used)
     sc.setdefault("plans", []).append({"id": plan_id, "from_line": index, "asset": asset_id,
-                                       "characters": present if speaker == S.NARRATOR else [speaker],
+                                       "characters": list(present),  # tout le casting présent dans la scène
                                        "shot": {"framing": "", "angle": "", "note": ""}})
     S.save(st)
     return plan_id
@@ -230,3 +230,85 @@ def set_default_outfit(character_aid: str, outfit_aid: str) -> None:
         else:
             char.pop("default_outfit", None)
         A.save(data)
+
+
+SHOT_RULES = ("Décris en français, en une ou deux phrases, ce que l'on voit à l'écran pour ce plan : le cadrage "
+              "(plan large, plan moyen, gros plan…), qui est visible et où il regarde, le décor et la lumière. "
+              "Pas de dialogue, pas de nom propre : les personnes sont décrites par leur rôle. Réponds par le "
+              "texte seul.")
+
+
+def propose_shot(sid: str, pid: str, previous: str = "", provider: str | None = None) -> str:
+    """Ce que l'on voit à l'écran pour un moment, proposé par l'IA, en tenant compte des répliques qui précèdent
+    et des images déjà décrites. Rien n'est enregistré."""
+    st = _story()
+    sc, present = _scene_context(st, sid)
+    ordered = sorted(sc.get("plans", []), key=lambda p: (p["from_line"], 0 if p.get("pause") else 1))
+    idx = next((i for i, p in enumerate(ordered) if p["id"] == pid), None)
+    if idx is None:
+        raise ValueError("Image inconnue dans cette scène")
+    plan = ordered[idx]
+    dialogue = sc.get("dialogue", [])
+    start = plan["from_line"]
+    end = ordered[idx + 1]["from_line"] if idx + 1 < len(ordered) else len(dialogue)
+    before = dialogue[max(0, start - 6):start]
+    covered = dialogue[start:max(start, end)]
+    earlier = [p.get("shot", {}).get("note", "") for p in ordered[:idx] if p.get("shot", {}).get("note")][-3:]
+    fmt = lambda lines: "\n".join(f"{l['speaker']} : {l['text']}" for l in lines) or "(aucune)"  # noqa: E731
+    system = SHOT_RULES + (" Ne répète pas cette proposition précédente, propose un autre cadrage ou un autre "
+                           "angle." if previous else "") + (" La description doit suivre ce qui vient d'être dit "
+                           "dans les répliques précédentes, sans rien inventer qui contredise la scène.")
+    user = (f"Scène : {sc.get('title', '')} — {sc.get('summary', '')}\n"
+            f"Lieu : {sc.get('location') or 'non précisé'}\n"
+            f"Personnages présents : {', '.join(present) or 'aucun'}\n"
+            f"Répliques précédentes (ce qui s'est passé avant) :\n{fmt(before)}\n"
+            f"Répliques couvertes par cette image :\n{fmt(covered)}\n"
+            f"Images précédentes déjà décrites : {' | '.join(earlier) or '(aucune)'}\n"
+            f"Proposition précédente pour cette image : {previous or '(aucune)'}")
+    text = llm.complete_task("dialogue", system, user, provider or appsettings.provider("text"))
+    return " ".join(str(text).split()).strip('"')
+
+
+
+def propose_viewpoints(location: str, description: str, idea: str, existing: list[str], count: int = 3,
+                       provider: str | None = None) -> list[dict]:
+    """Propose des points de vue pour un lieu : des angles différents du même endroit. Rien n'est enregistré."""
+    system = ("Tu proposes des points de vue pour un lieu de roman visuel : des angles différents du même endroit "
+              '(depuis la fenêtre, près du bureau, gros plan sur la porte…). Réponds uniquement par du JSON : '
+              '{"viewpoints": [{"name": "...", "description": "..."}]}. name : court, en français. description : '
+              "une phrase sur ce que l'on voit de cet angle. Pas de personne. Ne répète pas les points de vue présents.")
+    user = (f"Histoire : {idea}\nLieu : {location}\nDécor : {description or '(non précisé)'}\n"
+            f"Points de vue déjà présents : {', '.join(existing) or 'aucun'}\nPropose {count} points de vue.")
+    raw = llm.extract_json(llm.complete_task("histoire", system, user, provider or appsettings.provider("text")))
+    out, taken = [], {S.norm(n) for n in existing}
+    for item in (raw.get("viewpoints") or []):
+        name = " ".join(str(item.get("name", "")).split())
+        if not name or S.norm(name) in taken:
+            continue
+        taken.add(S.norm(name))
+        out.append({"name": name, "description": " ".join(str(item.get("description", "")).split())})
+        if len(out) == count:
+            break
+    return out
+
+
+def add_viewpoint(location_aid: str, name: str, description: str) -> str:
+    """Ajoute un point de vue à un lieu (sans image : elle se dessine ensuite, à partir de l'image du lieu)."""
+    name = " ".join(str(name).split())
+    if not name:
+        raise ValueError("Donnez un nom au point de vue")
+    with A.LOCK:
+        data = A.load()
+        loc = data["assets"].get(location_aid)
+        if loc is None or loc["kind"] != "location" or loc.get("parent"):
+            raise ValueError("Lieu inconnu")
+        if any(a.get("parent") == location_aid and S.norm(a["name"]) == S.norm(name)
+               for a in data["assets"].values()):
+            raise ValueError("Ce lieu a déjà un point de vue de ce nom")
+        aid, n = f"view_{_slug(name)}", 2
+        base = aid
+        while aid in data["assets"]:
+            aid, n = f"{base}_{n}", n + 1
+        A.add_asset(data, aid, "location", name, description.strip(), location_aid)
+        A.save(data)
+    return aid

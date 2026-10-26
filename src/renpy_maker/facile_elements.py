@@ -18,6 +18,10 @@ from renpy_maker.facile_jobs import _check_cancel, _progress, _say, _start, _sub
 def _refs_for(assets: dict, aid: str) -> list[str]:
     """Images de référence d'une carte, dans l'ordre du prompt. Une tenue s'appuie toujours sur son personnage."""
     a = assets[aid]
+    if a["kind"] == "location" and a.get("parent"):
+        base = assets.get(a["parent"]) or {}
+        if base.get("validated_candidate") is None:
+            raise ValueError(f"Dessinez d'abord le lieu « {base.get('name', '?')} » : ce point de vue s'appuie sur son image.")
     if a["kind"] == "outfit":
         parent = assets.get(a.get("parent") or "")
         if parent and parent.get("image_stale"):
@@ -97,12 +101,27 @@ def update_element(aid: str, name: str | None = None, description: str | None = 
     a = data["assets"].get(aid)
     if a is None:
         raise ValueError("Élément inconnu")
-    if a["kind"] not in ("character", "outfit"):
-        raise ValueError("Seuls les personnages et les tenues se modifient ici")
+    if a["kind"] not in ("character", "outfit", "location"):
+        raise ValueError("Seuls les personnages, les tenues et les lieux se modifient ici")
     old = a["name"]
     new = old if name is None else name.strip()
     if not new:
         raise ValueError("Le nom ne peut pas être vide")
+    if a["kind"] == "location":
+        # Le nom d'un lieu sert de titre à ses scènes : il ne se renomme pas ici. On modifie description et prompt.
+        if not _same(new, old):
+            raise ValueError("Le nom d'un lieu ne se modifie pas ici")
+        changed = False
+        if description is not None and description.strip() != a.get("description", ""):
+            a["description"] = description.strip()
+            changed = True
+        if changed:
+            a["prompt"] = ""  # le prompt se refait à partir de la nouvelle description
+        if prompt is not None:
+            a["prompt"] = prompt.strip()
+        with A.LOCK:
+            A.save(data)
+        return {"ok": True, "name": new}
     if a["kind"] == "character":
         if not _same(new, old):
             if any(_same(o["name"], new) for k, o in data["assets"].items() if o["kind"] == "character" and k != aid):
@@ -225,7 +244,8 @@ def _element_card(assets: dict, kind: str, name: str, parent: str | None = None)
             "descriptor": a.get("descriptor", "") if a else "",
             "prompt": a.get("prompt", "") if a else "", "blocked": blocked, "parent": parent or "",
             "loras": list(a.get("loras", [])) if a else [],
-            "refs": list(a.get("refs", [])) if a else [], "based_on": (a.get("based_on") or "") if a else ""}
+            "refs": list(a.get("refs", [])) if a else [], "based_on": (a.get("based_on") or "") if a else "",
+            "candidate": idx if idx is not None else 0}
 
 def _ensure_descriptors(st: dict) -> None:
     """Genre et âge de chaque personnage, pour les prompts (complète les anciennes histoires)."""
@@ -288,13 +308,17 @@ def _wrong_person(text: str, assets: dict, aid: str) -> bool:
         return True
     return noun in ("man", "boy") and bool(re.search(r"\b(she|her)\b", low))
 
-def _card_work(job_id: str, aid: str, prompt: str | None = None, extra_refs=(), store_prompt: bool = True) -> None:
+def _card_work(job_id: str, aid: str, prompt: str | None = None, extra_refs=(), store_prompt: bool = True,
+               only_refs: list | None = None) -> None:
     with S.LOCK:
         _ensure_descriptors(S.load())
     with A.LOCK:
         data = A.load()
     a = data["assets"][aid]
-    refs = _refs_for(data["assets"], aid) + [r for r in extra_refs if r not in _refs_for(data["assets"], aid)]
+    if only_refs is not None:  # retouche : les images données, dans l'ordre donné (image 1, image 2…)
+        refs = list(only_refs)
+    else:
+        refs = _refs_for(data["assets"], aid) + [r for r in extra_refs if r not in _refs_for(data["assets"], aid)]
     if not prompt:
         prompt = a.get("prompt")
     if prompt and a["kind"] == "outfit" and _wrong_person(prompt, data["assets"], aid):
@@ -357,16 +381,17 @@ def _edit_work(job_id: str, aid: str, mode: str, text: str, ref: str) -> None:
     item = _english(text)
     with A.LOCK:
         assets = A.load()["assets"]
-    n = len(PR.ref_order(assets, aid)) + 1  # numéro de l'image de référence ajoutée
+    # Image 1 : la tenue telle qu'elle est aujourd'hui (on ne refait que la retouche). Image 2 : l'élément ajouté.
+    keep = ("Reference image 1 : the current outfit. Keep the person's face, body, pose and every garment exactly "
+            "as they are in reference image 1.")
     if mode == "add":
-        take = f" Take the {item} from reference image {n}." if ref else ""
-        body = (f"Add the {item} to the outfit, keeping everything else exactly as it is: same person, same face, "
-                f"same pose, same other garments.{take}")
+        take = f" Add the {item} from reference image 2." if ref else f" Add the {item} to the outfit."
+        body = f"{keep}{take} Change nothing else."
     else:
-        body = (f"Remove the {item} from the outfit, keeping everything else exactly as it is: same person, "
-                "same face, same pose, same other garments.")
+        body = f"{keep} Remove only the {item}. Change nothing else."
     prompt = PR.with_style(body, PR.llm_style())
-    _card_work(job_id, aid, prompt, [ref] if ref else [], False)
+    only = [aid] + ([ref] if ref else [])
+    _card_work(job_id, aid, prompt, [], False, only)
 
 
 def edit_outfit(aid: str, mode: str, text: str, ref: str | None = None) -> dict:
