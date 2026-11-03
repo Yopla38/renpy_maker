@@ -24,12 +24,14 @@ def build(st: dict) -> dict:
     for ci, sc in scenes:
         sid = sc["id"]
         choices = sc.get("choices") or []
+        # Ligne ouverte (mode récit) : elle attend sa suite, elle ne passe pas à la scène rangée après elle.
+        is_open = bool(sc.get("open")) and not choices and not sc.get("next") and not sc.get("ending")
         # Suite explicite (rattachement d'une route), sinon la scène suivante dans l'ordre du chapitre.
-        nxt = sc.get("next") or successor.get(sid)
+        nxt = sc.get("next") or (None if is_open else successor.get(sid))
         # Pas de suite : c'est la fin de l'histoire, même si elle n'est pas marquée comme fin.
-        ending = bool(sc.get("ending")) or (not choices and not nxt)
+        ending = bool(sc.get("ending")) or (not choices and not nxt and not is_open)
         nodes.append({"id": sid, "title": sc.get("title", ""), "chapter": ci + 1,
-                      "ending": ending, "has_text": bool(sc.get("dialogue"))})
+                      "ending": ending, "open": is_open, "has_text": bool(sc.get("dialogue"))})
         if choices:
             edges += [{"source": sid, "target": c["target"], "label": c.get("label", ""), "kind": "choice"}
                       for c in choices]
@@ -47,7 +49,7 @@ def build(st: dict) -> dict:
     for n in nodes:
         n["depth"] = depth.get(n["id"])
         n["reachable"] = n["id"] in depth
-    dead_ends = [n["id"] for n in nodes if not n["ending"] and not out[n["id"]]]
+    dead_ends = [n["id"] for n in nodes if not n["ending"] and not n["open"] and not out[n["id"]]]
     routes = _routes(start, out, {n["id"] for n in nodes if n["ending"]})
     return {
         "start": start,

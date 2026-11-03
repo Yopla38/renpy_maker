@@ -28,6 +28,7 @@ from renpy_maker import scenes as SC  # noqa: E402
 from renpy_maker import renpy_export as RE  # noqa: E402
 from renpy_maker import appsettings  # noqa: E402
 from renpy_maker import facile as FA  # noqa: E402
+from renpy_maker import recit as RC  # noqa: E402
 from renpy_maker import projects as PJ  # noqa: E402
 from renpy_maker import paths  # noqa: E402
 from renpy_maker import pipeline as PL  # noqa: E402
@@ -115,9 +116,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, target.read_bytes(), "application/javascript; charset=utf-8")
         if path in ("/atelier", "/atelier/"):
             return self._send(200, (Path(__file__).with_name("atelier.html")).read_bytes(), "text/html; charset=utf-8")
+        if path in ("/recit", "/recit/"):
+            if not paths.chosen():
+                return self._redirect("/projets")
+            return self._send(200, (Path(__file__).with_name("recit.html")).read_bytes(), "text/html; charset=utf-8")
         if path in ("/projets", "/projets/"):
             return self._send(200, PROJECTS_PAGE.read_bytes(), "text/html; charset=utf-8")
-        if path.startswith(("/api/facile", "/api/atelier")):
+        if path.startswith(("/api/facile", "/api/atelier", "/api/recit")):
             return self._facile("GET", path, {})
         if path in ("/jouer", "/jouer/"):
             return self._send(200, PLAY_PAGE.read_bytes(), "text/html; charset=utf-8")
@@ -153,9 +158,10 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"error": "introuvable"})
 
     def _facile(self, method: str, path: str, body: dict) -> None:
-        """Parcours simple : erreurs prévisibles en 400 (message lisible), inconnues en 500."""
+        """Parcours simple, atelier et récit : erreurs prévisibles en 400 (message lisible), inconnues en 500."""
+        router = RC.route if path.startswith("/api/recit") else FA.route
         try:
-            self._json(200, FA.route(method, path, body))
+            self._json(200, router(method, path, body))
         except FA.NotFound as e:
             self._json(404, {"error": str(e)})
         except (ValueError, KeyError, IndexError) as e:
@@ -187,7 +193,7 @@ class Handler(BaseHTTPRequestHandler):
     # ----- POST -----
     def do_POST(self):
         path = urlparse(self.path).path
-        if path.startswith(("/api/facile", "/api/atelier")):
+        if path.startswith(("/api/facile", "/api/atelier", "/api/recit")):
             return self._facile("POST", path, self._body())
         try:
             body = self._body()

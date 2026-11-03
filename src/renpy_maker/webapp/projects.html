@@ -181,6 +181,7 @@ function cardActions(p) {
       <button class="danger" data-act="delete" data-id="${esc(p.id)}">Oui, supprimer</button></div>`;
   }
   const open = `<button class="primary" data-act="open" data-id="${esc(p.id)}" ${ui.busy ? "disabled" : ""}>${p.current ? "Continuer" : "Ouvrir"}</button>
+    <button class="ghost small" data-act="recit" data-id="${esc(p.id)}" ${ui.busy ? "disabled" : ""} title="Vivre l'histoire pas à pas, comme un jeu de rôle">Récit</button>
     <button class="ghost small" data-act="settings" data-id="${esc(p.id)}" ${ui.busy ? "disabled" : ""} title="Modèles de texte, moteurs d'image, ComfyUI">Réglages</button>`;
   const rename = p.origin ? "" : `<button class="quiet" data-act="rename" data-id="${esc(p.id)}">Renommer</button>`;
   const del = p.origin || p.current ? "" : `<button class="quiet" data-act="confirm-delete" data-id="${esc(p.id)}">Supprimer</button>`;
@@ -219,7 +220,8 @@ function render() {
   const cur = state.current;
   document.getElementById("current").innerHTML = cur && !ui.creating ? `<div class="current">
     <div><div class="label">Histoire en cours</div><div class="title">${esc(cur.name)}</div></div>
-    <button class="primary" onclick="location.href='/facile'">Continuer à écrire</button></div>` : "";
+    <div style="display:flex; gap:8px; flex-wrap:wrap"><button class="ghost" onclick="location.href='/recit'" title="Vivre l'histoire pas à pas, comme un jeu de rôle">Jouer le récit</button>
+    <button class="primary" onclick="location.href='/facile'">Continuer à écrire</button></div></div>` : "";
   const grid = document.getElementById("grid");
   const list = state.projects.map(card).join("");
   grid.innerHTML = list + newCard();
@@ -254,10 +256,10 @@ async function run(fn) {
   render();
 }
 
-async function openProject(id, toSettings = false) {
+async function openProject(id, toSettings = false, page = "/facile") {
   await run(async () => {
     await api("POST", "/api/facile/projects/open", { id });
-    location.href = toSettings ? "/facile?reglages=1" : "/facile";
+    location.href = toSettings ? "/facile?reglages=1" : page;
   });
 }
 
@@ -267,6 +269,7 @@ document.addEventListener("click", (ev) => {
   const act = btn.dataset.act;
   const id = btn.dataset.id;
   if (act === "open") return openProject(id);
+  if (act === "recit") return openProject(id, false, "/recit");
   if (act === "settings") return openProject(id, true);
   if (act === "new") { ui.creating = true; say(""); return render(); }
   if (act === "cancel-new") { ui.creating = false; return render(); }
