@@ -161,12 +161,14 @@ class LocationEmptyTests(unittest.TestCase):
 
 class PersonNounTests(unittest.TestCase):
     def test_outfit_edit_uses_the_real_gender_word(self):
-        from renpy_maker.prompts import EDIT_SYSTEM, person_noun
+        from renpy_maker.prompt_texts import t
+        from renpy_maker.prompts import person_noun
         self.assertEqual(person_noun("Old man"), "man")
         self.assertEqual(person_noun("young woman"), "woman")
         self.assertEqual(person_noun(""), "person")
-        self.assertIn("the man from image 1", EDIT_SYSTEM.format(style="s", noun="man"))
-        self.assertNotIn("woman", EDIT_SYSTEM.format(style="s", noun="man"))
+        system = t("image.outfit.system", style="s", noun="man")
+        self.assertIn("the man from image 1", system)
+        self.assertNotIn("woman", system)
 
     def test_outfit_request_has_no_scene_summary_that_could_mislead_the_gender(self):
         st = {"settings": {"style": "aquarelle"}, "idea": "", "synopsis": "",

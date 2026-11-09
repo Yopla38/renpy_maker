@@ -259,7 +259,7 @@ def view() -> dict:
     }
 
 def set_style(key: str) -> dict:
-    if key not in S.STYLES:
+    if key not in S.styles():
         raise ValueError("Style inconnu")
     with S.LOCK:
         st = S.load()

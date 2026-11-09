@@ -45,9 +45,10 @@ chaquopy {
 // Le moteur n'est pas copié à la main : il vient du dépôt renpy_maker (racine, un niveau au-dessus), à chaque compilation.
 val engineDir = rootProject.file("..")
 val syncEngine by tasks.registering(Sync::class) {
-    // Le paquet renpy_maker (code et pages web) garde son dossier ; config.yaml est à côté de launcher.py.
+    // Le paquet renpy_maker (code, pages web, scripts et styles du studio, prompts.yaml) garde son dossier ;
+    // config.yaml est à côté de launcher.py.
     from(File(engineDir, "src/renpy_maker")) {
-        include("**/*.py", "**/*.html")
+        include("**/*.py", "**/*.html", "**/*.js", "**/*.css", "**/*.yaml")
         into("renpy_maker")
     }
     from(engineDir) {

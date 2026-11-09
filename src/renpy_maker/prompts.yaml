@@ -1,0 +1,531 @@
+# Prompts envoyés aux modèles (écriture et dessin).
+#
+# Modifier un prompt : changez le texte ici, ou mieux, copiez seulement les clés à changer dans un fichier
+# prompts.yaml placé à côté de config.yaml (il remplace ces valeurs clé par clé, et une mise à jour du
+# programme ne l'écrase pas). Les changements sont pris en compte tout de suite, sans relancer.
+#
+# Dans un texte :
+#   ${nom}         une valeur remplie par le programme (garder le nom tel quel) ;
+#   ${nom|texte}   la même chose, avec « texte » quand la valeur est vide ;
+#   $$             un vrai signe dollar.
+# Les réponses attendues en JSON (clés entre guillemets) sont lues par le programme : changer leurs clés
+# casserait la lecture de la réponse.
+#
+# Rappel YAML : « >- » replie le texte (un retour à la ligne devient un espace) ; « |- » garde les retours à
+# la ligne tels quels.
+
+common:
+  explicit_yes: oui
+  explicit_no: non
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Styles des images : le suffixe termine chaque prompt d'image de l'histoire.
+# ---------------------------------------------------------------------------------------------------------
+styles:
+  aquarelle:
+    label: Aquarelle
+    desc: Couleurs douces, papier texturé, traits délavés
+    suffix: >-
+      watercolor painting, soft wet edges, visible paper texture, delicate pastel colours,
+      hand-painted illustration
+  dessin_anime:
+    label: Dessin animé
+    desc: Contours nets, couleurs vives, aplats
+    suffix: 2D cartoon illustration, clean ink outlines, flat cel shading, vibrant colours
+  huile:
+    label: Peinture à l'huile
+    desc: Touches de pinceau, lumière chaude, matière
+    suffix: oil painting, visible brush strokes, rich warm textures, classical lighting
+  realiste:
+    label: Réaliste 3D
+    desc: Rendu CGI photoréaliste, lumière de cinéma
+    suffix: >-
+      photorealistic 3D render, realistic CGI character, soft cinematic lighting,
+      detailed skin texture
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Écriture de l'histoire (plan.py) : un chapitre, puis les répliques d'une scène.
+# ---------------------------------------------------------------------------------------------------------
+chapter:
+  system: |-
+    Tu es scénariste de romans visuels Ren'Py. Tu écris en français. Tu réponds uniquement par un objet JSON valide, sans texte autour. ${public}Contenu explicite autorisé : ${explicit}. Schéma attendu :
+    ${schema}
+  # Ajouté devant « Contenu explicite autorisé » dans l'application pour enfants.
+  public_kids: "Public : enfants et adolescents. Aucun contenu sexuel, aucune violence graphique."
+  schema: |-
+    {
+      "title": "titre du chapitre",
+      "summary": "résumé du chapitre en 2 à 4 phrases",
+      "scenes": [
+        {
+          "title": "titre court de la scène",
+          "summary": "ce qui se passe, en 2 à 4 phrases",
+          "characters": ["noms des personnages présents"],
+          "location": "nom du lieu",
+          "outfits": {"nom du personnage": "description courte de sa tenue"}
+        }
+      ]
+    }
+  user:
+    title: "Titre : ${title|(sans titre)}"
+    idea: "Idée : ${idea|(vide)}"
+    synopsis: "Synopsis : ${synopsis}"
+    previous: "Chapitres déjà écrits :"
+    previous_chapter: "- ${title} : ${summary}"
+    previous_scene: "    · ${title} : ${summary}"
+    write: "Écris le chapitre ${number} avec exactement ${count} scène(s)."
+    guidance: "Consigne de l'auteur : ${guidance}"
+
+dialogue:
+  system: |-
+    Tu es scénariste de romans visuels Ren'Py. Tu écris en français, et tu réponds uniquement par un objet JSON valide, sans texte autour. Contenu explicite autorisé : ${explicit}. Écris entre 6 et 12 répliques. Le locuteur doit être exactement un des personnages présents, ou '${narrator}' pour une description. Schéma attendu :
+    ${schema}
+  schema: |-
+    {
+      "lines": [
+        {"speaker": "nom exact d'un personnage présent, ou Narration",
+         "text": "la réplique, ou une courte description de l'action",
+         "expression": "expression du visage, 1 à 3 mots en français (neutre, sourire, méfiance…)"}
+      ]
+    }
+  user:
+    story: "Histoire : ${title|(sans titre)} — ${idea}"
+    synopsis: "Synopsis : ${synopsis}"
+    chapter: "Chapitre : ${title} — ${summary}"
+    scene: "Scène : ${title} — ${summary}"
+    location: "Lieu : ${location|(non précisé)}"
+    characters: "Personnages présents : ${characters|aucun}"
+    previous: "Dernières répliques de la scène précédente (pour la continuité) :"
+    previous_line: "- ${speaker} : ${text}"
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Atelier (atelier.py) : propositions de personnages, lieux, répliques, tenues, plans, points de vue.
+# ---------------------------------------------------------------------------------------------------------
+atelier:
+  descriptor_hint: >-
+    descriptor : en anglais, le genre et la tranche d'âge (« young woman », « adult man »,
+    « teenage boy »). Ne devine pas : si le texte ne le dit pas, laisse-le vide.
+  characters:
+    system: >-
+      Tu proposes des personnages pour un roman visuel. Réponds uniquement par du JSON :
+      {"characters": [{"name": "...", "description": "...", "descriptor": "..."}]}.
+      name : un prénom ou un nom court, en français. description : en français, une ou deux phrases
+      sur l'apparence et le rôle. ${descriptor_hint}
+    user: |-
+      Histoire : ${idea}
+      Personnages déjà retenus (ne les répète pas) : ${existing|aucun}
+      Propose ${count} personnages.
+  location:
+    system: >-
+      Tu proposes un lieu pour une scène de roman visuel. Réponds uniquement par du JSON :
+      {"name": "...", "description": "..."}. name : court, en français (« Le compartiment du train »).
+      description : une ou deux phrases sur le décor seulement, sans personnage.
+    user: |-
+      Histoire : ${idea}
+      Lieux déjà utilisés : ${existing|aucun}
+      Ce qui vient de se passer : ${before|(début de l'histoire)}
+  line:
+    system: >-
+      Tu écris une seule réplique pour un roman visuel, en français. Réponds uniquement par du JSON :
+      {"speaker": "...", "text": "..."}. speaker : exactement un de ces noms : ${speakers}.
+      text : une à deux phrases, naturelles, sans didascalie.
+    user: |-
+      Histoire : ${story}
+      Scène : ${title} — ${summary}
+      Lieu : ${location|non précisé}
+      Personnages présents : ${present|aucun}
+      Répliques déjà écrites :
+      ${history|(la scène commence)}
+      Écris la réplique qui suit.
+  outfits:
+    system: >-
+      Tu proposes des tenues (vêtements) pour un personnage de roman visuel. Réponds uniquement par du
+      JSON : {"outfits": [{"name": "...", "description": "..."}]}. name : court, en français
+      (« Robe du soir »). description : une phrase sur les vêtements seulement (matière, couleur, coupe).
+      Pas de nudité, pas de sous-vêtement. Ne répète pas les tenues déjà présentes.
+    user: |-
+      Histoire : ${idea}
+      Personnage : ${character}
+      Apparence : ${description|(non précisée)}
+      Tenues déjà présentes : ${existing|aucune}
+      Propose ${count} tenues.
+  shot:
+    system: >-
+      Décris en français, en une ou deux phrases, ce que l'on voit à l'écran pour ce plan : le cadrage
+      (plan large, plan moyen, gros plan…), qui est visible et où il regarde, le décor et la lumière.
+      Pas de dialogue, pas de nom propre : les personnes sont décrites par leur rôle. Réponds par le
+      texte seul.
+    # Ajouté quand l'auteur demande une autre proposition.
+    avoid_previous: Ne répète pas cette proposition précédente, propose un autre cadrage ou un autre angle.
+    follow: >-
+      La description doit suivre ce qui vient d'être dit dans les répliques précédentes, sans rien
+      inventer qui contredise la scène.
+    user: |-
+      Scène : ${title} — ${summary}
+      Lieu : ${location|non précisé}
+      Personnages présents : ${present|aucun}
+      Répliques précédentes (ce qui s'est passé avant) :
+      ${before|(aucune)}
+      Répliques couvertes par cette image :
+      ${covered|(aucune)}
+      Images précédentes déjà décrites : ${earlier|(aucune)}
+      Proposition précédente pour cette image : ${previous|(aucune)}
+  viewpoints:
+    system: >-
+      Tu proposes des points de vue pour un lieu de roman visuel : des angles différents du même endroit
+      (depuis la fenêtre, près du bureau, gros plan sur la porte…). Réponds uniquement par du JSON :
+      {"viewpoints": [{"name": "...", "description": "..."}]}. name : court, en français. description :
+      une phrase sur ce que l'on voit de cet angle. Pas de personne. Ne répète pas les points de vue présents.
+    user: |-
+      Histoire : ${idea}
+      Lieu : ${location}
+      Décor : ${description|(non précisé)}
+      Points de vue déjà présents : ${existing|aucun}
+      Propose ${count} points de vue.
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Récit (recit.py) : le conteur propose chaque moment ; le metteur en scène applique les consignes.
+# ---------------------------------------------------------------------------------------------------------
+recit:
+  # Ajouté à la fin des consignes quand le contenu explicite n'est pas autorisé.
+  safety: "Contenu tout public : pas de nudité, pas de scène sexuelle, pas de violence crue."
+  # Format de réponse d'un moment (lu par le programme : garder les clés).
+  moment_format: >-
+    {"voix_off": "...", "speaker": "...", "text": "...", "present": ["..."], "location": null,
+    "image": {"keep": false, "shot": "...", "framing": "...", "viewpoint": "", "visible": ["..."]},
+    "choices": []}
+  # Consignes du conteur. ${framings} : la liste des cadrages ; ${max_choices} : choix proposés au plus.
+  rules: |-
+    Tu es le conteur d'un jeu de rôle en roman visuel, en français. Le joueur vit l'histoire pas à pas : tu écris un seul moment à la fois, court, qui fait avancer l'histoire dans l'ambiance donnée. Réponds uniquement par du JSON : ${moment_format}
+    - voix_off : la narration, au présent, une ou deux phrases ; vide si le moment n'en a pas besoin.
+    - speaker et text : au plus une réplique, d'un personnage présent (nom exact), une ou deux phrases naturelles, sans didascalie ; laisse-les vides si le moment n'est que narration.
+    - present : les personnages présents après ce moment (un personnage de la distribution peut arriver ou partir).
+    - location : null si l'on reste au même endroit ; sinon {"name": "...", "description": "..."} : un lieu connu (nom exact) ou un nouveau lieu, description du décor seul. Au tout premier moment, donne toujours un lieu.
+    - image.keep : true si l'image à l'écran convient encore (même cadrage, rien de visible ne change) : on économise un dessin. false si le cadrage, le point de vue, les personnes visibles, leur posture ou l'action changent, et toujours au premier moment d'un lieu.
+    - image.shot : si keep vaut false, ce que l'on voit à l'écran en une phrase : cadrage, qui est visible, posture (assis, debout…), action, décor, lumière.
+    - image.framing : un de ${framings}. image.viewpoint : un point de vue du lieu (nom exact) ou vide. image.visible : les personnages visibles dans l'image.
+    - choices : quand le héros arrive à une décision qui compte (environ toutes les 6 à 10 répliques), 2 ou ${max_choices} choix courts (moins de 60 caractères), formulés comme des actions ; sinon [].
+    - Suis les indications du joueur.${safety}
+  # Ce que le conteur sait de l'histoire (une ligne par clé).
+  context:
+    title: "Titre : ${title|(sans titre)}"
+    story: "Histoire : ${story}"
+    ambiance: "Ambiance : ${ambiance|(libre)}"
+    style: "Style des images : ${style|(libre)}"
+    cast: "Distribution :"
+    cast_member: "- ${name}${descriptor} : ${description|(non décrit)}${wardrobe}"
+    cast_descriptor: "(${descriptor})"
+    cast_wardrobe: "Tenues : ${outfits}."
+    places: "Lieux déjà connus : ${places|aucun}"
+    location: "Lieu actuel : ${location|(non précisé)} — ${description}"
+    viewpoints: "Points de vue de ce lieu : ${viewpoints|aucun}"
+    present: "Personnages présents : ${present|personne}"
+    outfits: "Tenues portées : ${outfits}"
+    outfit: "${character} : ${outfit}"
+    screen: "Image à l'écran : ${shown}"
+    screen_undescribed: (sans description)
+    screen_none: (aucune)
+    happened: |-
+      Ce qui s'est passé (le plus récent en dernier) :
+      ${lines|(rien encore)}
+    since_choice: "Répliques depuis le dernier choix : ${count}"
+    first_moment: C'est le tout premier moment de l'histoire.
+    directions: |-
+      Indications du joueur pour la suite (à respecter) :
+      ${directions}
+    direction: "- ${text}"
+  propose:
+    instruction: "Le joueur demande pour ce moment : ${instruction}"
+    previous: "Proposition précédente, à ne pas répéter : ${proposal}"
+  choices:
+    system: >-
+      Tu proposes les choix d'un jeu de rôle en roman visuel, en français : ce que le héros peut décider
+      maintenant, en suivant l'histoire. Réponds uniquement par du JSON : {"choices": ["..."]}.
+      2 ou ${max} choix courts (moins de 60 caractères), formulés comme des actions, vraiment différents
+      les uns des autres.${safety}
+  direct_moment:
+    system: >-
+      Tu es l'assistant de mise en scène d'un jeu de rôle en roman visuel. Voici le moment proposé (JSON) et
+      l'indication du joueur, donnée en langage naturel (souvent à l'oral, parfois approximative). Modifie le moment
+      pour la suivre, sans rien changer d'autre. Réponds uniquement par du JSON : le moment complet, au même format,
+      ${moment_format}, avec en plus : "reply" (une phrase courte, en français, qui dit ce que tu as changé),
+      "outfits" ({"Nom": "tenue"} seulement si le joueur change une tenue : une tenue existante du personnage,
+      nom exact), "new_outfit" (null, ou {"character": "...", "name": "...", "description": "..."} si la
+      tenue demandée n'existe pas encore ; description : les vêtements seuls), et "cap" (vide, ou une indication
+      qui vaut aussi pour la suite de l'histoire, en une phrase). Une posture, un geste, un cadrage ou un point de vue
+      demandés vont dans image.shot, image.framing et image.viewpoint ; si l'image doit changer, image.keep vaut false.
+    user: |-
+      ${context}
+      Moment proposé : ${moment}
+      Indication du joueur : ${instruction}
+  direct_image:
+    system: >-
+      Tu es l'assistant de mise en scène d'un jeu de rôle en roman visuel. Le joueur regarde une image de son
+      histoire et dit en langage naturel (souvent à l'oral, parfois approximative) ce qui doit changer. Réponds
+      uniquement par du JSON : {"reply": "...", "shot": "...", "framing": "...", "viewpoint": "...",
+      "visible": ["..."], "outfits": {}, "new_outfit": null, "prompt": "...", "lines": [], "cap": ""}.
+      Ne remplis que ce qui change, laisse vide (ou null) le reste.
+      shot : la nouvelle description de ce que l'on voit, en français, une phrase (cadrage, posture, geste,
+      expression, décor, lumière). framing : un de ${framings}. viewpoint : un point de vue du lieu
+      (nom exact), ou « (lieu) » pour le lieu lui-même. visible : les personnages visibles. outfits :
+      {"Nom": "tenue existante"}. new_outfit : {"character", "name", "description"} si la tenue demandée
+      n'existe pas. prompt : le prompt d'image réécrit en anglais pour suivre la demande, en gardant ses renvois aux
+      images de référence (« image 1 »…) ; seulement si un prompt existe et que seuls la posture, le geste,
+      l'expression ou la lumière changent. lines : [{"n": numéro, "text": "..."}] si une réplique de cette image
+      doit changer. cap : une indication qui vaut aussi pour la suite de l'histoire, sinon vide. reply : une phrase
+      courte, en français, qui dit ce que tu as changé.
+    user: |-
+      ${context}
+      Image : ${note|(sans description)}
+      Cadrage : ${framing|(libre)} ; point de vue : ${viewpoint}
+      Personnages visibles : ${visible|personne}
+      Prompt actuel : ${prompt|(aucun)}
+      Répliques de cette image :
+      ${lines|(aucune)}
+      Indication du joueur : ${instruction}
+    line: "${n}. ${speaker} : ${text}"
+  # Ajouté à la description d'une image quand la tenue change.
+  wearing: "${character} porte sa tenue « ${outfit} »."
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Plans d'une scène (facile_plans.py) : découpage en images, changement de tenue.
+# ---------------------------------------------------------------------------------------------------------
+shots:
+  system: |-
+    You split a scene of a visual novel into camera shots, one still image per shot.
+    Answer ONLY with JSON: {"plans": [{"from_line": <number of the dialogue line where the shot starts, starting at 1>,
+    "framing": "<one of: ${framings}>", "text": "<one short French sentence: what the shot shows>"}]}
+    Rules:
+    - The first shot starts at line 1 and shows the whole place with everyone in it (wide or medium shot).
+    - Then, when the speaker changes or an emotion matters, add a close-up on the character who speaks
+      (text: 'Gros plan sur Léa, qui ...').
+    - Add a detail shot when an object or a place from the story deserves it (text: 'Détail : la carte aux bords jaunis').
+    - If a character takes off or puts on a clothing item, or changes their look, say it in the text
+      (for example 'Léa sans sa veste', 'Tom ébouriffé, la chemise ouverte').
+    - Use at most ${max} shots. Keep them in order of dialogue lines. Never more than one shot per line.
+  user: |-
+    Scene : ${title} — ${summary}
+    Location : ${location|unknown}
+    Characters : ${characters}
+    Dialogue :
+    ${lines}
+  # Les choix de l'auteur (bulles) pour certaines répliques.
+  tags: "Choices made by the writer for some lines (respect them; they are authoritative) :"
+  tag_line: "${n}. ${parts}"
+  tag_present: "present: ${names}"
+  tag_place: "place: ${location}"
+  tag_outfit: "${character} wears: ${outfit}"
+
+outfit_change:
+  system: >-
+    Tu lis la description d'un plan de bande dessinée. Réponds uniquement par du JSON :
+    {"change": true} ou {"change": false}. "change" vaut true si la description indique qu'un personnage
+    enlève, retire, ouvre, défait ou change un vêtement ou son apparence (par exemple « Léa sans sa veste »,
+    « chemise ouverte », « pieds nus »). Sinon false.
+  user: |-
+    Personnages de la scène : ${characters|aucun}
+    Description du plan : ${text}
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Personnages et tenues (facile_elements.py).
+# ---------------------------------------------------------------------------------------------------------
+identity:
+  system: >-
+    Tu décris un personnage de roman visuel à partir de l'histoire et de ses répliques.
+    Réponds uniquement par du JSON : {"description": "...", "descriptor": "..."}.
+    description : en français, une ou deux phrases sur l'apparence (cheveux, yeux, silhouette, style),
+    seulement ce que l'histoire indique.
+    descriptor : en anglais, le genre et la tranche d'âge (« young woman », « adult man », « teenage boy »).
+    Ne devine jamais le genre : ni le rôle, ni le prénom, ni le genre de l'héroïne ne suffisent.
+    Si le texte ne l'indique pas clairement (pronoms, « monsieur », « madame », accords),
+    laisse descriptor vide.
+  user: |-
+    Personnage : ${name}
+    Histoire : ${story|(non précisée)}
+    Scènes où il apparaît :
+    ${scenes|(aucune)}
+    Ses répliques :
+    ${lines|(aucune)}
+
+# Retouche d'une tenue (ajouter ou retirer un détail) : prompt envoyé directement au modèle d'image.
+outfit_edit:
+  translate: Translate the clothing item to English. Answer only the phrase, 1 to 6 words.
+  keep: >-
+    Reference image 1 : the current outfit. Keep the person's face, body, pose and every garment exactly
+    as they are in reference image 1.
+  add_from_reference: Add the ${item} from reference image 2.
+  add: Add the ${item} to the outfit.
+  remove: Remove only the ${item}.
+  end: Change nothing else.
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Prompts d'image des éléments (prompts.py) : personnage, tenue, lieu, objet. L'IA d'écriture rédige le
+# prompt (en anglais) que reçoit le modèle d'image.
+# ---------------------------------------------------------------------------------------------------------
+image:
+  no_names: >-
+    Never write a first name or any proper name of a person in the prompt: describe each person by gender
+    and age instead ('a young woman', 'a teenage boy', 'an old man').
+  system: |-
+    You write prompts for FLUX image models.
+    Rules:
+    - Output ONLY the prompt: one paragraph, in English, 40 to 90 words.
+    - ${no_names}
+    - Natural descriptive sentences, not comma-separated tags.
+    - Be concrete: age, hair, eyes, build, clothing, pose, expression, setting, lighting, framing.
+    - No negative prompt, no quality tags, no text or captions, no French.
+    - Finish the prompt with this rendering style, word for word: ${style}
+    ${framing}
+  # Dernière règle du prompt, selon ce que l'on dessine.
+  framing:
+    character: >-
+      - Show the character alone, full body, against a plain neutral studio backdrop. No location, no
+      props, no other people. The story's mood may shape the lighting and the expression only.
+    outfit: "- Show the character wearing the outfit, full body, the clothing clearly visible."
+    location: "- Describe the place only: a wide establishing shot with no people in it."
+    object: "- Show the object alone, centred, clearly lit. No people, no hands, no body parts, no characters at all."
+  # Ajouté pour un lieu ou un objet.
+  no_person: Never mention a person, even if the story context does.
+  # Ce que l'on donne à l'IA pour rédiger le prompt (une ligne par clé).
+  request:
+    type: "Type : ${kind}"
+    name: "Name (never write it in the prompt) : ${name}"
+    notes: "Notes (French) : ${notes}"
+    nude_notes: >-
+      Physical traits only, from these French notes: face, hair, eyes, build, age. IGNORE any
+      clothing, underwear or accessory they mention: garments are added later as outfits. Notes : ${notes}
+    full_body: Start the prompt with 'full body shot'.
+    nude_word: Write 'nude' right before the gender word (for example 'a young nude woman').
+    nude_body: >-
+      The person is nude : a neutral full-body figure, no clothing, no accessories, natural
+      anatomy, plain studio backdrop. Garments will be added later by editing this image.
+    person_unknown: >-
+      Person to depict : gender and age not chosen yet. Do not guess them from the other
+      characters of the story.
+    person_known: >-
+      Person to depict : the ${noun} described by the descriptor '${descriptor}'.
+      Describe only this ${noun}, with this gender and age, even if the story context
+      describes other people.
+    story: "Story (French, describes the people's looks): ${story}"
+    worn_by: "Worn by : the ${person}"
+    parent_prompt: "Character appearance (English, from the existing prompt) : ${prompt}"
+    context_titles: "Scene where it appears (titles only) :"
+    context: "Story context (French) :"
+  # Images de référence nommées dans la demande (image 1, image 2…).
+  reference:
+    character: "Reference image ${n} : the ${person}, as they look now."
+    outfit: "Reference image ${n} : clothes worn by the person (${name})."
+    other: "Reference image ${n} : ${name}, use it as a visual reference."
+  # Une tenue se dessine en retouchant l'image du personnage (FLUX.2 Klein).
+  outfit:
+    system: |-
+      You write prompts for FLUX.2 Klein, an image EDITING model. The reference image 1 is the character
+      as they already look. Your prompt is an instruction to edit that image, not a description of a new person.
+      Output ONLY the prompt, in English, one paragraph of 30 to 80 words, never more than 100.
+      - Start with what must stay identical: 'Keep the ${noun} from image 1 exactly as they are: their face, hair, body, pose and framing.'
+      - Then state the change: the clothing to put on, and what to remove (any garment or accessory not in the outfit).
+      - Do not re-describe her face, hair or body: the reference already shows them.
+      - Describe the clothes concretely (garments, colours, fit, footwear, accessories). No negative terms, no quality words.
+      - Never write a first name. Refer to the person only as 'the ${noun} from image 1'.
+      - Finish with this rendering style, word for word: ${style}
+    put_on: "Outfit to put on the character : ${name}"
+    first: "Reference image 1 : the ${person}, as they look now."
+    first_based_on: >-
+      Reference image 1 : the ${noun} wearing ${base}, as they look now. Keep those garments
+      unless the outfit below replaces them.
+  # Seconde demande quand la première réponse ne convient pas.
+  retry_nude: "The previous attempt described clothing. The person is NUDE: no garment, no underwear, no accessory."
+  retry_empty_place: "The previous attempt showed people. The place must be EMPTY: no person, no figure, no silhouette."
+  # Genre et âge d'un personnage, en quelques mots anglais (ils remplacent le prénom dans les prompts).
+  describe_person:
+    system: >-
+      Give the gender and age group of the person described, as a 2 to 4 word English noun phrase,
+      for example 'young woman', 'teenage boy', 'old man'. Output only that phrase, never a name.
+    person: "Person : ${name}"
+    notes: "Notes (French) : ${description}"
+    story: "Story (French, the person's looks may be described here) : ${story}"
+    retry: "Answer with exactly two words: gender then age group, for example 'young woman'."
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Images des scènes (scenes.py) : l'IA d'écriture rédige le prompt de chaque plan pour FLUX.2 Klein, qui
+# compose l'image à partir des images de référence (décor, personnages, tenues, image précédente).
+# ---------------------------------------------------------------------------------------------------------
+scene_image:
+  system: >-
+    You write prompts for FLUX.2 Klein image editing, which composes or edits an image from reference images.
+    Output ONLY the prompt, in English, one paragraph of 40 to 90 words, never more than 100.
+    ${references}
+    Refer to every reference by its position ('the woman from image 2', 'the room from image 1'),
+    and give each reference one role. Show only the people listed under 'People in this image',
+    each one as the person of their numbered image: never swap two people, never add anyone else.
+    ${rules}
+    Use natural sentences, not tags. No negative terms, no quality words, no text in the image.
+    Keep one rendering style only and finish with these words, verbatim: ${style}
+  references: "Reference images, by position: ${order}."
+  reference: "image ${n} = ${label}"
+  no_references: "There are no reference images: describe the scene only."
+  # Image de continuité sans cadrage choisi : une retouche de l'image précédente.
+  rules_edit: >-
+    This is an EDIT of image ${image}, not a new shot: keep its framing, camera angle, composition,
+    lighting and every person exactly as they are in image ${image}. Change only the expression and
+    the action described in the dialogue below. Do not move the camera, do not zoom, do not change the place.
+  # Nouveau plan : nouvelle composition.
+  rules_new: >-
+    Start with the camera: the framing, the distance, the angle, and what is in focus, as requested.
+    The composition is new: never reuse the framing, camera position or layout of any reference image.
+    References only give identity, outfit and the look of the place.
+    Then say what stays identical to the references, in one short clause per person
+    ('Keep the woman from image 2 exactly as she is, with her outfit'). Do NOT re-describe their face, hair, body
+    or clothes: the reference already shows them.
+    Then state the changes: where each person stands in this framing, their pose, their expression
+    (for example 'with a slight smile'), their action, and anything to add or remove.
+    Lighting last.
+  user:
+    scene: "Scene : ${title} — ${summary}"
+    location: "Location : ${location}"
+    people: "People in this image : ${people|nobody}."
+    person: "${person} (image ${n})"
+    person_without_reference: "${person} (no reference image)"
+    decor: "Background details, scenery only (never a named person): ${decor}."
+    shot: "Requested shot : framing ${framing|free}, camera ${angle|free}."
+    shot_with_focus: "Requested shot : framing ${framing|free}, camera ${angle|free}. Focus : ${note}."
+    shot_unset: "Requested shot : not set. Choose a framing and camera angle different from the previous image."
+    previous_shot: "Previous image shot : framing ${framing}, camera ${angle}. Do not reuse its composition."
+    expressions: "Expressions to show : ${expressions}"
+    expression: "${who} : ${expression}"
+    dialogue: "Dialogue in this image (French, for context) :"
+    dialogue_line: "- ${who} : ${text}"
+    no_dialogue: "- (aucune réplique)"
+    references: "Reference descriptions (context only, do not copy them word for word) :"
+    reference: "- image ${n} (${label}) : ${text}"
+    reference_exact: "- image ${n} (${label})"
+  # Relevé des éléments visibles d'une scène (lieux, objets, personnages, décor).
+  detect:
+    system: |-
+      You list the visual elements that a scene needs to be drawn.
+      Output ONLY a JSON object: {"elements": [{"name": "...", "kind": "location" | "object" | "character" | "decor", "description": "..."}]}.
+      - Write names and descriptions in French, as they appear in the story. Keep names short and specific.
+      - kind "location": a place or part of a place (the yard, the barn, the road).
+      - kind "object": a prop or a vehicle that matters visually and is named in the story.
+      - kind "character": a NAMED individual of the story, or a person with a role who speaks or acts in the scene and is
+        NOT in the declared characters list (for example "le père d'Eve"). Name them as the story does.
+      - kind "decor": background of the scene, not story people: a crowd, dancing couples, villagers in the background,
+        ambient details (lanterns, fireworks, cows in a field). These are part of the image, never characters.
+      - Do not list clothes. Do not list small consumables (food, drinks) or things only mentioned abstractly.
+      - At most 8 elements.
+    user:
+      scene: "Scène : ${title} — ${summary}"
+      location: "Lieu indiqué : ${location|(aucun)}"
+      places: "Lieux déjà connus (réutiliser exactement ce nom si c'est le même lieu) : ${places|(aucun)}"
+      objects: "Objets déjà connus (idem) : ${objects|(aucun)}"
+      declared: "Personnages déclarés dans la scène : ${characters|(aucun)}"
+      lines: "Répliques :"
+      line: "- ${speaker} : ${text}"

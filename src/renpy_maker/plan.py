@@ -12,44 +12,26 @@ from renpy_maker import appsettings
 from renpy_maker import llm
 from renpy_maker import paths
 from renpy_maker import story as S
-
-SCHEMA_HINT = """{
-  "title": "titre du chapitre",
-  "summary": "résumé du chapitre en 2 à 4 phrases",
-  "scenes": [
-    {
-      "title": "titre court de la scène",
-      "summary": "ce qui se passe, en 2 à 4 phrases",
-      "characters": ["noms des personnages présents"],
-      "location": "nom du lieu",
-      "outfits": {"nom du personnage": "description courte de sa tenue"}
-    }
-  ]
-}"""
-
+from renpy_maker.prompt_texts import t
 
 def build_prompt(st: dict, chapter_index: int, scene_count: int, guidance: str) -> tuple[str, str]:
     explicit = bool(st["settings"].get("explicit_content")) and not paths.KIDS
-    public = ("Public : enfants et adolescents. Aucun contenu sexuel, aucune violence graphique. "
-              if paths.KIDS else "")
-    system = (
-        "Tu es scénariste de romans visuels Ren'Py. Tu écris en français. "
-        "Tu réponds uniquement par un objet JSON valide, sans texte autour. "
-        f"{public}Contenu explicite autorisé : {'oui' if explicit else 'non'}. "
-        f"Schéma attendu :\n{SCHEMA_HINT}"
-    )
-    lines = [f"Titre : {st.get('title') or '(sans titre)'}", f"Idée : {st.get('idea') or '(vide)'}"]
+    public = t("chapter.public_kids") + " " if paths.KIDS else ""
+    system = t("chapter.system", public=public, explicit=t("common.explicit_yes" if explicit else "common.explicit_no"),
+               schema=t("chapter.schema"))
+    u = "chapter.user."
+    lines = [t(u + "title", title=st.get("title")), t(u + "idea", idea=st.get("idea"))]
     if st.get("synopsis"):
-        lines.append(f"Synopsis : {st['synopsis']}")
+        lines.append(t(u + "synopsis", synopsis=st["synopsis"]))
     if st["chapters"]:
-        lines.append("Chapitres déjà écrits :")
+        lines.append(t(u + "previous"))
         for ch in st["chapters"]:
-            lines.append(f"- {ch['title']} : {ch['summary']}")
+            lines.append(t(u + "previous_chapter", title=ch["title"], summary=ch["summary"]))
             for sc in ch["scenes"][-2:]:
-                lines.append(f"    · {sc['title']} : {sc['summary']}")
-    lines.append(f"\nÉcris le chapitre {chapter_index} avec exactement {scene_count} scène(s).")
+                lines.append(t(u + "previous_scene", title=sc["title"], summary=sc["summary"]))
+    lines.append("\n" + t(u + "write", number=chapter_index, count=scene_count))
     if guidance:
-        lines.append(f"Consigne de l'auteur : {guidance}")
+        lines.append(t(u + "guidance", guidance=guidance))
     return system, "\n".join(lines)
 
 
@@ -117,35 +99,21 @@ def add_generated(st: dict, ch: dict) -> dict:
     return chapter
 
 
-DIALOGUE_HINT = """{
-  "lines": [
-    {"speaker": "nom exact d'un personnage présent, ou Narration",
-     "text": "la réplique, ou une courte description de l'action",
-     "expression": "expression du visage, 1 à 3 mots en français (neutre, sourire, méfiance…)"}
-  ]
-}"""
-
-
 def build_dialogue_prompt(st: dict, ch: dict, sc: dict, previous: list[dict]) -> tuple[str, str]:
     explicit = bool(st["settings"].get("explicit_content"))
-    system = (
-        "Tu es scénariste de romans visuels Ren'Py. Tu écris en français, et tu réponds "
-        "uniquement par un objet JSON valide, sans texte autour. "
-        f"Contenu explicite autorisé : {'oui' if explicit else 'non'}. "
-        "Écris entre 6 et 12 répliques. Le locuteur doit être exactement un des personnages "
-        f"présents, ou '{S.NARRATOR}' pour une description. "
-        f"Schéma attendu :\n{DIALOGUE_HINT}"
-    )
-    lines = [f"Histoire : {st.get('title') or '(sans titre)'} — {st.get('idea') or ''}"]
+    system = t("dialogue.system", explicit=t("common.explicit_yes" if explicit else "common.explicit_no"),
+               narrator=S.NARRATOR, schema=t("dialogue.schema"))
+    u = "dialogue.user."
+    lines = [t(u + "story", title=st.get("title"), idea=st.get("idea"))]
     if st.get("synopsis"):
-        lines.append(f"Synopsis : {st['synopsis']}")
-    lines.append(f"Chapitre : {ch['title']} — {ch['summary']}")
-    lines.append(f"Scène : {sc['title']} — {sc['summary']}")
-    lines.append(f"Lieu : {sc.get('location') or '(non précisé)'}")
-    lines.append("Personnages présents : " + (", ".join(sc.get("characters", [])) or "aucun"))
+        lines.append(t(u + "synopsis", synopsis=st["synopsis"]))
+    lines.append(t(u + "chapter", title=ch["title"], summary=ch["summary"]))
+    lines.append(t(u + "scene", title=sc["title"], summary=sc["summary"]))
+    lines.append(t(u + "location", location=sc.get("location")))
+    lines.append(t(u + "characters", characters=", ".join(sc.get("characters", []))))
     if previous:
-        lines.append("Dernières répliques de la scène précédente (pour la continuité) :")
-        lines += [f"- {l['speaker']} : {l['text']}" for l in previous]
+        lines.append(t(u + "previous"))
+        lines += [t(u + "previous_line", speaker=l["speaker"], text=l["text"]) for l in previous]
     return system, "\n".join(lines)
 
 

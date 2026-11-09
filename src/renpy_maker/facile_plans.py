@@ -12,6 +12,7 @@ from renpy_maker import llm
 from renpy_maker import paths
 from renpy_maker import renpy_export as RE
 from renpy_maker import scenes as SC
+from renpy_maker.prompt_texts import t
 from renpy_maker import story as S
 from renpy_maker.facile_base import (
     _characters,
@@ -38,11 +39,8 @@ def _changes_outfit(plan: dict) -> bool:
 
 def _ask_outfit_change(st: dict, sc: dict, text: str) -> bool | None:
     """Le modèle répond : le texte décrit-il un changement de vêtement ou d'apparence ? None si pas de réponse claire."""
-    system = ('Tu lis la description d\'un plan de bande dessinée. Réponds uniquement par du JSON : '
-              '{"change": true} ou {"change": false}. "change" vaut true si la description indique qu\'un personnage '
-              "enlève, retire, ouvre, défait ou change un vêtement ou son apparence (par exemple « Léa sans sa veste », "
-              "« chemise ouverte », « pieds nus »). Sinon false.")
-    user = f"Personnages de la scène : {', '.join(sc.get('characters', [])) or 'aucun'}\nDescription du plan : {text}"
+    system = t("outfit_change.system")
+    user = t("outfit_change.user", characters=", ".join(sc.get("characters", [])), text=text)
     try:
         raw = llm.extract_json(llm.complete_task("decision", system, user, appsettings.provider("text")))
     except (llm.LLMError, ValueError):
@@ -136,18 +134,6 @@ def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
             "image": _url(a, RE.plan_index(plan, a)) if a else None,
             "prompt": a.get("prompt", "")}
 
-SHOT_SYSTEM = """You split a scene of a visual novel into camera shots, one still image per shot.
-Answer ONLY with JSON: {"plans": [{"from_line": <number of the dialogue line where the shot starts, starting at 1>,
-"framing": "<one of: """ + ", ".join(SC.FRAMINGS) + """>", "text": "<one short French sentence: what the shot shows>"}]}
-Rules:
-- The first shot starts at line 1 and shows the whole place with everyone in it (wide or medium shot).
-- Then, when the speaker changes or an emotion matters, add a close-up on the character who speaks
-  (text: 'Gros plan sur Léa, qui ...').
-- Add a detail shot when an object or a place from the story deserves it (text: 'Détail : la carte aux bords jaunis').
-- If a character takes off or puts on a clothing item, or changes their look, say it in the text
-  (for example 'Léa sans sa veste', 'Tom ébouriffé, la chemise ouverte').
-- Use at most {max} shots. Keep them in order of dialogue lines. Never more than one shot per line."""
-
 def _default_tags(sc: dict, line: int) -> dict:
     """Bulles présélectionnées : la personne qui parle (si c'est un personnage de la scène), le lieu de la
     scène, et la tenue que la scène prévoit pour elle."""
@@ -214,28 +200,26 @@ def _tags_summary(sc: dict) -> list[str]:
         key, tags = str(n), _effective_tags(sc, n)
         parts = []
         if tags.get("characters"):
-            parts.append("present: " + ", ".join(tags["characters"]))
+            parts.append(t("shots.tag_present", names=", ".join(tags["characters"])))
         if tags.get("location"):
-            parts.append(f"place: {tags['location']}")
+            parts.append(t("shots.tag_place", location=tags["location"]))
         for c, o in (tags.get("outfits") or {}).items():
-            parts.append(f"{c} wears: {o}")
+            parts.append(t("shots.tag_outfit", character=c, outfit=o))
         if parts:
-            out.append(f"{int(key) + 1}. " + "; ".join(parts))
+            out.append(t("shots.tag_line", n=int(key) + 1, parts="; ".join(parts)))
     return out
 
 def _ask_shots(st: dict, sc: dict, max_plans: int) -> dict:
     """Demande le découpage au LLM d'écriture. Renvoie le JSON brut."""
     lines = [f"{n}. {l['speaker']} : {l['text']}" for n, l in enumerate(sc.get("dialogue", []), 1)]
     tags = _tags_summary(sc)
-    user = (f"Scene : {sc['title']} — {sc.get('summary', '')}\n"
-            f"Location : {sc.get('location') or 'unknown'}\n"
-            f"Characters : {', '.join(sc.get('characters', []))}\n"
-            "Dialogue :\n" + "\n".join(lines))
+    user = t("shots.user", title=sc["title"], summary=sc.get("summary", ""), location=sc.get("location"),
+             characters=", ".join(sc.get("characters", [])), lines="\n".join(lines))
     if tags:
-        user += ("\n\nChoices made by the writer for some lines (respect them; they are authoritative) :\n"
-                 + "\n".join(tags))
+        user += "\n\n" + t("shots.tags") + "\n" + "\n".join(tags)
     provider = appsettings.provider("text")
-    return llm.extract_json(llm.complete_task("prompt", SHOT_SYSTEM.replace("{max}", str(max_plans)), user, provider))
+    system = t("shots.system", framings=", ".join(SC.FRAMINGS), max=max_plans)
+    return llm.extract_json(llm.complete_task("prompt", system, user, provider))
 
 def normalize_shots(raw, n_lines: int, max_plans: int) -> list[dict]:
     """Nettoie la proposition : bornes, ordre, doublons, limite. Toujours au moins un plan à la première réplique."""

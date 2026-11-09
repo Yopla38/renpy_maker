@@ -11,30 +11,10 @@ import re
 
 from renpy_maker import llm
 from renpy_maker import story as S
+from renpy_maker.prompt_texts import get as prompt_get, t
 
-# Les modèles d'image ne connaissent pas les prénoms : une personne se décrit par son genre et son âge.
-NO_NAMES = ("Never write a first name or any proper name of a person in the prompt: describe each person by gender "
-            "and age instead ('a young woman', 'a teenage boy', 'an old man').")
-DESCRIBE_SYSTEM = ("Give the gender and age group of the person described, as a 2 to 4 word English noun phrase, "
-                   "for example 'young woman', 'teenage boy', 'old man'. Output only that phrase, never a name.")
+# Les textes des prompts sont dans prompts.yaml (section « image ») : voir prompt_texts.py.
 
-SYSTEM = """You write prompts for FLUX image models.
-Rules:
-- Output ONLY the prompt: one paragraph, in English, 40 to 90 words.
-- """ + NO_NAMES + """
-- Natural descriptive sentences, not comma-separated tags.
-- Be concrete: age, hair, eyes, build, clothing, pose, expression, setting, lighting, framing.
-- No negative prompt, no quality tags, no text or captions, no French.
-- Finish the prompt with this rendering style, word for word: {style}
-{framing}"""
-
-FRAMING = {
-    "character": ("- Show the character alone, full body, against a plain neutral studio backdrop. No location, no "
-                  "props, no other people. The story's mood may shape the lighting and the expression only."),
-    "outfit": "- Show the character wearing the outfit, full body, the clothing clearly visible.",
-    "location": "- Describe the place only: a wide establishing shot with no people in it.",
-    "object": "- Show the object alone, centred, clearly lit. No people, no hands, no body parts, no characters at all.",
-}
 
 # Mots qui signalent une personne dans un prompt d'objet ou de lieu.
 PEOPLE_WORDS = re.compile(r"\b(man|woman|men|women|person|people|farmer|girl|boy|he|she|his|her|hands?|"
@@ -105,11 +85,15 @@ def describe_person(st: dict, name: str, description: str = "", provider: str | 
     (on réessaie plus tard, au lieu d'enregistrer une phrase de refus comme descriptif)."""
     provider = provider or appsettings.provider("text")
     story = " ".join(x for x in (st.get("idea"), st.get("synopsis")) if x)
-    user = f"Person : {name}\nNotes (French) : {description}" if description else f"Person : {name}"
+    lines = [t("image.describe_person.person", name=name)]
+    if description:
+        lines.append(t("image.describe_person.notes", description=description))
     if story:
-        user += f"\nStory (French, the person's looks may be described here) : {story}"
-    for extra in ("", "\nAnswer with exactly two words: gender then age group, for example 'young woman'."):
-        raw = clean_descriptor(llm.complete_task("prompt", DESCRIBE_SYSTEM, user + extra, provider))
+        lines.append(t("image.describe_person.story", story=story))
+    user = "\n".join(lines)
+    system = t("image.describe_person.system")
+    for extra in ("", "\n" + t("image.describe_person.retry")):
+        raw = clean_descriptor(llm.complete_task("prompt", system, user + extra, provider))
         if valid_descriptor(raw):
             return raw
     return None
@@ -128,17 +112,6 @@ def story_context(st: dict, assets: dict, aid: str) -> list[str]:
             if sc and f"{sc['title']} : {sc['summary']}" not in lines:
                 lines.append(f"{sc['title']} : {sc['summary']}")
     return lines
-
-
-EDIT_SYSTEM = """You write prompts for FLUX.2 Klein, an image EDITING model. The reference image 1 is the character
-as they already look. Your prompt is an instruction to edit that image, not a description of a new person.
-Output ONLY the prompt, in English, one paragraph of 30 to 80 words, never more than 100.
-- Start with what must stay identical: 'Keep the {noun} from image 1 exactly as they are: their face, hair, body, pose and framing.'
-- Then state the change: the clothing to put on, and what to remove (any garment or accessory not in the outfit).
-- Do not re-describe her face, hair or body: the reference already shows them.
-- Describe the clothes concretely (garments, colours, fit, footwear, accessories). No negative terms, no quality words.
-- Never write a first name. Refer to the person only as 'the {noun} from image 1'.
-- Finish with this rendering style, word for word: {style}"""
 
 
 def person_noun(descriptor: str | None) -> str:
@@ -177,10 +150,10 @@ def ref_order(assets: dict, aid: str) -> list[str]:
 def _ref_line(assets: dict, number: int, rid: str) -> str:
     r = assets[rid]
     if r["kind"] == "character":
-        return f"Reference image {number} : the {r.get('descriptor') or 'person'}, as they look now."
+        return t("image.reference.character", n=number, person=r.get("descriptor") or "person")
     if r["kind"] == "outfit":
-        return f"Reference image {number} : clothes worn by the person ({anonymize(r['name'], assets)})."
-    return f"Reference image {number} : {anonymize(r['name'], assets)}, use it as a visual reference."
+        return t("image.reference.outfit", n=number, name=anonymize(r["name"], assets))
+    return t("image.reference.other", n=number, name=anonymize(r["name"], assets))
 
 
 def nude_base(st: dict) -> bool:
@@ -195,18 +168,17 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
     if a["kind"] == "outfit" and a.get("parent") and assets.get(a["parent"]):
         # Tenue : la référence est le personnage, ou la tenue de départ si elle en a une.
         parent = assets[a["parent"]]
-        system = EDIT_SYSTEM.format(style=llm_style(), noun=person_noun(parent.get("descriptor")))
+        system = t("image.outfit.system", style=llm_style(), noun=person_noun(parent.get("descriptor")))
         order = ref_order(assets, aid)
         base = a.get("based_on") if a.get("based_on") in order else None
         if base:
-            first = (f"Reference image 1 : the {person_noun(parent.get('descriptor'))} wearing "
-                     f"{anonymize(assets[base]['name'], assets)}, as they look now. Keep those garments "
-                     f"unless the outfit below replaces them.")
+            first = t("image.outfit.first_based_on", noun=person_noun(parent.get("descriptor")),
+                      base=anonymize(assets[base]["name"], assets))
         else:
-            first = f"Reference image 1 : the {parent.get('descriptor') or 'person'}, as they look now."
+            first = t("image.outfit.first", person=parent.get("descriptor") or "person")
         lines = [
-            f"Outfit to put on the character : {a['name']}",
-            f"Notes (French) : {a.get('description', '')}" if a.get("description") else "",
+            t("image.outfit.put_on", name=a["name"]),
+            t("image.request.notes", notes=a.get("description", "")) if a.get("description") else "",
             first,
         ]
         # La première image est décrite plus haut ; les suivantes (personnage, images choisies) ici.
@@ -215,52 +187,45 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
         # modèle l'applique à la personne à habiller. La description de la tenue suffit.
         return system, "\n".join(l for l in lines if l)
     style = llm_style()
-    framing = FRAMING.get(a["kind"], "")
+    framing = t(f"image.framing.{a['kind']}") if a["kind"] in (prompt_get("image.framing") or {}) else ""
     if a["kind"] in ("object", "location"):
-        framing += " Never mention a person, even if the story context does."
-    system = SYSTEM.format(style=style, framing=framing)
+        framing += " " + t("image.no_person")
+    system = t("image.system", no_names=t("image.no_names"), style=style, framing=framing)
     lines = [
-        f"Type : {a['kind']}",
-        f"Name (never write it in the prompt) : {anonymize(a['name'], assets)}",
+        t("image.request.type", kind=a["kind"]),
+        t("image.request.name", name=anonymize(a["name"], assets)),
     ]
     # Un lieu se décrit par son nom seulement : ses notes reprennent le résumé des scènes, pleines de personnages.
     if a.get("description") and a["kind"] != "location":
         if a["kind"] == "character" and nude_base(st):
             # Corps nu : seuls les traits physiques comptent. Les vêtements des notes vont aux tenues.
-            lines.append("Physical traits only, from these French notes: face, hair, eyes, build, age. IGNORE any "
-                         "clothing, underwear or accessory they mention: garments are added later as outfits. "
-                         f"Notes : {a['description']}")
+            lines.append(t("image.request.nude_notes", notes=a["description"]))
         else:
-            lines.append(f"Notes (French) : {a['description']}")
+            lines.append(t("image.request.notes", notes=a["description"]))
     if a["kind"] == "character":
-        lines.append("Start the prompt with 'full body shot'.")
+        lines.append(t("image.request.full_body"))
     if a["kind"] == "character" and nude_base(st):
-        lines.append("Write 'nude' right before the gender word (for example 'a young nude woman').")
+        lines.append(t("image.request.nude_word"))
         # Corps de base : la personne nue, sans vêtement ni accessoire. La tenue viendra par retouche.
-        lines.append("The person is nude : a neutral full-body figure, no clothing, no accessories, natural "
-                     "anatomy, plain studio backdrop. Garments will be added later by editing this image.")
+        lines.append(t("image.request.nude_body"))
     if a["kind"] == "character":
         # Le genre et l'âge choisis sont la seule source : le contexte de l'histoire parle souvent d'un autre
         # personnage (une héroïne, pour un homme) et le modèle l'appliquerait à celui-ci.
         noun = person_noun(a.get("descriptor"))
         if noun == "person":
-            lines.append("Person to depict : gender and age not chosen yet. Do not guess them from the other "
-                         "characters of the story.")
+            lines.append(t("image.request.person_unknown"))
         else:
-            lines.append(f"Person to depict : the {noun} described by the descriptor '{a['descriptor']}'. "
-                         f"Describe only this {noun}, with this gender and age, even if the story context "
-                         f"describes other people.")
+            lines.append(t("image.request.person_known", noun=noun, descriptor=a["descriptor"]))
     if a["kind"] == "character" and (st.get("synopsis") or st.get("idea")):
         # L'histoire décrit souvent l'apparence (couleur des yeux, cheveux) : elle doit être lue ici.
         story = st.get("synopsis") or st.get("idea")
-        lines.append(f"Story (French, describes the people's looks): {anonymize(story, assets)}")
+        lines.append(t("image.request.story", story=anonymize(story, assets)))
     if a.get("parent"):
         parent = assets.get(a["parent"])
         if parent:
-            lines.append(f"Worn by : the {parent.get('descriptor') or 'person'}")
+            lines.append(t("image.request.worn_by", person=parent.get("descriptor") or "person"))
             if parent.get("prompt"):
-                lines.append(f"Character appearance (English, from the existing prompt) : "
-                             f"{anonymize(parent['prompt'], assets)}")
+                lines.append(t("image.request.parent_prompt", prompt=anonymize(parent["prompt"], assets)))
     for i, rid in enumerate(ref_order(assets, aid), start=1):
         lines.append(_ref_line(assets, i, rid))
     ctx = story_context(st, assets, aid)
@@ -272,8 +237,8 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
         # Un objet : seulement le titre de la scène, pour ne pas y faire entrer les personnages.
         ctx = [c.split(" : ")[0] for c in ctx]
     if ctx:
-        lines.append("Scene where it appears (titles only) :" if a["kind"] in ("object", "location")
-                     else "Story context (French) :")
+        lines.append(t("image.request.context_titles") if a["kind"] in ("object", "location")
+                     else t("image.request.context"))
         lines += [f"- {anonymize(c, assets)}" for c in ctx]
     return system, "\n".join(lines)
 
@@ -285,14 +250,14 @@ def llm_style() -> str:
 
 def clean(text: str) -> str:
     """Garde le premier paragraphe, sans guillemets ni balises."""
-    t = text.strip().strip("`").strip()
-    t = t.split("\n\n")[0].strip()
-    t = " ".join(t.split())
-    if len(t) >= 2 and t[0] == t[-1] and t[0] in "\"'":
-        t = t[1:-1].strip()
-    if not t:
+    out = text.strip().strip("`").strip()
+    out = out.split("\n\n")[0].strip()
+    out = " ".join(out.split())
+    if len(out) >= 2 and out[0] == out[-1] and out[0] in "\"'":
+        out = out[1:-1].strip()
+    if not out:
         raise llm.LLMError("Le modèle n'a pas renvoyé de prompt")
-    return t
+    return out
 
 
 def with_style(text: str, style: str) -> str:
@@ -346,13 +311,13 @@ def suggest(st: dict, assets_data: dict, aid: str, provider: str | None = None) 
         text = character_prompt_rules(text, nude_base(st))
     if assets_data["assets"][aid]["kind"] == "character" and nude_base(st) and shows_clothing(text):
         # Corps nu : pas de vêtement dans le prompt. On redemande une fois, puis on refuse.
-        strict = system + "\nThe previous attempt described clothing. The person is NUDE: no garment, no underwear, no accessory."
+        strict = system + "\n" + t("image.retry_nude")
         text = clean(llm.complete_task("prompt", strict, user, provider))
         if shows_clothing(text):
             raise ValueError("Le prompt décrit encore des vêtements : les tenues se règlent dans la garde-robe.")
     if assets_data["assets"][aid]["kind"] == "location" and shows_person(text):
         # Un lieu doit rester vide : on redemande une fois, avec une consigne plus stricte.
-        strict = system + "\nThe previous attempt showed people. The place must be EMPTY: no person, no figure, no silhouette."
+        strict = system + "\n" + t("image.retry_empty_place")
         text = clean(llm.complete_task("prompt", strict, user, provider))
         if shows_person(text):
             raise ValueError("Le prompt du lieu montre encore des personnes : rédige-le à la main, ou réessaie.")

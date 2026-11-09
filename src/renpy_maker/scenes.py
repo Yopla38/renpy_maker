@@ -14,6 +14,7 @@ import re
 from renpy_maker import llm
 from renpy_maker import prompts as PR
 from renpy_maker import story as S
+from renpy_maker.prompt_texts import t
 
 MAX_REFS = 5  # limite d'images de référence de Klein (décor compris)
 
@@ -205,8 +206,9 @@ def _people_line(plan: dict, sc: dict, info: dict, assets: dict) -> str:
         plain = [lab.replace(" (ajoutée)", "") for lab in labels]
         idx = next((i + 1 for i, lab in enumerate(plain) if lab in (name, f"{name} en tenue")), None) or cont
         word = PR.person_word(assets, name)
-        parts.append(f"{word} (image {idx})" if idx else f"{word} (no reference image)")
-    return "People in this image : " + (", ".join(parts) if parts else "nobody") + "."
+        parts.append(t("scene_image.user.person", person=word, n=idx) if idx
+                     else t("scene_image.user.person_without_reference", person=word))
+    return t("scene_image.user.people", people=", ".join(parts))
 
 
 def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
@@ -220,62 +222,36 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     plan = sc["plans"][k]
     info = plan_refs(assets, sc, plan)
     if info["refs"]:
-        order = "; ".join(f"image {i + 1} = {PR.anonymize(lab, assets)}" for i, lab in enumerate(info["labels"]))
-        refs_line = f"Reference images, by position: {order}."
+        order = "; ".join(t("scene_image.reference", n=i + 1, label=PR.anonymize(lab, assets))
+                          for i, lab in enumerate(info["labels"]))
+        refs_line = t("scene_image.references", order=order)
     else:
-        refs_line = "There are no reference images: describe the scene only."
+        refs_line = t("scene_image.no_references")
     style = PR.llm_style()
     shot = plan.get("shot") or {}
     has_shot = bool(shot.get("framing") or shot.get("angle") or shot.get("note"))
     cont = next((i + 1 for i, lab in enumerate(info["labels"]) if lab.endswith("(ajoutée)")), None)
     edit_only = cont is not None and not has_shot
 
-    if edit_only:
-        rules = (
-            f"This is an EDIT of image {cont}, not a new shot: keep its framing, camera angle, composition, "
-            f"lighting and every person exactly as they are in image {cont}. Change only the expression and "
-            "the action described in the dialogue below. Do not move the camera, do not zoom, do not change the place."
-        )
-    else:
-        rules = (
-            "Start with the camera: the framing, the distance, the angle, and what is in focus, as requested. "
-            "The composition is new: never reuse the framing, camera position or layout of any reference image. "
-            "References only give identity, outfit and the look of the place. "
-            "Then say what stays identical to the references, in one short clause per person "
-            "('Keep the woman from image 2 exactly as she is, with her outfit'). Do NOT re-describe their face, hair, body "
-            "or clothes: the reference already shows them. "
-            "Then state the changes: where each person stands in this framing, their pose, their expression "
-            "(for example 'with a slight smile'), their action, and anything to add or remove. "
-            "Lighting last. "
-        )
-    system = (
-        "You write prompts for FLUX.2 Klein image editing, which composes or edits an image from reference images. "
-        "Output ONLY the prompt, in English, one paragraph of 40 to 90 words, never more than 100. "
-        f"{refs_line} "
-        "Refer to every reference by its position ('the woman from image 2', 'the room from image 1'), "
-        "and give each reference one role. Show only the people listed under 'People in this image', "
-        "each one as the person of their numbered image: never swap two people, never add anyone else. "
-        f"{rules}"
-        "Use natural sentences, not tags. No negative terms, no quality words, no text in the image. "
-        f"Keep one rendering style only and finish with these words, verbatim: {style}"
-    )
+    rules = t("scene_image.rules_edit", image=cont) if edit_only else t("scene_image.rules_new")
+    system = t("scene_image.system", references=refs_line, rules=rules, style=style)
     names = sc.get("characters", [])
-    lines = [f"Scene : {sc['title']} — {PR.anonymize(sc['summary'], assets, names)}"]
+    lines = [t("scene_image.user.scene", title=sc["title"], summary=PR.anonymize(sc["summary"], assets, names))]
     if sc.get("location"):
-        lines.append(f"Location : {sc['location']}")
+        lines.append(t("scene_image.user.location", location=sc["location"]))
     lines.append(_people_line(plan, sc, info, assets))
     if sc.get("decor"):
-        lines.append("Background details, scenery only (never a named person): " + ", ".join(sc["decor"]) + ".")
+        lines.append(t("scene_image.user.decor", decor=", ".join(sc["decor"])))
     if has_shot:
-        lines.append(f"Requested shot : framing {shot.get('framing') or 'free'}, camera {shot.get('angle') or 'free'}"
-                     + (f". Focus : {shot['note']}" if shot.get("note") else "") + ".")
+        lines.append(t("scene_image.user.shot_with_focus" if shot.get("note") else "scene_image.user.shot",
+                       framing=shot.get("framing"), angle=shot.get("angle"), note=shot.get("note")))
     elif not edit_only:
-        lines.append("Requested shot : not set. Choose a framing and camera angle different from the previous image.")
+        lines.append(t("scene_image.user.shot_unset"))
     if k > 0 and not edit_only:
         prev = sc["plans"][k - 1].get("shot") or {}
         if prev.get("framing") or prev.get("angle"):
-            lines.append(f"Previous image shot : framing {prev.get('framing', '?')}, camera {prev.get('angle', '?')}. "
-                         "Do not reuse its composition.")
+            lines.append(t("scene_image.user.previous_shot", framing=prev.get("framing", "?"),
+                           angle=prev.get("angle", "?")))
     # Seules les répliques des personnages visibles décrivent l'image : une réplique de quelqu'un
     # absent du plan ferait réapparaître cette personne dans le prompt.
     visible = set(plan_characters(sc, plan)) | {S.NARRATOR}
@@ -287,20 +263,23 @@ def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
     for line in shown:
         expr[line["speaker"]] = line.get("expression", "neutre")
     if expr:
-        lines.append("Expressions to show : " + ", ".join(f"{who(n)} : {e}" for n, e in expr.items()))
-    lines.append("Dialogue in this image (French, for context) :")
-    lines += [f"- {who(l['speaker'])} : {PR.anonymize(l['text'], assets, names)}" for l in shown] or ["- (aucune réplique)"]
+        lines.append(t("scene_image.user.expressions", expressions=", ".join(
+            t("scene_image.user.expression", who=who(n), expression=e) for n, e in expr.items())))
+    lines.append(t("scene_image.user.dialogue"))
+    lines += [t("scene_image.user.dialogue_line", who=who(l["speaker"]), text=PR.anonymize(l["text"], assets, names))
+              for l in shown] or [t("scene_image.user.no_dialogue")]
     if info["refs"]:
-        lines.append("Reference descriptions (context only, do not copy them word for word) :")
+        lines.append(t("scene_image.user.references"))
         for rid, lab in zip(info["refs"], [PR.anonymize(x, assets) for x in info["labels"]]):
             aid, k = split_ref(rid)
             if k is not None:
                 # Image précise : Klein la voit ; le prompt de l'élément ne la décrit pas forcément.
-                lines.append(f"- image {info['refs'].index(rid) + 1} ({lab})")
+                lines.append(t("scene_image.user.reference_exact", n=info["refs"].index(rid) + 1, label=lab))
                 continue
             src = assets.get(aid, {})
             text = src.get("prompt") or src.get("description", "")
-            lines.append(f"- image {info['refs'].index(rid) + 1} ({lab}) : {PR.anonymize(text, assets)}")
+            lines.append(t("scene_image.user.reference", n=info["refs"].index(rid) + 1, label=lab,
+                           text=PR.anonymize(text, assets)))
     return system, "\n".join(lines)
 
 
@@ -310,17 +289,6 @@ def suggest(st: dict, assets_data: dict, sc: dict, k: int, provider: str | None 
     return PR.with_style(PR.clean(llm.complete_task("prompt", system, user, provider)), PR.llm_style())
 
 
-DETECT_SYSTEM = """You list the visual elements that a scene needs to be drawn.
-Output ONLY a JSON object: {"elements": [{"name": "...", "kind": "location" | "object" | "character" | "decor", "description": "..."}]}.
-- Write names and descriptions in French, as they appear in the story. Keep names short and specific.
-- kind "location": a place or part of a place (the yard, the barn, the road).
-- kind "object": a prop or a vehicle that matters visually and is named in the story.
-- kind "character": a NAMED individual of the story, or a person with a role who speaks or acts in the scene and is
-  NOT in the declared characters list (for example "le père d'Eve"). Name them as the story does.
-- kind "decor": background of the scene, not story people: a crowd, dancing couples, villagers in the background,
-  ambient details (lanterns, fireworks, cows in a field). These are part of the image, never characters.
-- Do not list clothes. Do not list small consumables (food, drinks) or things only mentioned abstractly.
-- At most 8 elements."""
 
 
 _STOP = {"de", "la", "le", "les", "l", "du", "des", "d", "en", "au", "aux", "a", "et", "devant",
@@ -358,17 +326,17 @@ def detect_elements(st: dict, sc: dict, assets: dict, provider: str | None = Non
     """Relève les lieux, objets et véhicules visibles dans la scène (sans toucher au registre)."""
     known_places = [a.get("name", k) for k, a in assets.items() if a["kind"] == "location"]
     known_objects = [a.get("name", k) for k, a in assets.items() if a["kind"] == "object"]
-    declared = ", ".join(sc.get("characters", [])) or "(aucun)"
+    k = "scene_image.detect.user."
     user = "\n".join([
-        f"Scène : {sc['title']} — {sc['summary']}",
-        f"Lieu indiqué : {sc.get('location') or '(aucun)'}",
-        f"Lieux déjà connus (réutiliser exactement ce nom si c'est le même lieu) : {known_places or '(aucun)'}",
-        f"Objets déjà connus (idem) : {known_objects or '(aucun)'}",
-        f"Personnages déclarés dans la scène : {declared}",
-        "Répliques :",
-    ] + [f"- {l['speaker']} : {l['text']}" for l in sc.get("dialogue", [])])
+        t(k + "scene", title=sc["title"], summary=sc["summary"]),
+        t(k + "location", location=sc.get("location")),
+        t(k + "places", places=str(known_places) if known_places else ""),
+        t(k + "objects", objects=str(known_objects) if known_objects else ""),
+        t(k + "declared", characters=", ".join(sc.get("characters", []))),
+        t(k + "lines"),
+    ] + [t(k + "line", speaker=l["speaker"], text=l["text"]) for l in sc.get("dialogue", [])])
     provider = provider or appsettings.provider("text")
-    raw = llm.extract_json(llm.complete_task("prompt", DETECT_SYSTEM, user, provider))
+    raw = llm.extract_json(llm.complete_task("prompt", t("scene_image.detect.system"), user, provider))
     out = []
     for el in raw.get("elements", []):
         name = str(el.get("name", "")).strip()

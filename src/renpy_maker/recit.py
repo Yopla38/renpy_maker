@@ -33,6 +33,7 @@ from renpy_maker.facile_base import NotFound, _find_plan, _find_scene, _key
 from renpy_maker.facile_elements import _card_work, create_outfit
 from renpy_maker.facile_jobs import _busy, _check_cancel, _say, _start
 from renpy_maker.facile_plans import _plan_work
+from renpy_maker.prompt_texts import t
 
 MAX_CHOICES = 3     # choix proposés par le conteur (le joueur peut en ajouter un, jusqu'à SG.MAX_CHOICES)
 HISTORY = 16        # répliques vécues données au conteur comme contexte
@@ -309,7 +310,7 @@ def set_frame(title: str, idea: str, ambiance: str, style: str | None) -> dict:
     with S.LOCK:
         st = S.load()
         if style:
-            if style not in S.STYLES:
+            if style not in S.styles():
                 raise ValueError("Style inconnu")
             # Une fois l'histoire commencée, le style ne change plus ; il peut seulement être choisi s'il manque.
             if st["chapters"] and st["settings"].get("style") not in (None, style):
@@ -337,77 +338,57 @@ def set_options(body: dict) -> dict:
 
 # ----- le conteur : proposer le moment suivant -----------------------------------------------------------
 
-MOMENT_FORMAT = ('{"voix_off": "...", "speaker": "...", "text": "...", "present": ["..."], "location": null, '
-                 '"image": {"keep": false, "shot": "...", "framing": "...", "viewpoint": "", "visible": ["..."]}, '
-                 '"choices": []}')
+# Format de réponse d'un moment et consignes : prompts.yaml, section « recit ».
 
 
 def _safety(st: dict) -> str:
     if st["settings"].get("explicit_content") and not paths.KIDS:
         return ""
-    return " Contenu tout public : pas de nudité, pas de scène sexuelle, pas de violence crue."
+    return " " + t("recit.safety")
 
 
 def _rules(st: dict) -> str:
-    return (
-        "Tu es le conteur d'un jeu de rôle en roman visuel, en français. Le joueur vit l'histoire pas à pas : tu "
-        "écris un seul moment à la fois, court, qui fait avancer l'histoire dans l'ambiance donnée. "
-        f"Réponds uniquement par du JSON : {MOMENT_FORMAT}\n"
-        "- voix_off : la narration, au présent, une ou deux phrases ; vide si le moment n'en a pas besoin.\n"
-        "- speaker et text : au plus une réplique, d'un personnage présent (nom exact), une ou deux phrases "
-        "naturelles, sans didascalie ; laisse-les vides si le moment n'est que narration.\n"
-        "- present : les personnages présents après ce moment (un personnage de la distribution peut arriver ou "
-        "partir).\n"
-        "- location : null si l'on reste au même endroit ; sinon {\"name\": \"...\", \"description\": \"...\"} : un "
-        "lieu connu (nom exact) ou un nouveau lieu, description du décor seul. Au tout premier moment, donne "
-        "toujours un lieu.\n"
-        "- image.keep : true si l'image à l'écran convient encore (même cadrage, rien de visible ne change) : on "
-        "économise un dessin. false si le cadrage, le point de vue, les personnes visibles, leur posture ou "
-        "l'action changent, et toujours au premier moment d'un lieu.\n"
-        "- image.shot : si keep vaut false, ce que l'on voit à l'écran en une phrase : cadrage, qui est visible, "
-        "posture (assis, debout…), action, décor, lumière.\n"
-        f"- image.framing : un de {', '.join(SC.FRAMINGS)}. image.viewpoint : un point de vue du lieu (nom exact) "
-        "ou vide. image.visible : les personnages visibles dans l'image.\n"
-        "- choices : quand le héros arrive à une décision qui compte (environ toutes les 6 à 10 répliques), "
-        f"2 ou {MAX_CHOICES} choix courts (moins de 60 caractères), formulés comme des actions ; sinon [].\n"
-        "- Suis les indications du joueur." + _safety(st))
+    return t("recit.rules", moment_format=t("recit.moment_format"), framings=", ".join(SC.FRAMINGS),
+             max_choices=MAX_CHOICES, safety=_safety(st))
 
 
 def _context(st: dict, assets: dict, sid: str | None) -> str:
     """Ce que le conteur doit savoir : le cadre, la distribution, le lieu, l'image à l'écran, ce qui s'est passé."""
     rc = st.get("recit") or {}
     style = S.style_of(st)
-    parts = [f"Titre : {st.get('title') or '(sans titre)'}",
-             f"Histoire : {st.get('idea') or st.get('synopsis') or ''}",
-             f"Ambiance : {rc.get('ambiance') or '(libre)'}",
-             f"Style des images : {style['name'] if style else '(libre)'}",
-             "Distribution :"]
+    k = "recit.context."
+    parts = [t(k + "title", title=st.get("title")),
+             t(k + "story", story=st.get("idea") or st.get("synopsis") or ""),
+             t(k + "ambiance", ambiance=rc.get("ambiance")),
+             t(k + "style", style=style["name"] if style else ""),
+             t(k + "cast")]
     for c in _cast(assets):
-        who = f" ({c['descriptor']})" if c["descriptor"] else ""
-        wardrobe = f" Tenues : {', '.join(c['outfits'])}." if c["outfits"] else ""
-        parts.append(f"- {c['name']}{who} : {c['description'] or '(non décrit)'}{wardrobe}")
+        who = " " + t(k + "cast_descriptor", descriptor=c["descriptor"]) if c["descriptor"] else ""
+        wardrobe = " " + t(k + "cast_wardrobe", outfits=", ".join(c["outfits"])) if c["outfits"] else ""
+        parts.append(t(k + "cast_member", name=c["name"], descriptor=who, description=c["description"],
+                       wardrobe=wardrobe))
     places = sorted({a["name"] for a in assets.values() if a["kind"] == "location" and not a.get("parent")})
-    parts.append(f"Lieux déjà connus : {', '.join(places) or 'aucun'}")
+    parts.append(t(k + "places", places=", ".join(places)))
     if sid:
         sc = _find_scene(st, sid)
         loc = assets.get(_location_aid(assets, sc.get("location")) or "") or {}
-        parts.append(f"Lieu actuel : {sc.get('location') or '(non précisé)'} — {loc.get('description') or ''}")
-        parts.append("Points de vue de ce lieu : "
-                     + (", ".join(v["name"] for v in _viewpoints(assets, sc.get("location"))) or "aucun"))
-        parts.append(f"Personnages présents : {', '.join(sc.get('characters', [])) or 'personne'}")
+        parts.append(t(k + "location", location=sc.get("location"), description=loc.get("description") or ""))
+        parts.append(t(k + "viewpoints", viewpoints=", ".join(v["name"] for v in _viewpoints(assets, sc.get("location")))))
+        parts.append(t(k + "present", present=", ".join(sc.get("characters", []))))
         if sc.get("outfits"):
-            parts.append("Tenues portées : " + ", ".join(f"{c} : {o}" for c, o in sc["outfits"].items()))
+            parts.append(t(k + "outfits", outfits=", ".join(t(k + "outfit", character=c, outfit=o)
+                                                             for c, o in sc["outfits"].items())))
         cov = _covering(st, sid)
-        shown = ((cov[1].get("shot") or {}).get("note") or "(sans description)") if cov else "(aucune)"
-        parts.append(f"Image à l'écran : {shown}")
+        shown = ((cov[1].get("shot") or {}).get("note") or t(k + "screen_undescribed")) if cov else t(k + "screen_none")
+        parts.append(t(k + "screen", shown=shown))
         lines, since = _story_so_far(st, sid)
-        parts.append("Ce qui s'est passé (le plus récent en dernier) :\n" + ("\n".join(lines) or "(rien encore)"))
-        parts.append(f"Répliques depuis le dernier choix : {since}")
+        parts.append(t(k + "happened", lines="\n".join(lines)))
+        parts.append(t(k + "since_choice", count=since))
     else:
-        parts.append("C'est le tout premier moment de l'histoire.")
+        parts.append(t(k + "first_moment"))
     directions = _directions(st, sid)
     if directions:
-        parts.append("Indications du joueur pour la suite (à respecter) :\n" + "\n".join(f"- {d}" for d in directions))
+        parts.append(t(k + "directions", directions="\n".join(t(k + "direction", text=d) for d in directions)))
     return "\n".join(parts)
 
 
@@ -486,9 +467,9 @@ def propose_next(sid: str | None, instruction: str = "", previous: dict | None =
         raise ValueError("Cette ligne a déjà une suite : reprenez une ligne ouverte")
     user = _context(st, assets, sid)
     if _one_line(instruction):
-        user += f"\nLe joueur demande pour ce moment : {_one_line(instruction)}"
+        user += "\n" + t("recit.propose.instruction", instruction=_one_line(instruction))
     if previous:
-        user += "\nProposition précédente, à ne pas répéter : " + json.dumps(_brief(previous), ensure_ascii=False)
+        user += "\n" + t("recit.propose.previous", proposal=json.dumps(_brief(previous), ensure_ascii=False))
     raw = llm.extract_json(llm.complete_task("dialogue", _rules(st), user, appsettings.provider("text")))
     return normalize_moment(raw, st, assets, sid)
 
@@ -496,10 +477,7 @@ def propose_next(sid: str | None, instruction: str = "", previous: dict | None =
 def propose_choices(sid: str) -> dict:
     """Deux ou trois choix pour la suite de la ligne. Rien n'est enregistré."""
     st, assets = _snapshot(sid)
-    system = ("Tu proposes les choix d'un jeu de rôle en roman visuel, en français : ce que le héros peut décider "
-              "maintenant, en suivant l'histoire. Réponds uniquement par du JSON : {\"choices\": [\"...\"]}. "
-              f"2 ou {MAX_CHOICES} choix courts (moins de 60 caractères), formulés comme des actions, vraiment "
-              "différents les uns des autres." + _safety(st))
+    system = t("recit.choices.system", max=MAX_CHOICES, safety=_safety(st))
     raw = llm.extract_json(llm.complete_task("dialogue", system, _context(st, assets, sid),
                                              appsettings.provider("text")))
     choices = _clean_choices(raw.get("choices") if isinstance(raw, dict) else None)
@@ -957,34 +935,6 @@ def _draw_work(job_id: str, sid: str, pid: str, prompt: str | None) -> None:
 
 # ----- le metteur en scène : consignes en langage naturel ---------------------------------------------------
 
-DIRECT_MOMENT = (
-    "Tu es l'assistant de mise en scène d'un jeu de rôle en roman visuel. Voici le moment proposé (JSON) et "
-    "l'indication du joueur, donnée en langage naturel (souvent à l'oral, parfois approximative). Modifie le moment "
-    "pour la suivre, sans rien changer d'autre. Réponds uniquement par du JSON : le moment complet, au même format, "
-    f"{MOMENT_FORMAT}, avec en plus : \"reply\" (une phrase courte, en français, qui dit ce que tu as changé), "
-    "\"outfits\" ({\"Nom\": \"tenue\"} seulement si le joueur change une tenue : une tenue existante du personnage, "
-    "nom exact), \"new_outfit\" (null, ou {\"character\": \"...\", \"name\": \"...\", \"description\": \"...\"} si la "
-    "tenue demandée n'existe pas encore ; description : les vêtements seuls), et \"cap\" (vide, ou une indication "
-    "qui vaut aussi pour la suite de l'histoire, en une phrase). Une posture, un geste, un cadrage ou un point de vue "
-    "demandés vont dans image.shot, image.framing et image.viewpoint ; si l'image doit changer, image.keep vaut false.")
-
-DIRECT_IMAGE = (
-    "Tu es l'assistant de mise en scène d'un jeu de rôle en roman visuel. Le joueur regarde une image de son "
-    "histoire et dit en langage naturel (souvent à l'oral, parfois approximative) ce qui doit changer. Réponds "
-    "uniquement par du JSON : {\"reply\": \"...\", \"shot\": \"...\", \"framing\": \"...\", \"viewpoint\": \"...\", "
-    "\"visible\": [\"...\"], \"outfits\": {}, \"new_outfit\": null, \"prompt\": \"...\", \"lines\": [], \"cap\": \"\"}. "
-    "Ne remplis que ce qui change, laisse vide (ou null) le reste. "
-    "shot : la nouvelle description de ce que l'on voit, en français, une phrase (cadrage, posture, geste, "
-    f"expression, décor, lumière). framing : un de {', '.join(SC.FRAMINGS)}. viewpoint : un point de vue du lieu "
-    "(nom exact), ou « (lieu) » pour le lieu lui-même. visible : les personnages visibles. outfits : "
-    "{\"Nom\": \"tenue existante\"}. new_outfit : {\"character\", \"name\", \"description\"} si la tenue demandée "
-    "n'existe pas. prompt : le prompt d'image réécrit en anglais pour suivre la demande, en gardant ses renvois aux "
-    "images de référence (« image 1 »…) ; seulement si un prompt existe et que seuls la posture, le geste, "
-    "l'expression ou la lumière changent. lines : [{\"n\": numéro, \"text\": \"...\"}] si une réplique de cette image "
-    "doit changer. cap : une indication qui vaut aussi pour la suite de l'histoire, sinon vide. reply : une phrase "
-    "courte, en français, qui dit ce que tu as changé.")
-
-
 def _wanted_outfits(raw: dict, assets: dict) -> tuple[dict, dict | None]:
     """Tenues demandées par le metteur en scène : celles qui existent, et au plus une tenue à créer."""
     cast = {c["name"]: c for c in _cast(assets)}
@@ -1018,7 +968,7 @@ def _create_outfit(new: dict | None) -> dict:
 
 
 def _wearing(outfits: dict) -> str:
-    return " ".join(f"{c} porte sa tenue « {o} »." for c, o in outfits.items())
+    return " ".join(t("recit.wearing", character=c, outfit=o) for c, o in outfits.items())
 
 
 def direct(sid: str | None, instruction: str, proposal: dict | None = None, pid: str | None = None) -> dict:
@@ -1037,9 +987,10 @@ def direct(sid: str | None, instruction: str, proposal: dict | None = None, pid:
 def _direct_moment(sid: str | None, instruction: str, proposal: dict) -> dict:
     st, assets = _snapshot(sid)
     current = {k: proposal.get(k) for k in ("voix_off", "speaker", "text", "present", "location", "image", "choices")}
-    user = (_context(st, assets, sid) + "\nMoment proposé : " + json.dumps(current, ensure_ascii=False)
-            + f"\nIndication du joueur : {instruction}")
-    raw = llm.extract_json(llm.complete_task("dialogue", DIRECT_MOMENT, user, appsettings.provider("text")))
+    user = t("recit.direct_moment.user", context=_context(st, assets, sid),
+             moment=json.dumps(current, ensure_ascii=False), instruction=instruction)
+    system = t("recit.direct_moment.system", moment_format=t("recit.moment_format"))
+    raw = llm.extract_json(llm.complete_task("dialogue", system, user, appsettings.provider("text")))
     found, new = _wanted_outfits(raw if isinstance(raw, dict) else {}, assets)
     moment = normalize_moment(raw, st, assets, sid)
     found.update(_create_outfit(new))
@@ -1072,15 +1023,13 @@ def _direct_image(sid: str, pid: str, instruction: str) -> dict:
     view = assets.get(plan.get("viewpoint") or "", {}).get("name") or "(lieu)"
     old_prompt = (assets.get(plan["asset"]) or {}).get("prompt", "")
     lines = sc.get("dialogue", [])[start:end]
-    user = (_context(st, assets, sid)
-            + f"\nImage : {shot.get('note') or '(sans description)'}"
-            + f"\nCadrage : {shot.get('framing') or '(libre)'} ; point de vue : {view}"
-            + f"\nPersonnages visibles : {', '.join(SC.plan_characters(sc, plan)) or 'personne'}"
-            + f"\nPrompt actuel : {old_prompt or '(aucun)'}"
-            + "\nRépliques de cette image :\n" + ("\n".join(f"{n}. {l['speaker']} : {l['text']}"
-                                                         for n, l in enumerate(lines, 1)) or "(aucune)")
-            + f"\nIndication du joueur : {instruction}")
-    raw = llm.extract_json(llm.complete_task("dialogue", DIRECT_IMAGE, user, appsettings.provider("text")))
+    user = t("recit.direct_image.user", context=_context(st, assets, sid), note=shot.get("note"),
+             framing=shot.get("framing"), viewpoint=view, visible=", ".join(SC.plan_characters(sc, plan)),
+             prompt=old_prompt, instruction=instruction,
+             lines="\n".join(t("recit.direct_image.line", n=n, speaker=l["speaker"], text=l["text"])
+                             for n, l in enumerate(lines, 1)))
+    system = t("recit.direct_image.system", framings=", ".join(SC.FRAMINGS))
+    raw = llm.extract_json(llm.complete_task("dialogue", system, user, appsettings.provider("text")))
     raw = raw if isinstance(raw, dict) else {}
     found, new = _wanted_outfits(raw, assets)
     found.update(_create_outfit(new))

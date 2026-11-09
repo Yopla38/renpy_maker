@@ -173,6 +173,36 @@ Dans l'ordre de recherche :
 2. `secrets.json` (saisi dans l'application, dans la roue ⚙) ;
 3. le fichier `~/.config/slapsci/llm_api_keys.txt` (ancien emplacement).
 
+### Prompts (`prompts.yaml`)
+
+Tous les textes envoyés aux modèles sont dans `src/renpy_maker/prompts.yaml`. Ils sont rangés par usage :
+- écriture : `chapter` (plan d'un chapitre), `dialogue` (répliques d'une scène) ;
+- propositions : `atelier` (personnages, lieux, réplique, tenues, ce que l'on voit, points de vue), `recit` (le
+  conteur, les choix, le metteur en scène) ;
+- découpage d'une scène : `shots` (plans), `outfit_change` (changement de tenue) ;
+- personnages : `identity` (description, genre et âge), `outfit_edit` (retouche d'une tenue) ;
+- prompts d'image : `image` (personnage, tenue, lieu, objet), `scene_image` (image d'une scène, éléments visibles) ;
+- `styles` : les styles d'image proposés, et le suffixe ajouté à chaque prompt d'image.
+
+Dans un texte, `${nom}` est rempli par le programme (garder le nom), `${nom|texte}` donne `texte` quand la valeur
+est vide, et `$$` écrit un `$`. Les clés JSON des réponses attendues sont lues par le programme : les garder.
+
+Pour garder ses changements d'une mise à jour à l'autre, crée un fichier `prompts.yaml` **à côté de
+`config.yaml`** et copies-y seulement les clés à changer, avec leur chemin complet. Par exemple :
+
+```yaml
+recit:
+  safety: "Contenu tout public : ni nudité, ni violence, ni gros mots."
+styles:
+  aquarelle:
+    label: Aquarelle
+    desc: Couleurs douces
+    suffix: soft watercolor illustration, light paper texture
+```
+
+Les fichiers sont relus dès qu'ils changent : pas besoin de relancer l'application. Un texte mal écrit (variable
+inconnue, YAML invalide) donne un message qui nomme le fichier et la clé.
+
 ---
 
 ## 8. Application Android

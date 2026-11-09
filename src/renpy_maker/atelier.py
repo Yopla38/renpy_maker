@@ -12,9 +12,7 @@ import re
 import unicodedata
 
 from renpy_maker import appsettings, assets as A, llm, prompts as PR, story as S
-
-PERSON_DESCRIPTOR_HINT = ("descriptor : en anglais, le genre et la tranche d'âge (« young woman », « adult man », "
-                          "« teenage boy »). Ne devine pas : si le texte ne le dit pas, laisse-le vide.")
+from renpy_maker.prompt_texts import t
 
 
 def _slug(text: str) -> str:
@@ -36,12 +34,8 @@ def _known_locations(st: dict) -> list[str]:
 
 def propose_characters(idea: str, existing: list[str], count: int = 3, provider: str | None = None) -> list[dict]:
     """Propose des personnages qui ne sont pas encore dans l'histoire. Rien n'est enregistré."""
-    system = ("Tu proposes des personnages pour un roman visuel. Réponds uniquement par du JSON : "
-              '{"characters": [{"name": "...", "description": "...", "descriptor": "..."}]}. '
-              "name : un prénom ou un nom court, en français. description : en français, une ou deux phrases "
-              "sur l'apparence et le rôle. " + PERSON_DESCRIPTOR_HINT)
-    user = (f"Histoire : {idea}\nPersonnages déjà retenus (ne les répète pas) : {', '.join(existing) or 'aucun'}\n"
-            f"Propose {count} personnages.")
+    system = t("atelier.characters.system", descriptor_hint=t("atelier.descriptor_hint"))
+    user = t("atelier.characters.user", idea=idea, existing=", ".join(existing), count=count)
     raw = llm.extract_json(llm.complete_task("histoire", system, user, provider or appsettings.provider("text")))
     out = []
     for item in (raw.get("characters") or [])[:count]:
@@ -78,12 +72,8 @@ def add_character(name: str, description: str, descriptor: str) -> str:
 
 def propose_location(idea: str, existing: list[str], context: str = "", provider: str | None = None) -> dict:
     """Propose un lieu pour la prochaine scène. Rien n'est enregistré."""
-    system = ("Tu proposes un lieu pour une scène de roman visuel. Réponds uniquement par du JSON : "
-              '{"name": "...", "description": "..."}. name : court, en français (« Le compartiment du train »). '
-              "description : une ou deux phrases sur le décor seulement, sans personnage.")
-    before = context or "(début de l'histoire)"
-    user = (f"Histoire : {idea}\nLieux déjà utilisés : {', '.join(existing) or 'aucun'}\n"
-            f"Ce qui vient de se passer : {before}")
+    system = t("atelier.location.system")
+    user = t("atelier.location.user", idea=idea, existing=", ".join(existing), before=context)
     raw = llm.extract_json(llm.complete_task("histoire", system, user, provider or appsettings.provider("text")))
     return {"name": " ".join(str(raw.get("name", "")).split()),
             "description": " ".join(str(raw.get("description", "")).split())}
@@ -134,16 +124,10 @@ def propose_line(sid: str, provider: str | None = None) -> dict:
     sc, present = _scene_context(st, sid)
     speakers = present + [S.NARRATOR]
     recent = sc.get("dialogue", [])[-6:]
-    history = "\n".join(f"{l['speaker']} : {l['text']}" for l in recent) or "(la scène commence)"
-    system = ("Tu écris une seule réplique pour un roman visuel, en français. Réponds uniquement par du JSON : "
-              '{"speaker": "...", "text": "..."}. speaker : exactement un de ces noms : '
-              f"{', '.join(speakers)}. text : une à deux phrases, naturelles, sans didascalie.")
-    user = (f"Histoire : {st.get('idea') or st.get('synopsis') or ''}\n"
-            f"Scène : {sc.get('title', '')} — {sc.get('summary', '')}\n"
-            f"Lieu : {sc.get('location') or 'non précisé'}\n"
-            f"Personnages présents : {', '.join(present) or 'aucun'}\n"
-            f"Répliques déjà écrites :\n{history}\n"
-            "Écris la réplique qui suit.")
+    history = "\n".join(f"{l['speaker']} : {l['text']}" for l in recent)
+    system = t("atelier.line.system", speakers=", ".join(speakers))
+    user = t("atelier.line.user", story=st.get("idea") or st.get("synopsis") or "", title=sc.get("title", ""),
+             summary=sc.get("summary", ""), location=sc.get("location"), present=", ".join(present), history=history)
     raw = llm.extract_json(llm.complete_task("dialogue", system, user, provider or appsettings.provider("text")))
     speaker = str(raw.get("speaker", "")).strip()
     if speaker not in speakers:
@@ -195,12 +179,9 @@ def set_idea(title: str, idea: str) -> None:
 def propose_outfits(character: str, description: str, idea: str, existing: list[str], count: int = 3,
                     provider: str | None = None) -> list[dict]:
     """Propose des tenues pour un personnage, distinctes des tenues déjà présentes. Rien n'est enregistré."""
-    system = ("Tu proposes des tenues (vêtements) pour un personnage de roman visuel. Réponds uniquement par du "
-              'JSON : {"outfits": [{"name": "...", "description": "..."}]}. name : court, en français '
-              "(« Robe du soir »). description : une phrase sur les vêtements seulement (matière, couleur, coupe). "
-              "Pas de nudité, pas de sous-vêtement. Ne répète pas les tenues déjà présentes.")
-    user = (f"Histoire : {idea}\nPersonnage : {character}\nApparence : {description or '(non précisée)'}\n"
-            f"Tenues déjà présentes : {', '.join(existing) or 'aucune'}\nPropose {count} tenues.")
+    system = t("atelier.outfits.system")
+    user = t("atelier.outfits.user", idea=idea, character=character, description=description,
+             existing=", ".join(existing), count=count)
     raw = llm.extract_json(llm.complete_task("histoire", system, user, provider or appsettings.provider("text")))
     out = []
     taken = {S.norm(n) for n in existing}
@@ -232,11 +213,6 @@ def set_default_outfit(character_aid: str, outfit_aid: str) -> None:
         A.save(data)
 
 
-SHOT_RULES = ("Décris en français, en une ou deux phrases, ce que l'on voit à l'écran pour ce plan : le cadrage "
-              "(plan large, plan moyen, gros plan…), qui est visible et où il regarde, le décor et la lumière. "
-              "Pas de dialogue, pas de nom propre : les personnes sont décrites par leur rôle. Réponds par le "
-              "texte seul.")
-
 
 def propose_shot(sid: str, pid: str, previous: str = "", provider: str | None = None) -> str:
     """Ce que l'on voit à l'écran pour un moment, proposé par l'IA, en tenant compte des répliques qui précèdent
@@ -254,17 +230,12 @@ def propose_shot(sid: str, pid: str, previous: str = "", provider: str | None = 
     before = dialogue[max(0, start - 6):start]
     covered = dialogue[start:max(start, end)]
     earlier = [p.get("shot", {}).get("note", "") for p in ordered[:idx] if p.get("shot", {}).get("note")][-3:]
-    fmt = lambda lines: "\n".join(f"{l['speaker']} : {l['text']}" for l in lines) or "(aucune)"  # noqa: E731
-    system = SHOT_RULES + (" Ne répète pas cette proposition précédente, propose un autre cadrage ou un autre "
-                           "angle." if previous else "") + (" La description doit suivre ce qui vient d'être dit "
-                           "dans les répliques précédentes, sans rien inventer qui contredise la scène.")
-    user = (f"Scène : {sc.get('title', '')} — {sc.get('summary', '')}\n"
-            f"Lieu : {sc.get('location') or 'non précisé'}\n"
-            f"Personnages présents : {', '.join(present) or 'aucun'}\n"
-            f"Répliques précédentes (ce qui s'est passé avant) :\n{fmt(before)}\n"
-            f"Répliques couvertes par cette image :\n{fmt(covered)}\n"
-            f"Images précédentes déjà décrites : {' | '.join(earlier) or '(aucune)'}\n"
-            f"Proposition précédente pour cette image : {previous or '(aucune)'}")
+    fmt = lambda lines: "\n".join(f"{l['speaker']} : {l['text']}" for l in lines)  # noqa: E731
+    system = " ".join([t("atelier.shot.system")] + ([t("atelier.shot.avoid_previous")] if previous else [])
+                      + [t("atelier.shot.follow")])
+    user = t("atelier.shot.user", title=sc.get("title", ""), summary=sc.get("summary", ""),
+             location=sc.get("location"), present=", ".join(present), before=fmt(before), covered=fmt(covered),
+             earlier=" | ".join(earlier), previous=previous)
     text = llm.complete_task("dialogue", system, user, provider or appsettings.provider("text"))
     return " ".join(str(text).split()).strip('"')
 
@@ -273,12 +244,9 @@ def propose_shot(sid: str, pid: str, previous: str = "", provider: str | None = 
 def propose_viewpoints(location: str, description: str, idea: str, existing: list[str], count: int = 3,
                        provider: str | None = None) -> list[dict]:
     """Propose des points de vue pour un lieu : des angles différents du même endroit. Rien n'est enregistré."""
-    system = ("Tu proposes des points de vue pour un lieu de roman visuel : des angles différents du même endroit "
-              '(depuis la fenêtre, près du bureau, gros plan sur la porte…). Réponds uniquement par du JSON : '
-              '{"viewpoints": [{"name": "...", "description": "..."}]}. name : court, en français. description : '
-              "une phrase sur ce que l'on voit de cet angle. Pas de personne. Ne répète pas les points de vue présents.")
-    user = (f"Histoire : {idea}\nLieu : {location}\nDécor : {description or '(non précisé)'}\n"
-            f"Points de vue déjà présents : {', '.join(existing) or 'aucun'}\nPropose {count} points de vue.")
+    system = t("atelier.viewpoints.system")
+    user = t("atelier.viewpoints.user", idea=idea, location=location, description=description,
+             existing=", ".join(existing), count=count)
     raw = llm.extract_json(llm.complete_task("histoire", system, user, provider or appsettings.provider("text")))
     out, taken = [], {S.norm(n) for n in existing}
     for item in (raw.get("viewpoints") or []):

@@ -13,6 +13,7 @@ from renpy_maker import llm
 from renpy_maker import prompts as PR
 from renpy_maker import scenes as SC
 from renpy_maker import story as S
+from renpy_maker.prompt_texts import t
 from renpy_maker.facile_base import _aid, _same, _slug, _url
 from renpy_maker.facile_jobs import _check_cancel, _progress, _say, _start, _submit
 
@@ -211,17 +212,8 @@ def suggest_identity(aid: str) -> dict:
     context = "\n".join(f"- {sc['title']} : {sc.get('summary', '')}" for sc in scenes)
     lines = [f"{l['speaker']} : {l['text']}" for sc in scenes for l in sc.get("dialogue", [])
              if _same(l.get("speaker", ""), name)][:8]
-    system = ("Tu décris un personnage de roman visuel à partir de l'histoire et de ses répliques. "
-              "Réponds uniquement par du JSON : {\"description\": \"...\", \"descriptor\": \"...\"}. "
-              "description : en français, une ou deux phrases sur l'apparence (cheveux, yeux, silhouette, style), "
-              "seulement ce que l'histoire indique. "
-              "descriptor : en anglais, le genre et la tranche d'âge (« young woman », « adult man », « teenage boy »). "
-              "Ne devine jamais le genre : ni le rôle, ni le prénom, ni le genre de l'héroïne ne suffisent. "
-              "Si le texte ne l'indique pas clairement (pronoms, « monsieur », « madame », accords), "
-              "laisse descriptor vide.")
-    user = (f"Personnage : {name}\nHistoire : {story or '(non précisée)'}\n"
-            f"Scènes où il apparaît :\n{context or '(aucune)'}\n"
-            f"Ses répliques :\n" + ("\n".join(lines) or "(aucune)"))
+    system = t("identity.system")
+    user = t("identity.user", name=name, story=story, scenes=context, lines="\n".join(lines))
     raw = llm.extract_json(llm.complete_task("prompt", system, user, appsettings.provider("text")))
     description = " ".join(str(raw.get("description", "")).split()) if isinstance(raw, dict) else ""
     descriptor = str(raw.get("descriptor", "")).strip().lower() if isinstance(raw, dict) else ""
@@ -394,8 +386,8 @@ def suggest_prompt(kind: str, target: str) -> dict:
 def _english(text: str) -> str:
     """Le nom d'un vêtement ou d'un accessoire en anglais, court : le moteur d'image ne lit que l'anglais."""
     try:
-        out = llm.complete_task("prompt", "Translate the clothing item to English. Answer only the phrase, 1 to 6 words.",
-                                text, appsettings.provider("text")).strip().strip("\"'. ")
+        out = llm.complete_task("prompt", t("outfit_edit.translate"), text,
+                                appsettings.provider("text")).strip().strip("\"'. ")
         return out or text
     except Exception:  # sans modèle disponible, on garde le texte tel quel
         return text
@@ -406,13 +398,11 @@ def _edit_work(job_id: str, aid: str, mode: str, text: str, ref: str) -> None:
     with A.LOCK:
         assets = A.load()["assets"]
     # Image 1 : la tenue telle qu'elle est aujourd'hui (on ne refait que la retouche). Image 2 : l'élément ajouté.
-    keep = ("Reference image 1 : the current outfit. Keep the person's face, body, pose and every garment exactly "
-            "as they are in reference image 1.")
     if mode == "add":
-        take = f" Add the {item} from reference image 2." if ref else f" Add the {item} to the outfit."
-        body = f"{keep}{take} Change nothing else."
+        take = t("outfit_edit.add_from_reference" if ref else "outfit_edit.add", item=item)
     else:
-        body = f"{keep} Remove only the {item}. Change nothing else."
+        take = t("outfit_edit.remove", item=item)
+    body = " ".join((t("outfit_edit.keep"), take, t("outfit_edit.end")))
     prompt = PR.with_style(body, PR.llm_style())
     only = [aid] + ([ref] if ref else [])
     _card_work(job_id, aid, prompt, [], False, only)
