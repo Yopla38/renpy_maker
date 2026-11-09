@@ -31,6 +31,7 @@ from renpy_maker import facile as FA  # noqa: E402
 from renpy_maker import recit as RC  # noqa: E402
 from renpy_maker import projects as PJ  # noqa: E402
 from renpy_maker import paths  # noqa: E402
+from renpy_maker.llm import LLMError  # noqa: E402
 from renpy_maker import pipeline as PL  # noqa: E402
 from renpy_maker.prompts import match_asset as _match_asset  # noqa: E402
 from renpy_maker import story as S  # noqa: E402
@@ -42,6 +43,7 @@ PROJECTS_PAGE = Path(__file__).with_name("projects.html")
 PLAN_PAGE = Path(__file__).with_name("plan.html")
 FACILE_PAGE = Path(__file__).with_name("facile.html")
 PLAY_PAGE = Path(__file__).with_name("play.html")
+STUDIO_DIR = Path(__file__).with_name("studio")
 
 _lock = A.LOCK                    # protège game_spec/assets.yaml (partagé avec le pipeline)
 _slock = S.LOCK                   # protège game_spec/story.yaml (partagé avec le pipeline)
@@ -153,6 +155,12 @@ class Handler(BaseHTTPRequestHandler):
             if not paths.chosen():  # rien d'ouvert depuis le démarrage : on choisit l'histoire d'abord
                 return self._redirect("/projets")
             return self._send(200, FACILE_PAGE.read_bytes(), "text/html; charset=utf-8")
+        if path in ("/studio", "/studio/"):
+            if not paths.chosen():
+                return self._redirect("/projets")
+            return self._send(200, (STUDIO_DIR / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if path.startswith("/studio/"):  # scripts et styles de l'application unifiée
+            return self._static(STUDIO_DIR, path[len("/studio/"):])
         if path.startswith("/vendor/"):  # bibliothèques embarquées (pas de CDN : fonctionne hors connexion)
             name = Path(path).name
             target = Path(__file__).with_name("vendor") / name
@@ -211,9 +219,21 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": str(e)})
         except (ValueError, KeyError, IndexError) as e:
             self._json(400, {"error": str(e) or type(e).__name__})
+        except LLMError as e:  # fournisseur d'écriture absent, injoignable ou refus : message lisible
+            self._json(502, {"error": str(e)})
         except Exception as e:
             traceback.print_exc()
             self._json(500, {"error": f"{type(e).__name__}: {e}"})
+
+    def _static(self, root: Path, rel: str) -> None:
+        """Fichier statique sous root (sans remontée de dossier) : .js, .css, .svg, .html."""
+        types = {".js": "application/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+                 ".svg": "image/svg+xml", ".html": "text/html; charset=utf-8"}
+        base = root.resolve()
+        target = (root / rel).resolve()
+        if base not in target.parents or not target.is_file() or target.suffix not in types:
+            return self._json(404, {"error": "fichier introuvable"})
+        self._send(200, target.read_bytes(), types[target.suffix])
 
     def _redirect(self, location: str) -> None:
         self.send_response(302)
@@ -599,8 +619,8 @@ class Handler(BaseHTTPRequestHandler):
                         st[k] = str(body[k])
             else:
                 se = st["settings"]
-                if "explicit_content" in body:
-                    se["explicit_content"] = bool(body["explicit_content"])
+                if "explicit_content" in body:  # jamais dans l'application pour enfants
+                    se["explicit_content"] = bool(body["explicit_content"]) and not paths.KIDS
                 if "total_scenes" in body:
                     se["total_scenes"] = int(body["total_scenes"])
                 for role, val in (body.get("providers") or {}).items():

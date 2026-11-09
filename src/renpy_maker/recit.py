@@ -311,7 +311,8 @@ def set_frame(title: str, idea: str, ambiance: str, style: str | None) -> dict:
         if style:
             if style not in S.STYLES:
                 raise ValueError("Style inconnu")
-            if st["chapters"] and st["settings"].get("style") != style:
+            # Une fois l'histoire commencée, le style ne change plus ; il peut seulement être choisi s'il manque.
+            if st["chapters"] and st["settings"].get("style") not in (None, style):
                 raise ValueError("L'histoire a déjà commencé : le style des images ne change plus")
             st["settings"]["style"] = style
         elif S.style_of(st) is None:

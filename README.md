@@ -50,12 +50,23 @@ RENPY_MAKER_HOME=/chemin/vers/mes_donnees uv run renpy-maker
 
 ---
 
-## 3. Les pages (modes)
+## 3. Les pages
+
+**Le studio (`/studio`) est l'application à utiliser** : une seule fenêtre pour concevoir l'histoire, avec cinq
+espaces autour de la carte de l'histoire (Carte, Scènes, Personnages, Lieux, Lecture) et l'export Ren'Py. L'IA
+propose partout, l'auteur garde la main. Détails et correspondance avec les anciennes pages :
+[docs/studio.md](docs/studio.md).
 
 | Adresse | À quoi elle sert |
 |---|---|
-| `/projets` | **Mes histoires** : créer, ouvrir, renommer, supprimer (corbeille), régler les modèles |
-| `/atelier` | **Création pas à pas** (recommandé) : thème, personnages, lieu, réplique, image, réplique suivante. Les routes se créent depuis le fil. |
+| `/projets` | **Mes histoires** : créer, ouvrir, renommer, supprimer (corbeille). « Continuer » ouvre le studio. |
+| `/studio` | **Le studio** (recommandé) : carte et chemins, scènes (répliques et images, « Continuer avec l'IA »), personnages et garde-robe, lieux et points de vue, lecture avec les choix, export, réglages |
+
+Les pages suivantes restent accessibles (⚙ › Outils avancés dans le studio) le temps que tout soit repris :
+
+| Adresse | À quoi elle sert |
+|---|---|
+| `/atelier` | **Création pas à pas** : thème, personnages, lieu, réplique, image, réplique suivante ; graphe des références |
 | `/recit` | **Récit** : jouer l'histoire comme un jeu de rôle guidé. Le conteur propose chaque moment (voix off, réplique, image), on le garde, on le modifie ou on dit (micro) ce qui doit changer ; choix et lignes de vie |
 | `/facile` | **Parcours guidé** en étapes : Style, Idée, Carte, Personnages, Lieux, Tenues, Histoire, Plans, Jouer |
 | `/jouer` | **Lecteur** : lit l'histoire comme le jeu final |
@@ -63,8 +74,8 @@ RENPY_MAKER_HOME=/chemin/vers/mes_donnees uv run renpy-maker
 | `/automatique` | Mode expert : génération automatique de l'histoire |
 | `/` | Mode expert : page d'accueil de l'expert |
 
-Les pages `/facile`, `/atelier` et `/recit` travaillent sur l'histoire ouverte. Le réglage de l'histoire (modèles,
-moteur d'image, ComfyUI) est accessible depuis la roue ⚙ de ces pages.
+Toutes les pages travaillent sur l'histoire ouverte. Le réglage de l'histoire (modèles, moteur d'image, ComfyUI)
+est accessible depuis la roue ⚙.
 
 ---
 

@@ -401,6 +401,23 @@ def redo_dialogue(sid: str) -> dict:
         _find_scene(S.load(), sid)
     return _start("Répliques", lambda job_id: _write_dialogue(job_id, sid))
 
+def set_scene_meta(sid: str, title: str | None = None, summary: str | None = None) -> dict:
+    """Titre et résumé d'une scène, corrigés à la main (studio)."""
+    with S.LOCK:
+        st = S.load()
+        sc = next((x for x in S.all_scenes(st) if x["id"] == sid), None)
+        if sc is None:
+            raise ValueError("Scène inconnue")
+        if title is not None:
+            title = " ".join(str(title).split())
+            if not title:
+                raise ValueError("Le titre ne peut pas être vide")
+            sc["title"] = title[:120]
+        if summary is not None:
+            sc["summary"] = str(summary).strip()[:2000]
+        S.save(st)
+    return {"ok": True}
+
 def export_game() -> dict:
     with S.LOCK:
         st = S.load()
@@ -408,10 +425,16 @@ def export_game() -> dict:
         data = A.load()
     info = RE.export(st, data)  # lève ValueError si un point bloque
     _, warnings = RE.split_problems(st, data)
-    lint = RE.lint()
+    if RE.renpy_sh().is_file():
+        lint = RE.lint()
+    else:  # sans SDK, le projet est écrit mais ne peut être ni vérifié ni lancé
+        lint = {"ok": None, "skipped": f"SDK Ren'Py introuvable ({RE.renpy_sh()}) : vérification non faite",
+                "errors": [], "tail": []}
     return {"export": info, "warnings": warnings, "lint": lint}
 
 def launch_game() -> dict:
+    if not RE.renpy_sh().is_file():
+        raise ValueError(f"SDK Ren'Py introuvable ({RE.renpy_sh()}) : réglez renpy.sdk_dir dans config.yaml")
     return RE.launch()
 
 def reset() -> dict:
@@ -517,6 +540,7 @@ def route(method: str, path: str, body: dict) -> dict:
                                                        body.get("extra", [])),
             "/api/facile/plan/copy-image": lambda: copy_plan_image(body["scene"], body["plan"], body["source"],
                                                                    int(body["candidate"])),
+            "/api/facile/scene/meta": lambda: set_scene_meta(body["scene"], body.get("title"), body.get("summary")),
             "/api/facile/export": export_game,
             "/api/facile/launch": launch_game,
             "/api/facile/reset": reset,

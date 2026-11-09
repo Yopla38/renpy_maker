@@ -27,7 +27,10 @@ class LLMError(RuntimeError):
 def _key(name: str) -> str:
     value = keys.get(name)
     if not value:
-        raise LLMError(f"Clé {name} absente : saisissez-la dans les réglages de l'application")
+        if name == "REPLICATE_API_TOKEN":
+            raise LLMError("Clé Replicate absente : saisissez-la dans les réglages (roue ⚙)")
+        raise LLMError(f"Clé {name} absente : définissez la variable d'environnement {name} avant de lancer "
+                       "l'application, ou choisissez un autre fournisseur d'écriture dans les réglages (roue ⚙)")
     return value
 
 

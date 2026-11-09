@@ -221,7 +221,7 @@ function render() {
   document.getElementById("current").innerHTML = cur && !ui.creating ? `<div class="current">
     <div><div class="label">Histoire en cours</div><div class="title">${esc(cur.name)}</div></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap"><button class="ghost" onclick="location.href='/recit'" title="Vivre l'histoire pas à pas, comme un jeu de rôle">Jouer le récit</button>
-    <button class="primary" onclick="location.href='/facile'">Continuer à écrire</button></div></div>` : "";
+    <button class="primary" onclick="location.href='/studio'">Continuer à écrire</button></div></div>` : "";
   const grid = document.getElementById("grid");
   const list = state.projects.map(card).join("");
   grid.innerHTML = list + newCard();
@@ -256,10 +256,10 @@ async function run(fn) {
   render();
 }
 
-async function openProject(id, toSettings = false, page = "/facile") {
+async function openProject(id, toSettings = false, page = "/studio") {
   await run(async () => {
     await api("POST", "/api/facile/projects/open", { id });
-    location.href = toSettings ? "/facile?reglages=1" : page;
+    location.href = toSettings ? "/studio?reglages=1" : page;
   });
 }
 
@@ -301,7 +301,7 @@ document.addEventListener("submit", (ev) => {
   const idea = document.getElementById("new-idea").value;
   return run(async () => {
     await api("POST", "/api/facile/projects/create", { name, idea });
-    location.href = "/facile?reglages=1";  // configurer les moteurs et les modèles avant d'écrire quoi que ce soit
+    location.href = "/studio?reglages=1#/commencer";  // configurer les moteurs et les modèles avant d'écrire quoi que ce soit
   });
 });
 

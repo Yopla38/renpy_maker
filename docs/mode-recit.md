@@ -95,4 +95,6 @@ Données : `story.yaml` reçoit `recit` (ligne en cours, ambiance, consignes, de
 choix en attente) et, sur les scènes, `open` (ligne qui attend sa suite) et `return_to`. Les autres modes
 lisent l'histoire comme avant ; seule la carte (`story_graph`) sait qu'une ligne ouverte n'est pas une impasse.
 
-Limite connue : l'export Ren'Py et le lecteur `/jouer` restent linéaires (ils ignorent les choix), comme avant.
+L'export Ren'Py compile les choix (menus) et les suites (`next`, lignes ouvertes). Le lecteur `/jouer` reste
+linéaire ; la Lecture du studio (`/studio#/lecture`) suit les choix. La boucle du récit est aussi dans le studio
+(Scènes › « Continuer avec l'IA »).
