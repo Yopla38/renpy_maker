@@ -91,8 +91,25 @@ def generate_chapter(st: dict, scene_count: int, guidance: str = "", provider: s
     return ch
 
 
+def _next_number(ids: set, prefix: str) -> int:
+    """Premier numéro libre après le plus grand identifiant « <prefix><n> » existant."""
+    nums = [int(i[len(prefix):]) for i in ids if str(i).startswith(prefix) and str(i)[len(prefix):].isdigit()]
+    return max(nums, default=len(ids)) + 1
+
+
 def add_generated(st: dict, ch: dict) -> dict:
-    """Ajoute un chapitre généré à l'histoire et renvoie le chapitre inséré."""
+    """Ajoute un chapitre généré à l'histoire et renvoie le chapitre inséré.
+
+    Les identifiants ont été choisis sur un instantané pris avant l'appel au LLM : si une autre
+    génération a ajouté un chapitre entre-temps, ils sont renumérotés pour rester uniques."""
+    ch_ids = {c["id"] for c in st["chapters"]}
+    sc_ids = {sc["id"] for sc in S.all_scenes(st)}
+    if ch["id"] in ch_ids:
+        ch["id"] = f"ch{_next_number(ch_ids, 'ch')}"
+    if any(sc["id"] in sc_ids for sc in ch["scenes"]):
+        first = _next_number(sc_ids, "s")
+        for k, sc in enumerate(ch["scenes"]):
+            sc["id"] = f"s{first + k}"
     chapter = S.add_chapter(st, ch["id"], ch["title"], ch["summary"], len(ch["scenes"]))
     for sc in ch["scenes"]:
         S.add_scene(chapter, sc["id"], sc["title"], sc["summary"], sc["characters"],

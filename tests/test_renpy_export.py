@@ -1,5 +1,6 @@
 """Export Ren'Py : texte généré et refus des histoires incomplètes (sans lancer Ren'Py)."""
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -143,4 +144,106 @@ class ImageOnlyPlanExportTests(unittest.TestCase):
             'c_eve "Dit \\"bonjour\\" {{ok}"  # expression : sourire',
             "scene s1_p4 with dissolve",
             '""',
+            "jump s2",
         ])
+
+
+def statements(text: str) -> list[str]:
+    """Instructions produites (hors commentaires), sans l'indentation."""
+    return [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
+
+
+ALLOWED = re.compile(r'(define c_\w+ = Character\(".*"\)|image \w+ = Transform\(.*\)|label \w+:|jump \w+|return|menu:'
+                     r'|scene \w+ with dissolve|with Pause\(1\.0\)|(c_\w+ )?".*"(  # .*)?|".*":)')
+
+
+class HostileInputTests(unittest.TestCase):
+    """Le compilateur ne produit que les instructions prévues, quel que soit le texte reçu."""
+
+    HOSTILE = ["Titre\n    $ import os; os.system('id')", "x\ninit python:\n    import os",
+               'a"b\\c', "[var] {b}gras{/b} 100%", "\r\n\t", "李"]
+
+    def test_hostile_text_never_becomes_a_statement(self):
+        st, data = sample()
+        s1 = st["chapters"][0]["scenes"][0]
+        for bad in self.HOSTILE:
+            s1["title"] = bad
+            s1["dialogue"][0]["expression"] = bad
+            s1["dialogue"][0]["text"] = bad
+            text = RE.build_story(st, data["assets"])
+            for line in statements(text):
+                self.assertRegex(line, ALLOWED)
+
+    def test_choices_ending_and_next_scene_are_explicit(self):
+        st, data = sample()
+        ch = st["chapters"][0]
+        s1, s2 = ch["scenes"]
+        s3 = S.add_scene(ch, "s3", "Autre fin", "c", ["Eve"], "Ferme", {})
+        s3["dialogue"] = [{"speaker": "Eve", "text": "Fin heureuse.", "expression": "neutre"}]
+        s1["choices"] = [{"label": "Vers \"la fin\" [x]", "target": "s3"}, {"label": "Rester", "target": "s2"}]
+        text = RE.build_story(st, data["assets"])
+        block1 = text.split("label s1:")[1].split("label s2:")[0]
+        self.assertIn('    menu:\n        "Vers \\"la fin\\" [[x]":\n            jump s3\n', block1)
+        self.assertIn("            jump s2", block1)
+        block2 = text.split("label s2:")[1].split("label s3:")[0]
+        self.assertIn("    return", block2)          # s2 est une fin : pas d'enchaînement sur s3
+
+    def test_scene_without_choice_jumps_to_next(self):
+        st, data = sample()
+        st["chapters"][0]["scenes"][1]["ending"] = False
+        text = RE.build_story(st, data["assets"])
+        self.assertIn("    jump s2\n", text.split("label s2:")[0])
+        self.assertTrue(text.rstrip().endswith("return"))  # la dernière scène finit le jeu
+
+    def test_choice_to_missing_scene_blocks_export(self):
+        st, data = sample()
+        st["chapters"][0]["scenes"][0]["choices"] = [{"label": "?", "target": "nulle_part"}]
+        blocking, _ = RE.split_problems(st, data)
+        self.assertTrue(any("nulle_part" in b for b in blocking))
+
+    def test_duplicate_scene_blocks_export(self):
+        st, data = sample()
+        st["chapters"][0]["scenes"][1]["id"] = "s1"
+        blocking, _ = RE.split_problems(st, data)
+        self.assertTrue(any("en double" in b for b in blocking))
+
+    def test_invalid_scene_ids_get_valid_unique_labels(self):
+        labels = RE.scene_labels([{"id": "1-début"}, {"id": "s1"}, {"id": "start"}, {"id": "1 début"}])
+        self.assertEqual(labels["s1"], "s1")
+        self.assertTrue(all(RE.IDENT_RE.fullmatch(v) for v in labels.values()))
+        self.assertEqual(len(set(labels.values())), 4)
+        self.assertNotEqual(labels["start"], "start")
+
+    def test_similar_names_get_distinct_variables(self):
+        chars = RE.char_vars(["Léa", "Lea", "李", "王"])
+        self.assertEqual(len(set(chars.values())), 4)
+        self.assertEqual(chars["Léa"], "c_lea")
+
+    def test_image_only_speaker_is_defined(self):
+        st, data = sample()
+        s1 = st["chapters"][0]["scenes"][0]
+        s1["characters"].append("Tom")
+        s1["plans"].append({"id": "p9", "from_line": 2, "characters": [], "asset": "scene_s1_p1",
+                            "pause": True, "speaker": "Tom", "speech": "Coucou"})
+        text = RE.build_story(st, data["assets"])
+        self.assertIn('define c_tom = Character("Tom")', text)
+        self.assertIn('c_tom "Coucou"', text)
+
+    def test_options_title_is_not_interpolated(self):
+        st, _ = sample()
+        st["title"] = 'Mon [jeu] "x"'
+        self.assertIn('define config.name = _("Mon [jeu] \\"x\\"")', RE.build_options(st))
+
+
+class RenameTests(unittest.TestCase):
+    def test_rename_character_updates_image_only_speaker_and_tags(self):
+        import facile_elements as FE
+        st, _ = sample()
+        s1 = st["chapters"][0]["scenes"][0]
+        s1["plans"].append({"id": "p9", "from_line": 2, "pause": True, "speaker": "Eve", "speech": "Hé"})
+        s1["line_tags"] = {"1": {"characters": ["Eve"], "location": "", "outfits": {"Eve": "robe"}}}
+        FE._rename_character(st, "Eve", "Ève")
+        self.assertEqual(s1["plans"][-1]["speaker"], "Ève")
+        self.assertEqual(s1["line_tags"]["1"]["characters"], ["Ève"])
+        self.assertEqual(s1["line_tags"]["1"]["outfits"], {"Ève": "robe"})
+        self.assertEqual(S.validate(st), [])

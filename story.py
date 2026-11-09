@@ -147,6 +147,11 @@ def validate(story: dict, assets: dict | None = None) -> list[str]:
                 if not _has_successor(scenes, sc):
                     errors.append(f"{where} : scène sans suite (ni choix, ni fin)")
             errors += _check_plans(where, sc)
+            for plan in sc.get("plans", []):
+                if plan.get("pause") and plan.get("speech") and plan.get("speaker") not in (
+                        set(sc.get("characters", [])) | {NARRATOR, None, ""}):
+                    errors.append(f"{where} : image seule {plan.get('id')} : locuteur "
+                                  f"'{plan.get('speaker')}' absent de la scène")
             for i, line in enumerate(sc.get("dialogue", []), 1):
                 if line.get("speaker") not in set(sc.get("characters", [])) | {NARRATOR}:
                     errors.append(f"{where} : réplique {i} : locuteur '{line.get('speaker')}' absent de la scène")
@@ -231,7 +236,9 @@ def _check_plans(where: str, sc: dict) -> list[str]:
     if starts != sorted(starts):
         errs.append(f"{where} : débuts d'images non croissants")
     for p in plans:
-        if n_lines and p["from_line"] >= n_lines:
+        # une image seule peut suivre la dernière réplique (from_line == n_lines), pas une image normale
+        last = n_lines if p.get("pause") else n_lines - 1
+        if n_lines and p["from_line"] > last:
             errs.append(f"{where} : image {p['id']} commence après la dernière réplique")
         extra = set(p.get("characters", [])) - set(sc.get("characters", []))
         if extra:

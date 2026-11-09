@@ -80,12 +80,20 @@ def _rename_character(st: dict, old: str, new: str) -> None:
                     plan[field] = [_rekey(k, old, new) for k in plan[field]]
             if plan.get("manual_refs"):
                 plan["manual_refs"] = {_rekey(k, old, new): v for k, v in plan["manual_refs"].items()}
+            if plan.get("speaker") and _same(plan["speaker"], old):
+                plan["speaker"] = new  # bulle d'une image seule
+        for tags in (sc.get("line_tags") or {}).values():
+            tags["characters"] = [new if _same(c, old) else c for c in tags.get("characters", [])]
+            tags["outfits"] = {(new if _same(k, old) else k): v for k, v in tags.get("outfits", {}).items()}
 
 def _rename_outfit(st: dict, character: str, old: str, new: str) -> None:
     """Renommage d'une tenue : le texte de la scène qui la porte suit."""
     for sc in S.all_scenes(st):
         sc["outfits"] = {k: (new if _same(k, character) and _same(v, old) else v)
                          for k, v in sc.get("outfits", {}).items()}
+        for tags in (sc.get("line_tags") or {}).values():
+            tags["outfits"] = {k: (new if _same(k, character) and _same(v, old) else v)
+                               for k, v in tags.get("outfits", {}).items()}
 
 def update_element(aid: str, name: str | None = None, description: str | None = None,
                    descriptor: str | None = None) -> dict:

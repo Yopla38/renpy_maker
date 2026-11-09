@@ -51,3 +51,15 @@ class PlanTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ConcurrentChapterTests(unittest.TestCase):
+    def test_two_chapters_generated_from_same_snapshot_get_unique_ids(self):
+        st = S.new_story("t", "i", total_scenes=4)
+        raw = {"title": "C", "summary": "r", "scenes": [{"title": "a", "summary": "b"}] * 2}
+        first, second = P.normalize(raw, 2, 1), P.normalize(raw, 2, 1)
+        first["id"] = second["id"] = "ch1"
+        P.add_generated(st, first)
+        P.add_generated(st, second)
+        self.assertEqual([c["id"] for c in st["chapters"]], ["ch1", "ch2"])
+        self.assertEqual([sc["id"] for sc in S.all_scenes(st)], ["s1", "s2", "s3", "s4"])
