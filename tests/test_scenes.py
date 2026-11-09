@@ -1,17 +1,15 @@
 """Images de scène : références, plans, préparation, prompt (aucun appel réel au LLM)."""
 
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import appsettings
-import paths
-import llm  # noqa: E402
-import scenes as SC  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import appsettings
+from renpy_maker import paths
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import scenes as SC  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 
 def asset(kind, name, status="validated", parent=None, prompt="x"):
@@ -307,7 +305,7 @@ if __name__ == "__main__":
 
 class ManualOutfitPriorityTests(unittest.TestCase):
     def test_manual_outfit_replaces_the_scene_outfit_of_the_same_person(self):
-        import scenes as SC
+        from renpy_maker import scenes as SC
         assets = {
             "c": {"kind": "character", "name": "Léa", "status": "validated", "validated_candidate": 0,
                   "descriptor": "young woman", "candidates": [{}]},

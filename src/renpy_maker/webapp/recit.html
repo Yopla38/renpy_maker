@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Récit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="/vendor/cytoscape-3.34.3.min.js"></script>
+<style>
+/* Le récit se joue de nuit, sur une scène. La voix off est un récitatif de bande dessinée (encadré jaune),
+   la réplique une bulle de papier, la voix du joueur une lanterne ambre. */
+:root {
+  --night: #1A1E2A; --night-2: #252B3B; --night-3: #343B50; --mist: #A9B0C2;
+  --paper: #F2EDE3; --frame: #FBF8F2; --ink: #1C1A17; --ink-soft: #6B655B; --line: #D8CFBE;
+  --recit: #F4DE9C; --lantern: #E0A526; --branch: #D9512C; --route: #1F4E79; --moss: #7C9A86;
+  --serif: "Instrument Serif", Georgia, serif; --sans: "Hanken Grotesk", system-ui, sans-serif;
+  --print: 4px 4px 0 var(--ink);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--paper); font: 400 16px/1.5 var(--sans);
+  display: grid; grid-template-rows: auto 1fr auto; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* En-tête */
+header.bar { display: flex; align-items: center; gap: 18px; padding: 12px 22px; border-bottom: 1px solid var(--night-3); }
+.title { font: 400 27px/1 var(--serif); margin: 0; min-width: 0; flex: 1; }
+.title small { display: block; font: 400 14px var(--sans); color: var(--mist); margin-top: 5px; max-width: 70ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.hbtn { border: 1.5px solid var(--mist); background: transparent; color: var(--paper); padding: 6px 13px;
+  font-weight: 700; font-size: 14px; text-decoration: none; white-space: nowrap; }
+.hbtn:hover:not(:disabled) { border-color: var(--lantern); color: var(--lantern); }
+.hbtn .count { color: var(--lantern); font-weight: 800; }
+.gear { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--mist); background: transparent;
+  color: var(--paper); display: grid; place-items: center; padding: 0; }
+.gear:hover { border-color: var(--lantern); color: var(--lantern); }
+
+main { padding: 18px 22px 24px; display: grid; justify-items: center; align-content: start; min-height: 0; overflow-y: auto; }
+.theatre { width: min(1120px, 100%, max(560px, calc((100vh - 360px) * 16 / 9))); }
+.msg { margin: 0 0 12px; padding: 9px 14px; border-left: 4px solid var(--branch); background: var(--night-2); font-size: 15px; }
+.msg.ok { border-left-color: var(--moss); }
+
+/* La scène */
+.stage { position: relative; aspect-ratio: 16 / 9; background: var(--night-2); border: 2px solid var(--paper); overflow: hidden; }
+.stage > img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.stage .dim { filter: brightness(.42) saturate(.55); }
+.bg-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--mist);
+  background: repeating-linear-gradient(135deg, var(--night-2) 0 14px, #2A3042 14px 28px); }
+.bg-empty .place { font: italic 400 34px/1.15 var(--serif); color: var(--paper); max-width: 22ch; }
+.todo { display: grid; gap: 10px; justify-items: center; max-width: 46ch; margin-top: -8%; }
+.todo p { margin: 0; font: italic 400 21px/1.3 var(--serif); color: var(--paper); }
+.drawing-badge { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); display: flex; gap: 10px; align-items: center;
+  background: rgba(26, 30, 42, .85); padding: 10px 16px; font-weight: 700; font-size: 14px; }
+
+.recitatif { position: absolute; left: 18px; top: 18px; width: min(62%, 640px); background: var(--recit); color: var(--ink);
+  border: 2px solid var(--ink); box-shadow: var(--print); padding: 9px 14px; font: italic 400 23px/1.3 var(--serif); }
+.recitatif textarea, .bubble textarea { display: block; width: 100%; border: 0; background: transparent; resize: none; padding: 0;
+  overflow: hidden; color: var(--ink); }
+.recitatif textarea { font: italic 400 23px/1.3 var(--serif); }
+.recitatif:has(textarea:placeholder-shown) { opacity: .62; }
+.recitatif.waiting { width: auto; }
+.recitatif.waiting::after { content: ""; display: inline-block; width: 1.4em; text-align: left; animation: dots 1.4s steps(4) infinite; }
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+.bubble { position: absolute; left: 18px; right: 18px; bottom: 18px; background: var(--frame); color: var(--ink);
+  border: 2px solid var(--ink); box-shadow: var(--print); padding: 24px 18px 12px; }
+.bubble textarea { font: 400 19px/1.45 var(--sans); }
+.bubble:has(textarea:placeholder-shown) { opacity: .7; }
+.nameplate { position: absolute; left: 14px; top: -17px; background: var(--ink); color: var(--paper); font: 400 20px/1 var(--serif); padding: 0; }
+.nameplate select, .nameplate span { background: var(--ink); color: var(--paper); border: 0; padding: 5px 10px 6px; font: inherit; display: block; }
+.newshot { position: absolute; right: 64px; top: 18px; width: min(34%, 330px); background: rgba(26, 30, 42, .9); color: var(--paper);
+  border: 1.5px dashed var(--lantern); padding: 8px 12px; font-size: 14px; }
+.newshot strong { color: var(--lantern); }
+.placecard { position: absolute; right: 64px; bottom: calc(18px + 7.6em); background: var(--paper); color: var(--ink); border: 2px solid var(--ink);
+  padding: 4px 12px; font: italic 400 20px var(--serif); box-shadow: var(--print); }
+.wheel { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--paper);
+  background: rgba(26, 30, 42, .55); color: var(--paper); display: grid; place-items: center; padding: 0; opacity: .75; z-index: 3; }
+.wheel:hover, .wheel:focus-visible { opacity: 1; border-color: var(--lantern); color: var(--lantern); }
+
+/* Choix : un menu de roman visuel, au centre de l'image */
+.menu { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 18px; background: rgba(26, 30, 42, .5); }
+.menu h2 { margin: 0 0 4px; font: italic 400 26px var(--serif); text-shadow: 0 1px 8px var(--night); }
+.opt { width: min(560px, 92%); display: flex; gap: 12px; align-items: baseline; text-align: left; background: var(--frame); color: var(--ink);
+  border: 2px solid var(--ink); border-left: 8px solid var(--branch); box-shadow: var(--print); padding: 10px 16px; font: 400 22px/1.2 var(--serif); }
+.opt:hover:not(:disabled) { background: var(--recit); }
+.opt .key { font: 700 13px var(--sans); color: var(--ink-soft); min-width: 1ch; }
+.opt .lived { margin-left: auto; font: 600 12px var(--sans); color: var(--ink-soft); white-space: nowrap; }
+.opt.own { cursor: default; padding: 6px 8px 6px 16px; }
+.opt.own input { flex: 1; border: 0; background: transparent; font: 400 20px var(--serif); padding: 4px 0; }
+.opt.own button { border: 2px solid var(--ink); background: var(--ink); color: var(--paper); font: 700 14px var(--sans); padding: 5px 12px; }
+.menu .later { background: none; border: 0; color: var(--paper); text-decoration: underline; font-size: 14px; }
+
+.card-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, 90%); background: var(--frame);
+  color: var(--ink); border: 2px solid var(--ink); box-shadow: var(--print); padding: 18px 20px; }
+.card-center h2 { font: 400 28px/1.1 var(--serif); margin: 0 0 6px; }
+.card-center p { margin: 0 0 12px; }
+
+/* Souvenir : une image déjà vécue, ses répliques */
+.transcript { position: absolute; left: 18px; right: 18px; bottom: 18px; max-height: 52%; overflow-y: auto; background: var(--frame); color: var(--ink);
+  border: 2px solid var(--ink); box-shadow: var(--print); padding: 10px 14px; }
+.tline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.tline:last-child { border-bottom: 0; }
+.tline .who { font: 400 18px var(--serif); margin-right: 6px; }
+.tline .said { cursor: text; }
+.tline .said.narr { font: italic 400 18px/1.35 var(--serif); }
+.tline .said:hover { background: #FFF6D8; }
+.tline .fork { border: 1.5px solid var(--ink); background: var(--paper); width: 30px; height: 30px; padding: 0; display: grid; place-items: center; }
+.tline .fork:hover { background: var(--recit); }
+.inline-form { grid-column: 1 / -1; display: grid; gap: 6px; padding: 8px; border: 1px dashed var(--ink); background: var(--paper); }
+.inline-form .row { margin-top: 0; }
+.memo { position: absolute; left: 18px; top: 18px; display: flex; gap: 8px; align-items: center; }
+.memo span { background: var(--night); color: var(--paper); padding: 4px 10px; font: italic 400 18px var(--serif); border: 1.5px solid var(--paper); }
+
+/* Sous la scène */
+.imagebar { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1.5px solid var(--mist); }
+.seg button { border: 0; background: transparent; color: var(--paper); padding: 6px 12px; font-weight: 700; font-size: 14px; }
+.seg button.on { background: var(--paper); color: var(--ink); }
+.imagebar input { flex: 1; min-width: 220px; background: var(--night-2); border: 1px solid var(--night-3); color: var(--paper); padding: 7px 10px; font-size: 15px; }
+.imagebar .hint { color: var(--mist); font-size: 14px; }
+.controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-top: 12px; align-items: stretch; }
+.voice { display: flex; align-items: center; gap: 8px; background: var(--night-2); border: 1.5px solid var(--night-3); padding: 6px; min-height: 58px; }
+.voice:focus-within { border-color: var(--lantern); }
+.voice input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--paper); font-size: 17px; padding: 8px 4px; }
+.voice input::placeholder { color: var(--mist); }
+.voice input:focus { outline: none; }
+.mic { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--lantern); color: var(--ink); display: grid; place-items: center; padding: 0; flex: 0 0 46px; }
+.mic.on { animation: listen 1.2s ease-in-out infinite; }
+@keyframes listen { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 165, 38, .65); } 50% { box-shadow: 0 0 0 10px rgba(224, 165, 38, 0); } }
+.send { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--mist); background: transparent; color: var(--paper); display: grid; place-items: center; padding: 0; }
+.send:hover:not(:disabled) { border-color: var(--lantern); color: var(--lantern); }
+.go { border: 2px solid var(--paper); background: var(--paper); color: var(--ink); font: 800 18px var(--sans); padding: 0 28px; min-height: 58px; display: flex; align-items: center; gap: 10px; }
+.go:hover:not(:disabled) { background: var(--lantern); border-color: var(--lantern); }
+.go kbd { font: 600 12px var(--sans); color: var(--ink-soft); border: 1px solid var(--ink-soft); padding: 0 5px; }
+.subactions { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; }
+.lnk { background: none; border: 0; padding: 2px 0; color: var(--mist); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.lnk:hover:not(:disabled) { color: var(--lantern); }
+.toast { margin-top: 12px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--night-2); border-left: 4px solid var(--lantern); padding: 9px 14px; font-size: 15px; }
+.toast p { margin: 0; flex: 1; min-width: 200px; }
+.toast .lnk { color: var(--paper); }
+
+/* Fil : la ligne vécue */
+footer.fil { border-top: 1px solid var(--night-3); padding: 10px 22px 12px; }
+.fil-strip { display: flex; gap: 8px; align-items: center; overflow-x: auto; padding-bottom: 4px; }
+.frame { flex: 0 0 136px; width: 136px; min-width: 0; overflow: hidden; border: 2px solid var(--night-3); background: var(--night-2); padding: 0; text-align: left; color: var(--paper); }
+.frame img, .frame .noimg { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.frame .noimg { display: grid; place-items: center; font-size: 12px; color: var(--mist); }
+.frame .cap { display: block; font-size: 11.5px; padding: 3px 6px; color: var(--mist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frame.on, .frame:hover { border-color: var(--lantern); }
+.frame.next { display: grid; place-items: center; aspect-ratio: 16 / 9; height: auto; border-style: dashed; border-color: var(--lantern); color: var(--lantern); font: 400 28px var(--serif); }
+.mark { flex: 0 0 auto; font-size: 13px; padding: 4px 10px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.mark.choice { background: var(--branch); color: var(--frame); font-weight: 700; }
+.mark.place { font: italic 400 17px var(--serif); color: var(--mist); }
+
+/* Fiches sur papier : cadre, personnages, roue, carte */
+.sheet-body { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); padding: 24px 26px 26px; width: min(880px, 100%); }
+.h { font: 400 34px/1.05 var(--serif); margin: 0 0 6px; }
+.lead { color: var(--ink-soft); margin: 0 0 16px; max-width: 64ch; }
+.note { color: var(--ink-soft); font-size: 14px; }
+label.field { display: grid; gap: 6px; font-weight: 700; font-size: 14px; margin: 14px 0 0; }
+.sheet-body input:not([type=checkbox]), .sheet-body select, .sheet-body textarea, .drawer input:not([type=checkbox]), .drawer select, .drawer textarea {
+  width: 100%; padding: 8px 10px; background: var(--frame); border: 1px solid var(--line); color: var(--ink); font: 400 15px/1.45 var(--sans); }
+.sheet-body textarea, .drawer textarea { resize: vertical; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.btn { border: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 7px 15px; font-weight: 700; font-size: 15px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.quiet { border-color: var(--line); }
+.btn:hover:not(:disabled) { background: var(--lantern); color: var(--ink); border-color: var(--ink); }
+.btn-paper { border: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 8px 16px; font-weight: 800; box-shadow: var(--print); }
+.btn-paper:hover { background: var(--lantern); }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.chip { border: 1.5px solid var(--ink); background: var(--frame); color: var(--ink); padding: 3px 11px; font-size: 14px; font-weight: 600; }
+.chip.on { background: var(--ink); color: var(--paper); }
+.styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 8px; }
+.style { text-align: left; border: 2px solid var(--line); background: var(--frame); color: var(--ink); padding: 10px 12px; }
+.style strong { display: block; font: 400 21px var(--serif); }
+.style span { font-size: 13px; color: var(--ink-soft); }
+.style.on { border-color: var(--ink); box-shadow: var(--print); }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.person { border: 2px solid var(--ink); background: var(--frame); display: grid; grid-template-columns: 84px minmax(0, 1fr); }
+.portrait { position: relative; border-right: 2px solid var(--ink); background: var(--paper); min-height: 112px; display: grid; place-items: center;
+  font-size: 12px; color: var(--ink-soft); text-align: center; padding: 4px; }
+.portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.pbody { padding: 9px 11px; min-width: 0; }
+.pbody h3 { font: 400 22px/1.1 var(--serif); margin: 0; }
+.pbody .sub { font-size: 13px; color: var(--ink-soft); margin: 2px 0 4px; }
+.pbody .desc { font-size: 13.5px; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pbody .row { margin-top: 4px; gap: 8px; }
+.pbody .lnk, .drawer .lnk, .sheet-body .lnk, .map-side .lnk { color: var(--route); }
+.proposal { border: 2px dashed var(--ink); background: var(--frame); padding: 12px 14px; margin-top: 12px; }
+.proposal h3 { font: 400 22px var(--serif); margin: 0; }
+details.manual { margin-top: 18px; }
+details.manual summary { cursor: pointer; font-weight: 700; color: var(--route); }
+.working { position: absolute; inset: 0; background: rgba(242, 237, 227, .86); display: grid; place-items: center; z-index: 2; }
+.spin { width: 22px; height: 22px; border: 3px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .9s linear infinite; display: inline-block; flex: 0 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* La roue : un tiroir discret */
+.scrim { position: fixed; inset: 0; background: rgba(26, 30, 42, .35); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(450px, 100%); background: var(--paper); color: var(--ink); border-left: 2px solid var(--ink);
+  z-index: 41; display: flex; flex-direction: column; }
+.drawer.enter { animation: slide .22s ease-out; }
+@keyframes slide { from { transform: translateX(40px); opacity: 0; } }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.drawer-head h2 { font: 400 25px var(--serif); margin: 0; }
+.drawer-body { overflow-y: auto; padding: 4px 16px 24px; }
+.dsec { padding: 12px 0 16px; border-bottom: 1px solid var(--line); }
+.dsec:last-child { border-bottom: 0; }
+.dsec h3 { font: 400 21px var(--serif); margin: 0 0 2px; }
+.refs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.ref { border: 2px solid var(--ink); background: var(--frame); padding: 0; text-align: left; font-size: 12px; position: relative; }
+.ref img, .ref .none { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.ref .none { display: grid; place-items: center; color: var(--ink-soft); background: var(--paper); }
+.ref span { display: block; padding: 3px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ref.off { opacity: .4; border-style: dashed; }
+.ref .x { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--paper); padding: 0; font-weight: 800; line-height: 1; }
+.pick-strip { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 6px; margin-top: 6px; }
+.pick { flex: 0 0 72px; border: 2px solid var(--line); padding: 0; background: var(--night-2); }
+.pick img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.pick:hover { border-color: var(--ink); }
+.lora-row { display: grid; grid-template-columns: 1fr 70px auto; gap: 6px; align-items: center; font-size: 14px; margin-top: 6px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin-top: 8px; }
+.check input { margin-top: 4px; }
+
+/* Fenêtres : carte des lignes de vie, personnages, cadre, réglages */
+.overlay { position: fixed; inset: 0; background: rgba(15, 18, 26, .72); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.window { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); width: min(1040px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.window-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.window-head h2 { font: 400 27px var(--serif); margin: 0; }
+.window-body { overflow-y: auto; padding: 0; }
+.window-body .sheet-body { border: 0; width: 100%; }
+.window.map { width: min(1240px, 100%); height: min(800px, calc(100vh - 32px)); }
+.map-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; flex: 1; min-height: 0; }
+#lifemap { background: var(--night); min-height: 360px; }
+.map-side { border-left: 2px solid var(--ink); padding: 14px 16px 20px; overflow-y: auto; }
+.map-side h3 { font: 400 24px/1.1 var(--serif); margin: 0 0 4px; }
+.map-side h4 { font: 400 19px var(--serif); margin: 16px 0 4px; }
+.map-side .stack { display: grid; gap: 8px; margin-top: 10px; }
+.map-side .stack .btn { justify-content: flex-start; }
+.legend { display: grid; gap: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 18px; }
+.legend i { display: inline-block; width: 22px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 2px solid var(--ink); }
+.moments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.setrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; margin-top: 8px; }
+
+.statusbar { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 12px;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--ink); box-shadow: var(--print); padding: 8px 10px 8px 14px; font-size: 14px; font-weight: 600; max-width: calc(100vw - 24px); }
+.statusbar .btn { padding: 4px 12px; font-size: 14px; }
+#lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(15, 18, 26, .95); display: grid; place-items: center; padding: 24px; cursor: zoom-out; }
+#lightbox img { max-width: 100%; max-height: calc(100vh - 60px); object-fit: contain; border: 2px solid var(--paper); }
+
+@media (max-width: 860px) {
+  header.bar { flex-wrap: wrap; }
+  .recitatif, .recitatif textarea { font-size: 18px; width: calc(100% - 80px); }
+  .bubble textarea { font-size: 16px; }
+  .newshot { display: none; }
+  .controls { grid-template-columns: 1fr; }
+  .map-grid { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .map-side { border-left: 0; border-top: 2px solid var(--ink); max-height: 42vh; }
+  .stage { aspect-ratio: 4 / 5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 3s; }
+  .mic.on { animation: none; outline: 3px solid var(--lantern); }
+  .drawer.enter { animation: none; }
+  .recitatif.waiting::after { animation: none; content: "…"; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 class="title"><span id="title">Récit</span><small id="subtitle"></small></h1>
+  <nav class="head-actions" id="head-actions" aria-label="Récit"></nav>
+</header>
+<main id="main" aria-live="polite"></main>
+<footer class="fil" id="fil" aria-label="La ligne vécue" hidden></footer>
+<div id="drawer-root"></div>
+<div id="overlay-root"></div>
+<div class="statusbar" id="statusbar" role="status" hidden></div>
+
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const NARR = "Narration";
+const GENDER = ["young woman", "adult woman", "young man", "adult man", "teenage girl", "teenage boy", "child"];
+const GENDER_LABEL = { "young woman": "Jeune femme", "adult woman": "Femme adulte", "young man": "Jeune homme",
+  "adult man": "Homme adulte", "teenage girl": "Adolescente", "teenage boy": "Adolescent", "child": "Enfant" };
+const FRAMING_LABEL = { "extreme close-up": "Très gros plan", "close-up": "Gros plan", "medium close-up": "Plan rapproché",
+  "medium shot": "Plan moyen", "cowboy shot": "Plan américain", "wide shot": "Plan large", "establishing shot": "Plan d'ensemble" };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const ICON = (body, size = 20) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const GEAR = ICON('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 18);
+const MIC = ICON('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>', 22);
+const SEND = ICON('<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>', 18);
+const FORK = ICON('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10"/><path d="M18 9c0 5-6 4-12 8"/>', 16);
+
+// Les demandes au conteur et au metteur en scène peuvent être arrêtées : on abandonne l'attente.
+let abortCtl = new AbortController();
+const ABORTABLE = (p) => /^\/api\/(recit\/(propose|direct|choices)|atelier\/|facile\/prompt\/suggest)/.test(p);
+
+async function api(method, path, body) {
+  let res;
+  try {
+    res = await fetch(path, { method, headers: { "Content-Type": "application/json", "X-Renpy-Maker": "1" },
+      body: body === undefined ? undefined : JSON.stringify(body), signal: ABORTABLE(path) ? abortCtl.signal : undefined });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("Arrêté.");
+    throw e;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data;
+}
+
+// --- État --------------------------------------------------------------------------------------------------
+let V = null;                 // vue de l'histoire (/api/recit)
+let P = null;                 // moment proposé par le conteur, modifiable avant d'être gardé
+let Pundo = [];               // propositions remplacées par une consigne (pour « Annuler »)
+let thinking = false, thinkLabel = "";
+let saving = false;
+let failed = null;            // ligne dont la proposition a échoué : pas de nouvel essai automatique
+let pendingChoices = null;    // {scene, options} : choix proposés après le dernier moment
+let souvenir = null;          // {sid, pid} : une image déjà vécue, ouverte depuis le fil
+let starting = false;         // « Commencer l'histoire » : le premier moment est demandé
+let msg = "", msgOk = false;
+let toast = null;             // réponse du metteur en scène : {text, undo, redraw}
+let voiceText = "", listening = false, rec = null;
+let ownChoice = "";
+let branchAt = null;          // {sid, line, label} : vivre autrement après cette réplique
+let editLine = null;          // {sid, line}
+let drawerOpen = false, drawerFresh = false;
+let overlay = null;           // "map" | "cast" | "frame" | "settings"
+let replay = null;            // {sid, i, img} : relecture d'une ligne
+let frameDraft = null, castProposal = null, settings = null;
+let mapSel = null, joinFrom = null, joinTarget = null, cy = null;
+let promptDraft = {};         // prompts modifiés dans la roue, par image
+const queue = [];             // dessins en attente
+let job = null;               // dessin en cours : {key, id, message, progress}
+const drawing = new Set();    // clés des dessins en cours ou en attente
+
+async function load() {
+  V = await api("GET", "/api/recit");
+  if (!frameDraft) frameDraft = { title: V.title || "", idea: V.idea || "", ambiance: V.recit.ambiance || "", style: V.style ? V.style.key : "" };
+  if (P && (P.scene || null) !== (cur() || null)) { P = null; Pundo = []; }
+  if (pendingChoices && pendingChoices.scene !== cur()) pendingChoices = null;
+  // Les choix proposés avec le dernier moment sont gardés par le serveur : ils reviennent après un rechargement.
+  if (!pendingChoices && V.recit.pending) pendingChoices = { scene: V.recit.pending.scene, options: V.recit.pending.options };
+  if (souvenir && !panelOf(souvenir.sid, souvenir.pid)) souvenir = null;
+  if (V.scenes.length) starting = false;
+  render();
+  autoPropose();
+}
+
+function setMsg(text, ok = false) { msg = text; msgOk = ok; }
+
+// Une action qui modifie l'histoire, puis on recharge la vue.
+async function act(fn, okText = "") {
+  saving = true; setMsg(""); render();
+  try {
+    await fn();
+    saving = false;
+    setMsg(okText, !!okText);
+    await load();
+  } catch (e) {
+    saving = false;
+    setMsg(e.message);
+    render();
+  }
+}
+
+// --- Lecture de la vue ---------------------------------------------------------------------------------------
+const cur = () => (V && V.recit.current) || null;
+const rs = (sid) => (V.recit.scenes || {})[sid] || null;
+const scard = (sid) => V.scenes.find((s) => s.id === sid) || null;
+const sortedPlans = (s) => [...s.plans].sort((a, b) => (a.from_line - b.from_line) || ((a.pause ? 0 : 1) - (b.pause ? 0 : 1)));
+
+function panelOf(sid, pid) {
+  const s = scard(sid);
+  if (!s) return null;
+  const plans = sortedPlans(s);
+  const k = plans.findIndex((p) => p.id === pid);
+  if (k < 0) return null;
+  const end = k + 1 < plans.length ? plans[k + 1].from_line : s.dialogue.length;
+  return { sid, s, p: plans[k], start: plans[k].from_line, lines: s.dialogue.slice(plans[k].from_line, end) };
+}
+
+// La ligne vécue, dans l'ordre : choix pris, lieux, images avec leurs répliques.
+function pathItems() {
+  const out = [];
+  let place = null;
+  for (const step of V.recit.path || []) {
+    const s = scard(step.scene);
+    if (!s) continue;
+    if (step.label) out.push({ kind: "choice", label: step.label });
+    if (s.location && s.location !== place) { place = s.location; out.push({ kind: "place", label: place }); }
+    for (const p of sortedPlans(s)) out.push({ kind: "panel", ...panelOf(s.id, p.id) });
+  }
+  return out;
+}
+
+function lastPanel() {
+  const panels = pathItems().filter((x) => x.kind === "panel");
+  return panels[panels.length - 1] || null;
+}
+
+// Ce moment montre l'image d'un moment précédent (image gardée) : la modifier lui en donnera une à lui.
+function planInfo(sid, pid) { return ((rs(sid) || {}).plans || {})[pid] || { framing: "", shared: false }; }
+
+function phase() {
+  if (!V.idea || !V.style) return "cadre";
+  if (!V.scenes.length && !starting) return "cast";
+  return "stage";
+}
+
+function voiceMode() {
+  if (phase() !== "stage" || replay || overlay) return "off";
+  if (souvenir) return "image";
+  const r = cur() ? rs(cur()) : null;
+  if (pendingChoices || (r && !r.open && r.choices.length)) return "choice";
+  if (r && !r.open) return "off";
+  return "moment";
+}
+
+// --- Le conteur ------------------------------------------------------------------------------------------------
+function autoPropose() {
+  if (phase() !== "stage" || replay || thinking || saving || P || pendingChoices) return;
+  const sid = cur();
+  if (failed === (sid || "start")) return;
+  if (sid ? !(rs(sid) || {}).open : !starting) return;
+  propose();
+}
+
+async function propose(instruction = "", previous = null) {
+  const sid = cur();
+  thinking = true; thinkLabel = "Le conteur écrit la suite…"; setMsg(""); render();
+  try {
+    P = await api("POST", "/api/recit/propose", { scene: sid, instruction, previous });
+    Pundo = []; failed = null; toast = null;
+  } catch (e) {
+    failed = sid || "start";
+    setMsg(e.message);
+  }
+  thinking = false;
+  render();
+}
+
+function another() { if (P) propose("", P); else { failed = null; propose(); } }
+
+async function continueMoment() {
+  if (!P || thinking || saving) return;
+  const m = P;
+  saving = true; setMsg(""); render();
+  try {
+    const out = await api("POST", "/api/recit/moment", { scene: m.scene, moment: m });
+    P = null; Pundo = []; toast = null; failed = null;
+    if (m.choices && m.choices.length) pendingChoices = { scene: out.scene, options: m.choices };
+    saving = false;
+    await load();
+    if (out.draw && V.recit.auto_draw) drawPlan(out.scene, out.plan);
+  } catch (e) {
+    saving = false; setMsg(e.message); render();
+  }
+}
+
+function setKeep(keep) {
+  if (!P || (keep && !P.image.can_keep)) return;
+  P.image.keep = keep;
+  render();
+}
+
+async function proposeChoices() {
+  const sid = cur();
+  thinking = true; thinkLabel = "Le conteur prépare des choix…"; render();
+  try {
+    const out = await api("POST", "/api/recit/choices/propose", { scene: sid });
+    pendingChoices = { scene: sid, options: out.choices };
+  } catch (e) { setMsg(e.message); }
+  thinking = false; render();
+}
+
+async function notNow() {
+  pendingChoices = null;
+  render();
+  try { await api("POST", "/api/recit/options", { drop_pending: true }); } catch (e) { /* le menu reviendra au rechargement */ }
+  await load();
+}
+
+function pickChoice(i) {
+  const pc = pendingChoices;
+  act(async () => {
+    await api("POST", "/api/recit/choose", { scene: pc.scene, options: pc.options, picked: i });
+    pendingChoices = null; P = null; ownChoice = "";
+  });
+}
+
+// Un choix écrit (ou dit) par le joueur, en plus de ceux du conteur.
+function pickOwn() {
+  const text = ownChoice.trim();
+  if (!text) return;
+  const r = rs(cur());
+  if (pendingChoices) {
+    const options = [...pendingChoices.options.filter((o) => o.toLowerCase() !== text.toLowerCase()), text].slice(-4);
+    const pc = pendingChoices;
+    return act(async () => {
+      await api("POST", "/api/recit/choose", { scene: pc.scene, options, picked: options.length - 1 });
+      pendingChoices = null; P = null; ownChoice = "";
+    });
+  }
+  if (r && r.choices.length) {
+    const s = scard(cur());
+    return act(async () => {
+      await api("POST", "/api/recit/branch", { scene: s.id, line: s.dialogue.length - 1, label: text });
+      ownChoice = "";
+    });
+  }
+}
+
+function pickExisting(target) {
+  act(async () => {
+    await api("POST", "/api/recit/current", { scene: target, follow: true });
+    P = null;
+  });
+}
+
+function undoMoment() { act(async () => { await api("POST", "/api/recit/undo", {}); P = null; pendingChoices = null; }, "Dernier moment retiré."); }
+function finishLine() { act(async () => { await api("POST", "/api/recit/finish", { scene: cur() }); P = null; }, "Cette ligne se termine ici."); }
+
+// --- La voix du joueur : consignes en langage naturel --------------------------------------------------------
+function placeholder(mode) {
+  if (mode === "image") return "Changez cette image : « elle est assise », « vue depuis la fenêtre », « plutôt sa robe rouge »…";
+  if (mode === "choice") return "Votre propre choix : dites-le ou écrivez-le…";
+  if (mode === "off") return "";
+  return P ? "Dites ce qui doit changer : « elle est assise », « plutôt avec sa veste », « Tom refuse »…"
+    : "Dites ce qui doit arriver…";
+}
+
+async function sendVoice() {
+  const text = voiceText.trim();
+  const mode = voiceMode();
+  if (!text || thinking || saving || mode === "off") return;
+  if (mode === "choice") { ownChoice = text; voiceText = ""; return pickOwn(); }
+  const body = { instruction: text };
+  if (mode === "image") { body.scene = souvenir.sid; body.plan = souvenir.pid; }
+  else { body.scene = cur(); if (P) body.proposal = P; }
+  thinking = true; voiceText = ""; setMsg("");
+  thinkLabel = mode === "image" ? "Le metteur en scène retouche l'image…" : "Le metteur en scène suit votre consigne…";
+  render();
+  try {
+    const out = await api("POST", "/api/recit/direct", body);
+    if (out.proposal) {
+      if (P) Pundo.push(P);
+      P = out.proposal; failed = null;
+      toast = { text: out.reply, undo: Pundo.length > 0 };
+    } else {
+      toast = { text: out.reply, redraw: out.redraw ? { sid: out.scene, pid: out.plan } : null };
+      delete promptDraft[(panelOf(out.scene, out.plan) || { p: {} }).p.aid];
+    }
+    thinking = false;
+    await load();
+    if (out.redraw && V.recit.auto_draw) drawPlan(out.scene, out.plan);
+  } catch (e) {
+    thinking = false; voiceText = text; setMsg(e.message); render();
+  }
+}
+
+function undoDirection() {
+  if (!Pundo.length) return;
+  P = Pundo.pop();
+  toast = null;
+  render();
+}
+
+function toggleMic() {
+  if (!SR || voiceMode() === "off") return;
+  if (listening && rec) { rec.stop(); return; }
+  rec = new SR();
+  rec.lang = "fr-FR";
+  rec.interimResults = true;
+  rec.continuous = false;
+  let heard = "";
+  rec.onresult = (ev) => {
+    heard = Array.from(ev.results).map((r) => r[0].transcript).join("");
+    voiceText = heard;
+    const el = document.getElementById("voice");
+    if (el) el.value = heard;
+  };
+  rec.onerror = (ev) => {
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed") setMsg("Le micro est refusé : autorisez-le dans le navigateur.");
+    else if (ev.error !== "no-speech" && ev.error !== "aborted") setMsg(`Le micro n'a pas fonctionné (${ev.error}).`);
+  };
+  rec.onend = () => {
+    listening = false; rec = null; render();
+    if (heard.trim()) sendVoice();   // dès que le joueur se tait, la consigne part
+  };
+  try { rec.start(); listening = true; setMsg(""); render(); } catch (e) { setMsg(e.message); render(); }
+}
+
+// --- Dessins : une file, un à la fois ---------------------------------------------------------------------------
+function enqueue(key, start) {
+  if (drawing.has(key)) return;
+  drawing.add(key);
+  queue.push({ key, start });
+  render();
+  pump();
+}
+const drawPlan = (sid, pid, prompt = null) => enqueue(`plan:${sid}/${pid}`, () => api("POST", "/api/recit/draw", { scene: sid, plan: pid, prompt }));
+const drawCard = (aid) => enqueue(`card:${aid}`, () => api("POST", "/api/facile/card", { aid }));
+
+async function pump() {
+  if (job || !queue.length) return;
+  const t = queue.shift();
+  job = { key: t.key, id: null, message: "Dessin…", progress: null };
+  renderStatus();
+  try {
+    const { job: id } = await t.start();
+    job.id = id;
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 1200));
+      const j = await api("GET", `/api/facile/jobs/${id}`);
+      if (j.state === "running") { job.message = j.message || "Dessin…"; job.progress = j.progress; renderStatus(); continue; }
+      if (j.state === "error") throw new Error(j.error || "Le dessin a échoué");
+      if (j.state === "cancelled") throw new Error("Dessin arrêté.");
+      break;
+    }
+  } catch (e) { setMsg(e.message); }
+  drawing.delete(t.key);
+  job = null;
+  await load();
+  pump();
+}
+
+async function stopAll() {
+  abortCtl.abort();
+  abortCtl = new AbortController();
+  for (const t of queue.splice(0)) drawing.delete(t.key);
+  if (job && job.id) { try { await api("POST", "/api/facile/job/cancel", { job: job.id }); } catch (e) { /* déjà terminé */ } }
+  if (listening && rec) rec.abort();
+  thinking = false;
+  render();
+}
+
+// --- Rendu -----------------------------------------------------------------------------------------------------
+function render() {
+  if (!V) return;
+  const a = document.activeElement;
+  const keep = a && a.id ? { id: a.id, sel: "selectionStart" in a ? [a.selectionStart, a.selectionEnd] : null } : null;
+  document.getElementById("title").textContent = V.title || "Récit";
+  document.getElementById("subtitle").textContent = [V.recit.ambiance, V.idea].filter(Boolean).join(" — ") || "Le cadre de votre histoire";
+  renderHead();
+  renderMain();
+  renderFil();
+  renderDrawer();
+  renderOverlay();
+  renderStatus();
+  document.querySelectorAll(".stage textarea").forEach(autosize);
+  if (keep) {
+    const b = document.getElementById(keep.id);
+    if (b && b !== document.activeElement) {
+      b.focus({ preventScroll: true });
+      if (keep.sel) { try { b.setSelectionRange(...keep.sel); } catch (e) { /* champ sans sélection */ } }
+    }
+  }
+}
+
+function autosize(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+
+function renderHead() {
+  const stage = phase() === "stage";
+  const others = Object.entries(V.recit.scenes || {}).filter(([id, r]) => r.open && id !== cur()).length;
+  document.getElementById("head-actions").innerHTML = [
+    stage ? `<button class="hbtn" onclick="openOverlay('map')">Lignes de vie${others ? ` <span class="count">${others} à vivre</span>` : ""}</button>` : "",
+    stage ? `<button class="hbtn" onclick="startReplay()" ${V.scenes.length ? "" : "disabled"}>Rejouer</button>` : "",
+    stage ? `<button class="hbtn" onclick="openOverlay('cast')">Personnages</button>` : "",
+    `<a class="hbtn" href="/projets">Mes histoires</a>`,
+    `<button class="gear" onclick="openSettings()" title="Modèles et moteurs d'image" aria-label="Modèles et moteurs d'image">${GEAR}</button>`,
+  ].join("");
+}
+
+function renderStatus() {
+  const bar = document.getElementById("statusbar");
+  const busy = !!job || queue.length > 0 || thinking;
+  bar.hidden = !busy;
+  if (!busy) return;
+  const parts = [];
+  if (thinking) parts.push(`<span>${esc(thinkLabel)}</span>`);
+  if (job) {
+    const pct = job.progress && job.progress.max ? ` ${Math.round(100 * job.progress.value / job.progress.max)} %` : "";
+    parts.push(`<span>${esc(job.message)}${pct}</span>`);
+  }
+  if (queue.length) parts.push(`<span class="note">${queue.length} dessin${queue.length > 1 ? "s" : ""} en attente</span>`);
+  bar.innerHTML = `<span class="spin" aria-hidden="true"></span>${parts.join("")}<button class="btn" onclick="stopAll()">Arrêter</button>`;
+}
+
+function msgHtml() { return msg ? `<p class="msg ${msgOk ? "ok" : ""}" role="status">${esc(msg)}</p>` : ""; }
+
+function renderMain() {
+  const main = document.getElementById("main");
+  const ph = phase();
+  if (ph === "cadre") main.innerHTML = msgHtml() + frameHtml(false);
+  else if (ph === "cast") main.innerHTML = msgHtml() + castHtml(false);
+  else if (replay) main.innerHTML = replayHtml();
+  else main.innerHTML = `<div class="theatre">${msgHtml()}${stageHtml()}${belowHtml()}</div>`;
+}
+
+// --- La scène ----------------------------------------------------------------------------------------------------
+function stageHtml() {
+  const r = cur() ? rs(cur()) : null;
+  const panel = souvenir ? panelOf(souvenir.sid, souvenir.pid) : lastPanel();
+  let layers;
+  if (souvenir) layers = souvenirLayers(panel);
+  else if (pendingChoices) layers = menuHtml(pendingChoices.options.map((label) => ({ label })), true);
+  else if (r && !r.open && r.choices.length) layers = menuHtml(r.choices.map((c) => ({ label: c.label, target: c.target, lived: (scard(c.target) || { dialogue: [] }).dialogue.length > 0 })), false);
+  else if (r && r.ending) layers = endHtml();
+  else if (r && !r.open && r.next) layers = `<div class="card-center"><h2>La ligne continue</h2><p>Cette ligne en rejoint une autre.</p>
+      <div class="row"><button class="btn primary" onclick="pickExisting('${esc(r.next)}')">Aller à la suite</button></div></div>`;
+  else if (P) layers = proposalLayers();
+  else if (thinking) layers = `<div class="recitatif waiting">${esc(thinkLabel)}</div>`;
+  else if (failed) layers = `<div class="card-center"><h2>Le conteur s'est arrêté</h2><p>Demandez-lui une nouvelle proposition, ou dites ce qui doit arriver.</p>
+      <div class="row"><button class="btn primary" onclick="another()">Nouvelle proposition</button>
+      ${!V.scenes.length ? `<button class="btn quiet" onclick="backToCast()">Revenir aux personnages</button>` : ""}</div></div>`;
+  else layers = "";
+  const dim = !souvenir && P && !P.image.keep && !pendingChoices;
+  // Un menu ou une carte au centre : l'image à dessiner ne montre pas son bouton derrière.
+  const covered = !souvenir && !P && !!layers && !thinking;
+  return `<div class="stage" id="stage">${imageLayer(panel, dim, covered)}${layers}
+    <button class="wheel" onclick="openDrawer()" title="Réglages de ce moment" aria-label="Réglages de ce moment">${GEAR}</button></div>`;
+}
+
+function imageLayer(panel, dim, covered = false) {
+  if (!panel) {
+    const place = P && P.location ? P.location.name : "";
+    return `<div class="bg-empty"><span class="place">${esc(place || "Le rideau va se lever")}</span></div>`;
+  }
+  const key = `plan:${panel.sid}/${panel.p.id}`;
+  const waiting = drawing.has(key);
+  const status = waiting ? `<div class="drawing-badge"><span class="spin" aria-hidden="true"></span>${esc(job && job.key === key ? job.message : "Dessin en attente…")}</div>` : "";
+  if (panel.p.image) return `<img class="bg ${dim ? "dim" : ""}" data-zoom src="${esc(panel.p.image)}" alt="${esc(panel.p.text || "Image du moment")}">${status}`;
+  if (covered) return `<div class="bg-empty"></div>${status}`;
+  const draw = waiting ? status : `<button class="btn-paper" onclick="drawPlan('${esc(panel.sid)}', '${esc(panel.p.id)}')">Dessiner ce moment</button>`;
+  return `<div class="bg-empty ${dim ? "dim" : ""}"><div class="todo"><p>${esc(panel.p.text || "Cette image n'est pas encore dessinée.")}</p>${waiting ? "" : draw}</div></div>${waiting ? status : ""}`;
+}
+
+function proposalLayers() {
+  const speakers = [...new Set([...(P.present || []), ...(P.speaker && P.speaker !== NARR ? [P.speaker] : [])])];
+  const who = P.speaker || (speakers[0] || NARR);
+  const options = [...speakers, NARR].map((n) => `<option ${n === who ? "selected" : ""}>${esc(n)}</option>`).join("");
+  const tag = P.image.keep ? "" : `<div class="newshot"><strong>Nouvelle image</strong> · ${esc(FRAMING_LABEL[P.image.framing] || "")}<br>${esc(P.image.shot || "Le cadrage sera proposé au dessin.")}</div>`;
+  const place = P.location ? `<div class="placecard">${esc(P.location.name)}</div>` : "";
+  return `<div class="recitatif"><textarea id="p-vo" rows="1" aria-label="Voix off" placeholder="Voix off (facultative)"
+      oninput="P.voix_off=this.value; autosize(this)">${esc(P.voix_off)}</textarea></div>
+    ${tag}${place}
+    <div class="bubble"><label class="nameplate"><select id="p-speaker" aria-label="Qui parle" onchange="P.speaker=this.value">${options}</select></label>
+      <textarea id="p-text" rows="1" aria-label="Réplique" placeholder="Réplique (facultative)" oninput="P.text=this.value; P.speaker=document.getElementById('p-speaker').value; autosize(this)">${esc(P.text)}</textarea></div>`;
+}
+
+function menuHtml(items, fresh) {
+  const opts = items.map((it, i) => fresh
+    ? `<button class="opt" onclick="pickChoice(${i})" ${saving ? "disabled" : ""}><span class="key">${i + 1}</span>${esc(it.label)}</button>`
+    : `<button class="opt" onclick="pickExisting('${esc(it.target)}')" ${saving ? "disabled" : ""}><span class="key">${i + 1}</span>${esc(it.label)}${it.lived ? `<span class="lived">déjà vécue</span>` : ""}</button>`).join("");
+  const own = items.length < 4 ? `<div class="opt own"><input id="own-choice" type="text" placeholder="Autre chose…" value="${esc(ownChoice)}" maxlength="60"
+      oninput="ownChoice=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();pickOwn()}" aria-label="Votre propre choix">
+      <button onclick="pickOwn()" ${saving ? "disabled" : ""}>Choisir</button></div>` : "";
+  return `<div class="menu"><h2>Que faire ?</h2>${opts}${own}
+    ${fresh ? `<button class="later" onclick="notNow()">Pas maintenant, continuer l'histoire</button>` : ""}</div>`;
+}
+
+function endHtml() {
+  const opens = Object.entries(V.recit.scenes).filter(([, r]) => r.open);
+  return `<div class="card-center"><h2>Fin de cette ligne</h2>
+    <p>${opens.length ? "D'autres lignes attendent encore d'être vécues." : "Toutes les lignes sont vécues."}</p>
+    <div class="row">${opens.length ? `<button class="btn primary" onclick="openOverlay('map')">Choisir une autre ligne</button>` : ""}
+      <button class="btn quiet" onclick="reopenLine('${esc(cur())}')">Rouvrir cette ligne</button>
+      <button class="btn quiet" onclick="startReplay()">Rejouer depuis le début</button></div></div>`;
+}
+
+function souvenirLayers(panel) {
+  if (!panel) return "";
+  const r = rs(panel.sid) || {};
+  const lines = panel.lines.map((l, k) => {
+    const n = panel.start + k;
+    const last = n === panel.s.dialogue.length - 1;
+    const canFork = !(last && (r.open || r.ending));
+    const editing = editLine && editLine.sid === panel.sid && editLine.line === n;
+    const forking = branchAt && branchAt.sid === panel.sid && branchAt.line === n;
+    const said = editing
+      ? `<div class="inline-form"><textarea id="edit-text" rows="2">${esc(l.text)}</textarea>
+          <div class="row"><button class="btn primary" onclick="saveEdit()">Enregistrer</button><button class="btn quiet" onclick="editLine=null; render()">Annuler</button></div></div>`
+      : `<div><span class="who">${l.speaker === NARR ? "" : esc(l.speaker) + " :"}</span><span class="said ${l.speaker === NARR ? "narr" : ""}" onclick="startEdit('${esc(panel.sid)}', ${n})" title="Modifier">${esc(l.text)}</span></div>`;
+    const fork = canFork && !editing ? `<button class="fork" onclick="startBranch('${esc(panel.sid)}', ${n})" title="${r.choices && r.choices.length && last ? "Ajouter un autre choix ici" : "Vivre autrement après cette réplique"}" aria-label="Vivre autrement après cette réplique">${FORK}</button>` : "<span></span>";
+    const form = forking ? `<div class="inline-form"><label class="field" style="margin:0">Que se passe-t-il autrement ?
+        <input id="branch-label" type="text" maxlength="60" value="${esc(branchAt.label)}" placeholder="Par exemple : Léa refuse de répondre" oninput="branchAt.label=this.value"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();doBranch()}"></label>
+        <div class="row"><button class="btn primary" onclick="doBranch()">Vivre cette autre ligne</button><button class="btn quiet" onclick="branchAt=null; render()">Annuler</button></div>
+        <p class="note" style="margin:0">Ce qui suivait reste une option : on pourra y revenir.</p></div>` : "";
+    return `<div class="tline">${said}${fork}${form}</div>`;
+  }).join("");
+  return `<div class="memo"><span>${esc(panel.s.location || panel.s.title)}</span><button class="btn" onclick="closeSouvenir()">Revenir au présent</button></div>
+    <div class="transcript">${lines || `<p class="note">Image sans réplique.</p>`}</div>`;
+}
+
+function belowHtml() {
+  const mode = voiceMode();
+  const imagebar = !souvenir && P && !pendingChoices ? `<div class="imagebar">
+      <div class="seg" role="group" aria-label="Image de ce moment">
+        <button class="${P.image.keep ? "on" : ""}" ${P.image.can_keep ? "" : "disabled"} onclick="setKeep(true)" title="Pas de nouveau dessin">Garder l'image</button>
+        <button class="${P.image.keep ? "" : "on"}" onclick="setKeep(false)">Nouvelle image</button></div>
+      ${P.image.keep ? `<span class="hint">L'image à l'écran continue : aucun dessin.</span>`
+        : `<input id="p-shot" type="text" value="${esc(P.image.shot)}" aria-label="Ce que l'on voit" placeholder="Ce que l'on voit : cadrage, posture, action…" oninput="P.image.shot=this.value">`}
+    </div>` : "";
+  let go = "";
+  if (souvenir) go = `<button class="go" onclick="closeSouvenir()">Revenir au présent</button>`;
+  else if (P && !pendingChoices) go = `<button class="go" onclick="continueMoment()" ${thinking || saving ? "disabled" : ""}>Continuer <kbd>Entrée</kbd></button>`;
+  const voice = `<div class="voice">
+      ${SR ? `<button class="mic ${listening ? "on" : ""}" onclick="toggleMic()" title="Parler (touche M)" aria-label="${listening ? "Arrêter d'écouter" : "Parler"}" ${mode === "off" ? "disabled" : ""}>${MIC}</button>` : ""}
+      <input id="voice" type="text" value="${esc(voiceText)}" placeholder="${esc(placeholder(mode))}" aria-label="Votre voix : consigne en langage naturel"
+        oninput="voiceText=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();sendVoice()}" ${mode === "off" ? "disabled" : ""}>
+      <button class="send" onclick="sendVoice()" aria-label="Envoyer la consigne" ${mode === "off" || thinking ? "disabled" : ""}>${SEND}</button></div>`;
+  const t = toast ? `<div class="toast"><p>${esc(toast.text)}</p>
+      ${toast.undo ? `<button class="lnk" onclick="undoDirection()">Revenir à la proposition d'avant</button>` : ""}
+      ${toast.redraw ? `<button class="lnk" onclick="drawPlan('${esc(toast.redraw.sid)}', '${esc(toast.redraw.pid)}'); toast=null; render()">Redessiner l'image</button>` : ""}
+      <button class="lnk" onclick="toast=null; render()" aria-label="Fermer">Fermer</button></div>` : "";
+  const r = cur() ? rs(cur()) : null;
+  const subs = [];
+  if (!souvenir && r && r.open && !pendingChoices) {
+    subs.push(`<button class="lnk" onclick="another()" ${thinking || saving ? "disabled" : ""}>Une autre proposition</button>`);
+    if (scard(cur()) && scard(cur()).dialogue.length) subs.push(`<button class="lnk" onclick="proposeChoices()" ${thinking || saving ? "disabled" : ""}>Proposer un choix</button>`);
+    if (V.recit.can_undo) subs.push(`<button class="lnk" onclick="undoMoment()" ${saving ? "disabled" : ""}>Annuler le dernier moment</button>`);
+    if (scard(cur()) && scard(cur()).dialogue.length) subs.push(`<button class="lnk" onclick="finishLine()" ${saving ? "disabled" : ""}>Terminer la ligne ici</button>`);
+  }
+  if (!souvenir && !V.scenes.length && starting) subs.push(`<button class="lnk" onclick="backToCast()">Revenir aux personnages</button>`);
+  return `${imagebar}<div class="controls">${voice}${go}</div>${t}${subs.length ? `<div class="subactions">${subs.join("")}</div>` : ""}`;
+}
+
+// --- Souvenirs : une image déjà vécue ---------------------------------------------------------------------------
+function openSouvenir(sid, pid) { souvenir = { sid, pid }; branchAt = null; editLine = null; render(); }
+function closeSouvenir() { souvenir = null; branchAt = null; editLine = null; render(); autoPropose(); }
+function startEdit(sid, line) { editLine = { sid, line }; branchAt = null; render(); const t = document.getElementById("edit-text"); if (t) t.focus(); }
+function startBranch(sid, line) { branchAt = { sid, line, label: "" }; editLine = null; render(); const t = document.getElementById("branch-label"); if (t) t.focus(); }
+
+function saveEdit() {
+  const s = scard(editLine.sid);
+  const line = s.dialogue[editLine.line];
+  const text = document.getElementById("edit-text").value;
+  const target = editLine;
+  act(async () => {
+    await api("POST", "/api/facile/dialogue/line", { scene: target.sid, line: target.line, speaker: line.speaker, text });
+    editLine = null;
+  }, "Réplique modifiée.");
+}
+
+function doBranch() {
+  const b = branchAt;
+  if (!b.label.trim()) { setMsg("Dites en quelques mots ce qui se passe autrement."); return render(); }
+  act(async () => {
+    await api("POST", "/api/recit/branch", { scene: b.sid, line: b.line, label: b.label });
+    souvenir = null; branchAt = null; P = null; pendingChoices = null;
+  }, "Nouvelle ligne de vie : à vous de la vivre.");
+}
+
+function backToCast() { starting = false; P = null; failed = null; render(); }
+function reopenLine(sid) { act(async () => { await api("POST", "/api/recit/reopen", { scene: sid }); P = null; }, "La ligne attend de nouveau sa suite."); }
+
+// --- Le fil : la ligne vécue, image par image -------------------------------------------------------------------
+function renderFil() {
+  const box = document.getElementById("fil");
+  if (phase() !== "stage" || replay || !V.scenes.length) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const items = pathItems().map((it) => {
+    if (it.kind === "choice") return `<span class="mark choice" title="Choix pris">${esc(it.label)}</span>`;
+    if (it.kind === "place") return `<span class="mark place">${esc(it.label)}</span>`;
+    const key = `plan:${it.sid}/${it.p.id}`;
+    const on = souvenir && souvenir.sid === it.sid && souvenir.pid === it.p.id;
+    const first = it.lines.find((l) => l.speaker !== NARR) || it.lines[0];
+    const cap = first ? (first.speaker === NARR ? first.text : `${first.speaker} : ${first.text}`) : "";
+    const img = it.p.image ? `<img src="${esc(it.p.image)}" alt="">`
+      : `<span class="noimg">${drawing.has(key) ? `<span class="spin" aria-hidden="true"></span>` : "à dessiner"}</span>`;
+    return `<button class="frame ${on ? "on" : ""}" onclick="openSouvenir('${esc(it.sid)}', '${esc(it.p.id)}')" title="${esc(cap)}">${img}<span class="cap">${esc(cap)}</span></button>`;
+  });
+  if ((P || thinking) && !souvenir) items.push(`<span class="frame next" aria-hidden="true">…</span>`);
+  box.innerHTML = `<div class="fil-strip" id="fil-strip">${items.join("")}</div>`;
+  const strip = document.getElementById("fil-strip");
+  if (!souvenir) strip.scrollLeft = strip.scrollWidth;
+}
+
+// --- La roue : les détails du moment -----------------------------------------------------------------------------
+function openDrawer() { drawerOpen = true; drawerFresh = true; render(); }
+function closeDrawer() { drawerOpen = false; render(); }
+
+function renderDrawer() {
+  const root = document.getElementById("drawer-root");
+  if (!drawerOpen || phase() !== "stage" || replay) { root.innerHTML = ""; return; }
+  const scroll = root.querySelector(".drawer-body") ? root.querySelector(".drawer-body").scrollTop : 0;
+  const panel = souvenir ? panelOf(souvenir.sid, souvenir.pid) : lastPanel();
+  const body = (!souvenir && P ? proposalDetails() : "") + (panel && (souvenir || !P) ? panelDetails(panel) : "")
+    + (!souvenir && P && panel ? `<div class="dsec"><button class="lnk" onclick="openSouvenir('${esc(panel.sid)}', '${esc(panel.p.id)}')">Régler l'image à l'écran</button></div>` : "")
+    + recitOptions();
+  root.innerHTML = `<div class="scrim" onclick="closeDrawer()"></div>
+    <aside class="drawer ${drawerFresh ? "enter" : ""}" role="dialog" aria-label="Réglages de ce moment">
+      <div class="drawer-head"><h2>${souvenir ? "Cette image" : P ? "Ce moment" : "Le récit"}</h2><button class="btn quiet" onclick="closeDrawer()">Fermer</button></div>
+      <div class="drawer-body">${body}</div></aside>`;
+  drawerFresh = false;
+  root.querySelector(".drawer-body").scrollTop = scroll;
+}
+
+function locationOf(name) { return V.locations.find((l) => l.name === name) || null; }
+
+function proposalDetails() {
+  const cast = V.characters.map((c) => c.name);
+  const present = cast.map((n) => `<button class="chip ${P.present.includes(n) ? "on" : ""}" data-name="${esc(n)}" onclick="togglePresent(this.dataset.name)">${esc(n)}</button>`).join("");
+  const place = P.location ? P.location.name : (scard(cur()) || {}).location;
+  const views = (locationOf(place) || { viewpoints: [] }).viewpoints || [];
+  const visible = P.present.map((n) => `<button class="chip ${P.image.visible.includes(n) ? "on" : ""}" data-name="${esc(n)}" onclick="toggleVisible(this.dataset.name)">${esc(n)}</button>`).join("");
+  const wearing = (scard(cur()) && rs(cur()) ? rs(cur()).outfits : {}) || {};
+  const outfits = P.present.filter((n) => (V.recit.wardrobe[n] || []).length).map((n) => `<label class="field">${esc(n)}
+      <select data-name="${esc(n)}" onchange="setProposalOutfit(this.dataset.name, this.value)">
+        <option value="">${wearing[n] ? `Tenue actuelle : ${esc(wearing[n])}` : "Tenue par défaut"}</option>
+        ${V.recit.wardrobe[n].map((o) => `<option ${(P.outfits || {})[n] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`).join("");
+  return `<div class="dsec"><h3>Qui est là ?</h3><div class="chips">${present || `<span class="note">Aucun personnage.</span>`}</div></div>
+    <div class="dsec"><h3>Le lieu</h3>
+      ${P.location ? `<label class="field">Nouveau lieu<input id="d-loc" type="text" value="${esc(P.location.name)}" oninput="P.location.name=this.value"></label>
+          <label class="field">Décor<textarea id="d-locdesc" rows="2" oninput="P.location.description=this.value">${esc(P.location.description || "")}</textarea></label>
+          ${cur() ? `<div class="row"><button class="btn quiet" onclick="stayHere()">Rester ici</button></div>` : ""}`
+        : `<p class="note" style="margin:4px 0 0">On reste ici : ${esc(place || "")}.</p><div class="row"><button class="btn quiet" onclick="moveAway()">Changer de lieu</button></div>`}</div>
+    <div class="dsec"><h3>L'image</h3>
+      <div class="chips"><button class="chip ${P.image.keep ? "on" : ""}" onclick="setKeep(true)" ${P.image.can_keep ? "" : "disabled"}>Garder l'image</button>
+        <button class="chip ${P.image.keep ? "" : "on"}" onclick="setKeep(false)">Nouvelle image</button></div>
+      ${P.image.keep ? `<p class="note">L'image à l'écran continue : rien n'est dessiné.</p>` : `
+        <label class="field">Ce que l'on voit<textarea id="d-shot" rows="3" oninput="P.image.shot=this.value">${esc(P.image.shot)}</textarea></label>
+        <div class="setrow"><label class="field" style="margin:0">Cadrage<select onchange="P.image.framing=this.value; render()">${V.recit.framings.map((f) => `<option value="${f}" ${P.image.framing === f ? "selected" : ""}>${esc(FRAMING_LABEL[f] || f)}</option>`).join("")}</select></label>
+          <label class="field" style="margin:0">Point de vue<select onchange="P.image.viewpoint=this.value">
+            <option value="">Le lieu lui-même</option>${views.map((v) => `<option ${P.image.viewpoint === v.name ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label></div>
+        <label class="field">Personnages visibles</label><div class="chips">${visible || `<span class="note">Personne.</span>`}</div>`}
+    </div>
+    ${outfits ? `<div class="dsec"><h3>Tenues</h3><p class="note" style="margin:2px 0 0">Une autre tenue demande une nouvelle image.</p>${outfits}</div>` : ""}
+    ${(P.choices || []).length ? `<div class="dsec"><h3>Choix après ce moment</h3><div class="chips">${P.choices.map((c, i) => `<button class="chip on" onclick="P.choices.splice(${i}, 1); render()" title="Retirer ce choix">${esc(c)} ×</button>`).join("")}</div></div>` : ""}`;
+}
+
+function togglePresent(name) {
+  P.present = P.present.includes(name) ? P.present.filter((n) => n !== name) : [...P.present, name];
+  P.image.visible = P.image.visible.filter((n) => P.present.includes(n));
+  render();
+}
+function toggleVisible(name) {
+  P.image.visible = P.image.visible.includes(name) ? P.image.visible.filter((n) => n !== name) : [...P.image.visible, name];
+  render();
+}
+function setProposalOutfit(name, value) {
+  P.outfits = { ...(P.outfits || {}) };
+  if (value) { P.outfits[name] = value; P.image.keep = false; } else delete P.outfits[name];
+  render();
+}
+function stayHere() { P.location = null; P.image.can_keep = !!lastPanel(); render(); }
+function moveAway() { P.location = { name: "", description: "" }; P.image.keep = false; P.image.can_keep = false; render(); }
+
+function panelDetails(panel) {
+  const { s, p } = panel;
+  const r = rs(s.id) || {};
+  const info = planInfo(s.id, p.id);
+  const shared = info.shared;
+  const loc = locationOf(s.location);
+  const views = loc ? [{ aid: "", name: `${loc.name} (le lieu)` }, ...(loc.viewpoints || [])] : [];
+  const prompt = promptDraft[p.aid] !== undefined ? promptDraft[p.aid] : (p.prompt || "");
+  const refsAuto = (p.refs.auto || []).map((a) => `<button class="ref ${a.excluded ? "off" : ""}" data-key="${esc(a.key)}" onclick="toggleRef(this.dataset.key)" title="${a.excluded ? "Utiliser cette référence" : "Ne pas utiliser cette référence"}">
+      ${a.image ? `<img src="${esc(a.image)}" alt="">` : `<span class="none">à dessiner</span>`}<span>${esc(a.label)}</span></button>`).join("");
+  const refsExtra = (p.refs.extra || []).map((ref) => {
+    const c = (V.ref_choices || []).find((x) => x.ref === ref) || { label: ref, image: null };
+    return `<div class="ref">${c.image ? `<img src="${esc(c.image)}" alt="">` : `<span class="none">?</span>`}<span>${esc(c.label)}</span>
+      <button class="x" data-ref="${esc(ref)}" onclick="removeExtra(this.dataset.ref)" aria-label="Retirer cette référence">×</button></div>`;
+  }).join("");
+  const addable = (V.ref_choices || []).filter((c) => c.ref !== p.aid && !(p.refs.extra || []).includes(c.ref) && c.image);
+  const outfits = (s.characters || []).filter((n) => (V.recit.wardrobe[n] || []).length).map((n) => `<label class="field">${esc(n)}
+      <select data-name="${esc(n)}" onchange="setSceneOutfit(this.dataset.name, this.value)">
+        <option value="">Tenue par défaut</option>
+        ${V.recit.wardrobe[n].map((o) => `<option ${(r.outfits || {})[n] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`).join("");
+  const loras = (p.loras || []).map((l, i) => `<div class="lora-row"><span>${esc(l.name)}</span>
+      <input type="number" step="0.1" value="${l.strength}" onchange="setLora(${i}, this.value)" aria-label="Force">
+      <button class="lnk" onclick="removeLora(${i})">Retirer</button></div>`).join("");
+  const images = reusableImages().filter((it) => it.aid !== p.aid);
+  return `<div class="dsec"><h3>Ce que l'on voit</h3>
+      ${shared ? `<p class="note" style="margin:2px 0 6px">Image gardée d'un moment précédent : vos réglages vaudront pour ce moment seul, au prochain dessin.</p>` : ""}
+      <textarea id="d-panel-shot" rows="3">${esc(p.text || "")}</textarea>
+      <div class="row"><button class="btn quiet" onclick="savePanelShot()">Enregistrer</button></div>
+      <div class="setrow"><label class="field" style="margin:0">Cadrage<select onchange="setPanelShot({ framing: this.value })">
+          ${info.framing ? "" : `<option value="" selected>Libre</option>`}${V.recit.framings.map((f) => `<option value="${f}" ${info.framing === f ? "selected" : ""}>${esc(FRAMING_LABEL[f] || f)}</option>`).join("")}</select></label>
+        ${views.length > 1 ? `<label class="field" style="margin:0">Point de vue<select onchange="setPanelShot({ viewpoint: this.value })">${views.map((v) => `<option value="${esc(v.aid)}" ${(p.viewpoint || "") === v.aid ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>` : ""}</div>
+      <label class="field">Personnages visibles</label>
+      <div class="chips">${(s.characters || []).map((n) => `<button class="chip ${(p.characters || []).includes(n) ? "on" : ""}" data-name="${esc(n)}" onclick="togglePanelCharacter(this.dataset.name)">${esc(n)}</button>`).join("") || `<span class="note">Personne dans cette scène.</span>`}</div>
+    </div>
+    ${outfits ? `<div class="dsec"><h3>Tenues dans cette scène</h3>${outfits}</div>` : ""}
+    <div class="dsec"><h3>Références</h3>
+      <p class="note" style="margin:2px 0 0">Les images qui guident le dessin. Touchez-en une pour l'écarter ou la reprendre.</p>
+      <div class="refs">${refsAuto}${refsExtra}</div>
+      ${(p.refs.missing || []).length ? `<p class="note">Dessinés d'abord, au moment du dessin : ${esc(p.refs.missing.join(" ; "))}</p>` : ""}
+      <label class="check"><input type="checkbox" ${p.continuity ? "checked" : ""} onchange="setContinuity(this.checked)"> Suivre l'image précédente (mêmes personnes, même tenue)</label>
+      ${addable.length ? `<p class="note" style="margin:10px 0 0">Ajouter une référence :</p><div class="pick-strip">${addable.map((c) => `<button class="pick" data-ref="${esc(c.ref)}" onclick="addExtra(this.dataset.ref)" title="${esc(c.label)}"><img src="${esc(c.image)}" alt="${esc(c.label)}"></button>`).join("")}</div>` : ""}
+    </div>
+    <div class="dsec"><h3>Prompt</h3>
+      <p class="note" style="margin:2px 0 6px">${shared ? "Cette image vient d'un moment précédent : la redessiner lui donnera la sienne." : "Le texte envoyé au moteur d'image, en anglais."}</p>
+      <textarea id="d-prompt" rows="6" oninput="promptDraft['${esc(p.aid)}']=this.value">${esc(prompt)}</textarea>
+      <div class="row"><button class="btn quiet" onclick="suggestPanelPrompt()">Proposer un prompt</button>
+        ${shared ? "" : `<button class="btn quiet" onclick="savePanelPrompt()">Enregistrer</button>`}</div>
+    </div>
+    ${(V.lora_names || []).length && !shared ? `<div class="dsec"><h3>LoRA</h3><p class="note" style="margin:2px 0 0">Avec ComfyUI seulement.</p>${loras}
+      <div class="row"><select id="lora-add" style="flex:1">${V.lora_names.map((n) => `<option>${esc(n)}</option>`).join("")}</select><button class="btn quiet" onclick="addLora()">Ajouter</button></div></div>` : ""}
+    ${images.length ? `<div class="dsec"><h3>Reprendre une image existante</h3><p class="note" style="margin:2px 0 0">Aucun dessin : une copie de l'image choisie devient celle de ce moment.</p>
+      <div class="pick-strip">${images.map((it, i) => `<button class="pick" onclick="useImage(${i})" title="${esc(it.label)}"><img src="${esc(it.image)}" alt="${esc(it.label)}"></button>`).join("")}</div></div>` : ""}
+    <div class="dsec"><div class="row" style="margin-top:0"><button class="btn primary" onclick="drawFromDrawer()" ${drawing.has(`plan:${s.id}/${p.id}`) ? "disabled" : ""}>${p.image ? "Redessiner cette image" : "Dessiner cette image"}</button></div></div>`;
+}
+
+function recitOptions() {
+  return `<div class="dsec"><h3>Le récit</h3>
+    <label class="check"><input type="checkbox" ${V.recit.auto_draw ? "checked" : ""} onchange="setAutoDraw(this.checked)"> Dessiner chaque nouvelle image dès que le moment est gardé</label>
+    <div class="row"><button class="btn quiet" onclick="openOverlay('frame')">Le cadre</button>
+      <button class="btn quiet" onclick="openOverlay('cast')">Les personnages</button>
+      <button class="btn quiet" onclick="openSettings()">Modèles et moteurs</button>
+      <a class="btn quiet" href="/atelier" target="_blank" rel="noopener">Ouvrir l'atelier</a></div></div>`;
+}
+
+function focusPanel() { return souvenir ? panelOf(souvenir.sid, souvenir.pid) : lastPanel(); }
+
+// Réglages d'une seule image : une image gardée d'un moment précédent n'est jamais modifiée.
+function setPanelShot(values) {
+  const { s, p } = focusPanel();
+  delete promptDraft[p.aid];
+  act(() => api("POST", "/api/recit/shot", { scene: s.id, plan: p.id, ...values }),
+    "Enregistré : redessinez l'image pour voir le changement.");
+}
+function savePanelShot() { setPanelShot({ note: document.getElementById("d-panel-shot").value }); }
+function togglePanelCharacter(name) {
+  const { p } = focusPanel();
+  const now = p.characters || [];
+  const next = now.includes(name) ? now.filter((n) => n !== name) : [...now, name];
+  if (!next.length) { setMsg("Une image montre au moins un personnage."); return render(); }
+  setPanelShot({ characters: next });
+}
+function setSceneOutfit(name, outfit) {
+  const { s } = focusPanel();
+  act(() => api("POST", "/api/recit/outfit", { scene: s.id, character: name, outfit }), "Tenue enregistrée pour cette scène.");
+}
+function setContinuity(on) {
+  const { s, p } = focusPanel();
+  act(() => api("POST", "/api/facile/plan/continuity", { scene: s.id, plan: p.id, on }));
+}
+function saveRefs(exclude, extra, okText) {
+  const { s, p } = focusPanel();
+  act(() => api("POST", "/api/facile/plan/refs", { scene: s.id, plan: p.id, exclude, extra }), okText);
+}
+function toggleRef(key) {
+  const { p } = focusPanel();
+  const excluded = (p.refs.auto || []).filter((a) => a.excluded).map((a) => a.key);
+  const next = excluded.includes(key) ? excluded.filter((k) => k !== key) : [...excluded, key];
+  saveRefs(next, p.refs.extra || [], "Références mises à jour.");
+}
+function addExtra(ref) {
+  const { p } = focusPanel();
+  saveRefs((p.refs.auto || []).filter((a) => a.excluded).map((a) => a.key), [...(p.refs.extra || []), ref], "Référence ajoutée.");
+}
+function removeExtra(ref) {
+  const { p } = focusPanel();
+  saveRefs((p.refs.auto || []).filter((a) => a.excluded).map((a) => a.key), (p.refs.extra || []).filter((x) => x !== ref), "Référence retirée.");
+}
+function suggestPanelPrompt() {
+  const { p } = focusPanel();
+  thinking = true; thinkLabel = "Rédaction du prompt…"; render();
+  api("POST", "/api/facile/prompt/suggest", { kind: "plan", id: p.aid })
+    .then((out) => { promptDraft[p.aid] = out.prompt; setMsg("Prompt proposé : modifiez-le si besoin.", true); })
+    .catch((e) => setMsg(e.message))
+    .finally(() => { thinking = false; render(); });
+}
+function savePanelPrompt() {
+  const { p } = focusPanel();
+  const prompt = document.getElementById("d-prompt").value;
+  act(async () => { await api("POST", `/api/asset/${encodeURIComponent(p.aid)}`, { prompt }); delete promptDraft[p.aid]; }, "Prompt enregistré.");
+}
+function drawFromDrawer() {
+  const { s, p } = focusPanel();
+  const prompt = promptDraft[p.aid];
+  delete promptDraft[p.aid];
+  drawPlan(s.id, p.id, prompt !== undefined && prompt.trim() ? prompt : null);
+}
+function setLora(i, value) {
+  const { p } = focusPanel();
+  act(() => api("POST", "/api/facile/asset/loras", { asset: p.aid, loras: p.loras.map((l, j) => (j === i ? { ...l, strength: Number(value) } : l)) }), "LoRA réglé.");
+}
+function removeLora(i) {
+  const { p } = focusPanel();
+  act(() => api("POST", "/api/facile/asset/loras", { asset: p.aid, loras: p.loras.filter((_, j) => j !== i) }), "LoRA retiré.");
+}
+function addLora() {
+  const { p } = focusPanel();
+  const name = document.getElementById("lora-add").value;
+  act(() => api("POST", "/api/facile/asset/loras", { asset: p.aid, loras: [...(p.loras || []), { name, strength: 1.0, clip: false }] }), "LoRA ajouté.");
+}
+function reusableImages() {
+  const items = [];
+  for (const s of V.scenes) for (const p of s.plans) if (p.image && p.aid) items.push({ aid: p.aid, candidate: p.candidate ?? 0, image: p.image, label: s.location || s.title });
+  for (const l of V.locations) {
+    if (l.image && l.aid) items.push({ aid: l.aid, candidate: l.candidate ?? 0, image: l.image, label: l.name });
+    for (const v of l.viewpoints || []) if (v.image) items.push({ aid: v.aid, candidate: v.candidate ?? 0, image: v.image, label: v.name });
+  }
+  return items;
+}
+function useImage(i) {
+  const { s, p } = focusPanel();
+  const it = reusableImages().filter((x) => x.aid !== p.aid)[i];
+  if (!it) return;
+  act(() => api("POST", "/api/facile/plan/copy-image", { scene: s.id, plan: p.id, source: it.aid, candidate: Number(it.candidate) }),
+    "Cette image est maintenant celle du moment.");
+}
+function setAutoDraw(on) { act(() => api("POST", "/api/recit/options", { auto_draw: on }), on ? "Chaque nouvelle image se dessinera toute seule." : "Les images se dessinent à la demande."); }
+
+// --- Le cadre -----------------------------------------------------------------------------------------------------
+function frameHtml(inWindow) {
+  const locked = V.scenes.length > 0;
+  const styles = (V.styles || []).map((s) => `<button class="style ${frameDraft.style === s.key ? "on" : ""}" data-key="${esc(s.key)}"
+      onclick="frameDraft.style=this.dataset.key; render()" ${locked && frameDraft.style !== s.key ? "disabled" : ""}><strong>${esc(s.name)}</strong><span>${esc(s.desc)}</span></button>`).join("");
+  const ambiances = (V.recit.ambiances || []).map((a) => `<button class="chip ${frameDraft.ambiance === a ? "on" : ""}" data-a="${esc(a)}" onclick="frameDraft.ambiance=this.dataset.a; render()">${esc(a)}</button>`).join("");
+  return `<section class="sheet-body">
+    ${inWindow ? "" : `<h2 class="h">Le cadre de votre histoire</h2>
+    <p class="lead">Posez le décor du jeu. Ensuite, l'histoire s'écrit devant vous, moment après moment, et vous y répondez.</p>`}
+    <label class="field">Titre<input id="f-title" type="text" value="${esc(frameDraft.title)}" placeholder="Par exemple : Le train de minuit" oninput="frameDraft.title=this.value"></label>
+    <label class="field">De quoi parle l'histoire ?<textarea id="f-idea" rows="4" placeholder="Quelques phrases : qui, où, quel enjeu." oninput="frameDraft.idea=this.value">${esc(frameDraft.idea)}</textarea></label>
+    <label class="field">Ambiance<input id="f-amb" type="text" value="${esc(frameDraft.ambiance)}" placeholder="Par exemple : mystérieuse, sous la pluie" oninput="frameDraft.ambiance=this.value"></label>
+    <div class="chips">${ambiances}</div>
+    <label class="field">Style des images</label>
+    <div class="styles">${styles}</div>
+    ${locked ? `<p class="note">L'histoire a commencé : le style des images ne change plus.</p>` : ""}
+    <div class="row"><button class="btn primary" onclick="saveFrame(${inWindow})" ${saving ? "disabled" : ""}>${inWindow ? "Enregistrer le cadre" : "Préparer les personnages"}</button></div>
+  </section>`;
+}
+
+function saveFrame(inWindow) {
+  if (!frameDraft.idea.trim()) { setMsg("Racontez en quelques mots de quoi parle l'histoire."); return render(); }
+  if (!frameDraft.style) { setMsg("Choisissez le style des images."); return render(); }
+  act(async () => {
+    await api("POST", "/api/recit/frame", frameDraft);
+    if (inWindow) overlay = null;
+  }, inWindow ? "Cadre enregistré." : "");
+}
+
+// --- Les personnages ------------------------------------------------------------------------------------------------
+function castHtml(inWindow) {
+  const people = V.characters.map((c) => {
+    const busy = drawing.has(`card:${c.aid}`);
+    return `<article class="person">
+      <div class="portrait">${c.image ? `<img src="${esc(c.image)}" alt="${esc(c.name)}" data-zoom>` : "Pas encore de portrait"}
+        ${busy ? `<div class="working"><span class="spin" aria-hidden="true"></span></div>` : ""}</div>
+      <div class="pbody"><h3>${esc(c.name)}</h3>
+        <p class="sub">${esc(GENDER_LABEL[c.descriptor] || "Genre et âge à préciser")}${c.default_name ? ` · ${esc(c.default_name)}` : ""}</p>
+        <p class="desc">${esc(c.description || "")}</p>
+        <div class="row"><button class="btn quiet" onclick="drawCard('${esc(c.aid)}')" ${busy || !c.descriptor ? "disabled" : ""}>${c.ready ? "Refaire" : "Dessiner"}</button>
+          <a class="lnk" href="/atelier#garde=${encodeURIComponent(c.aid)}" target="_blank" rel="noopener">Garde-robe</a></div>
+      </div></article>`;
+  }).join("");
+  const proposals = (castProposal || []).map((c, i) => `<div class="proposal"><h3>${esc(c.name)}</h3>
+      <label class="field">Description<textarea id="cp-desc-${i}" rows="2">${esc(c.description)}</textarea></label>
+      <label class="field">Genre et âge<select id="cp-genre-${i}"><option value="">À choisir</option>
+        ${GENDER.map((g) => `<option value="${g}" ${c.descriptor === g ? "selected" : ""}>${GENDER_LABEL[g]}</option>`).join("")}</select></label>
+      <div class="row"><button class="btn primary" onclick="acceptCharacter(${i})">Accepter</button><button class="btn quiet" onclick="castProposal.splice(${i}, 1); render()">Refuser</button></div></div>`).join("");
+  return `<section class="sheet-body">
+    ${inWindow ? "" : `<h2 class="h">Vos personnages</h2>
+    <p class="lead">L'IA en propose ; gardez ceux qui vous plaisent. Leur portrait peut attendre : il se dessinera avant leur première image.</p>`}
+    ${people ? `<div class="people">${people}</div>` : `<p class="note">Personne pour l'instant.</p>`}
+    ${proposals}
+    <div class="row"><button class="btn ${V.characters.length ? "quiet" : "primary"}" onclick="proposeCast()" ${thinking ? "disabled" : ""}>${castProposal ? "D'autres propositions" : "Proposer des personnages"}</button>
+      ${inWindow ? "" : `<button class="btn ${V.characters.length ? "primary" : "quiet"}" onclick="startStory()" ${V.characters.length ? "" : "disabled"}>Commencer l'histoire</button>`}
+      ${inWindow ? "" : `<button class="lnk" onclick="frameDraft=null; editFrame()">Revoir le cadre</button>`}</div>
+    <details class="manual"><summary>Ajouter un personnage à la main</summary>
+      <label class="field">Nom<input id="m-name" type="text"></label>
+      <label class="field">Description<textarea id="m-desc" rows="2" placeholder="Apparence et rôle"></textarea></label>
+      <label class="field">Genre et âge<select id="m-genre"><option value="">À choisir</option>${GENDER.map((g) => `<option value="${g}">${GENDER_LABEL[g]}</option>`).join("")}</select></label>
+      <div class="row"><button class="btn primary" onclick="addManual()">Ajouter</button></div></details>
+  </section>`;
+}
+
+async function proposeCast() {
+  thinking = true; thinkLabel = "L'IA imagine des personnages…"; render();
+  try {
+    const out = await api("POST", "/api/atelier/characters/propose", { idea: [V.idea, V.recit.ambiance].filter(Boolean).join(" — Ambiance : "),
+      existing: V.characters.map((c) => c.name), count: 3 });
+    castProposal = out.characters;
+  } catch (e) { setMsg(e.message); }
+  thinking = false; render();
+}
+
+function acceptCharacter(i) {
+  const c = castProposal[i];
+  const description = document.getElementById(`cp-desc-${i}`).value;
+  const descriptor = document.getElementById(`cp-genre-${i}`).value;
+  act(async () => {
+    await api("POST", "/api/atelier/characters/add", { name: c.name, description, descriptor });
+    castProposal.splice(i, 1);
+    if (!castProposal.length) castProposal = null;
+  }, `${c.name} rejoint l'histoire.`);
+}
+
+function addManual() {
+  const name = document.getElementById("m-name").value.trim();
+  if (!name) { setMsg("Donnez un nom au personnage."); return render(); }
+  const description = document.getElementById("m-desc").value;
+  const descriptor = document.getElementById("m-genre").value;
+  act(() => api("POST", "/api/atelier/characters/add", { name, description, descriptor }), `${name} rejoint l'histoire.`);
+}
+
+function startStory() { starting = true; failed = null; P = null; setMsg(""); render(); autoPropose(); }
+function editFrame() { V.idea = ""; frameDraft = { title: V.title || "", idea: "", ambiance: V.recit.ambiance || "", style: V.style ? V.style.key : "" }; load(); }
+
+// --- Fenêtres --------------------------------------------------------------------------------------------------------
+function openOverlay(name) { overlay = name; mapSel = null; joinFrom = null; joinTarget = null; if (name === "frame") frameDraft = null; load(); }
+function closeOverlay() { overlay = null; settings = null; joinFrom = null; joinTarget = null; if (cy) { cy.destroy(); cy = null; } render(); autoPropose(); }
+
+function renderOverlay() {
+  const root = document.getElementById("overlay-root");
+  if (!overlay) { root.innerHTML = ""; return; }
+  if (overlay === "settings") { root.innerHTML = settings ? settingsHtml() : ""; return; }
+  if (overlay === "map") {
+    root.innerHTML = `<div class="overlay" onclick="if (event.target === this) closeOverlay()">
+      <div class="window map" role="dialog" aria-label="Lignes de vie">
+        <div class="window-head"><h2>Lignes de vie</h2><button class="btn quiet" onclick="closeOverlay()">Fermer</button></div>
+        <div class="map-grid"><div id="lifemap"></div><aside class="map-side" id="map-side">${mapSideHtml()}</aside></div></div></div>`;
+    setTimeout(mountMap, 0);
+    return;
+  }
+  const title = overlay === "cast" ? "Les personnages" : "Le cadre";
+  root.innerHTML = `<div class="overlay" onclick="if (event.target === this) closeOverlay()">
+    <div class="window" role="dialog" aria-label="${title}">
+      <div class="window-head"><h2>${title}</h2><button class="btn quiet" onclick="closeOverlay()">Fermer</button></div>
+      <div class="window-body">${msgHtml()}${overlay === "cast" ? castHtml(true) : frameHtml(true)}</div></div></div>`;
+}
+
+// --- La carte des lignes de vie ----------------------------------------------------------------------------------------
+function firstImage(sid) {
+  const s = scard(sid);
+  return s ? (sortedPlans(s).map((p) => p.image).find(Boolean) || "") : "";
+}
+
+function mountMap() {
+  const box = document.getElementById("lifemap");
+  if (!box || !window.cytoscape) return;
+  const g = V.recit.graph;
+  const lived = new Set((V.recit.path || []).map((x) => x.scene));
+  const ids = new Set(g.nodes.map((n) => n.id));
+  const elements = g.nodes.map((n) => {
+    const r = rs(n.id) || {};
+    const title = n.title.length > 26 ? n.title.slice(0, 25) + "…" : n.title;
+    const cls = [r.open ? "open" : "", n.ending ? "ending" : "", n.id === cur() ? "current" : "", n.reachable ? "" : "lost",
+      lived.has(n.id) ? "lived" : "", n.id === mapSel ? "sel" : ""].filter(Boolean).join(" ");
+    return { data: { id: n.id, label: title || n.id, img: firstImage(n.id) }, classes: cls };
+  });
+  g.edges.forEach((e, i) => { if (ids.has(e.target)) elements.push({ data: { id: `e${i}`, source: e.source, target: e.target, label: e.label || "" }, classes: e.kind }); });
+  if (cy) cy.destroy();
+  cy = cytoscape({
+    container: box, elements, autoungrabify: true,
+    layout: { name: "breadthfirst", directed: true, roots: g.start ? [g.start] : undefined, spacingFactor: 1.1, animate: false },
+    style: [
+      { selector: "node", style: { shape: "round-rectangle", width: 132, height: 74, "background-color": "#252B3B", "background-fit": "cover",
+        "border-width": 2, "border-color": "#A9B0C2", label: "data(label)", color: "#F2EDE3", "font-size": 13, "font-family": "Hanken Grotesk, sans-serif",
+        "text-valign": "bottom", "text-margin-y": 8, "text-wrap": "ellipsis", "text-max-width": 150 } },
+      { selector: 'node[img != ""]', style: { "background-image": "data(img)" } },
+      { selector: "node.lived", style: { "border-color": "#F2EDE3" } },
+      { selector: "node.open", style: { "border-color": "#E0A526", "border-style": "dashed", "border-width": 4 } },
+      { selector: "node.ending", style: { "border-style": "double", "border-width": 6, "border-color": "#F2EDE3" } },
+      { selector: "node.current", style: { "underlay-color": "#E0A526", "underlay-opacity": 0.45, "underlay-padding": 9, "underlay-shape": "round-rectangle" } },
+      { selector: "node.lost", style: { opacity: 0.4 } },
+      { selector: "node.sel", style: { "border-color": "#D9512C", "border-width": 5, "border-style": "solid" } },
+      { selector: "edge", style: { width: 2, "line-color": "#A9B0C2", "target-arrow-color": "#A9B0C2", "target-arrow-shape": "triangle", "curve-style": "bezier", "arrow-scale": 0.9 } },
+      { selector: "edge.choice", style: { "line-color": "#D9512C", "target-arrow-color": "#D9512C", label: "data(label)", "font-size": 12, color: "#F2EDE3",
+        "text-background-color": "#1A1E2A", "text-background-opacity": 1, "text-background-padding": 3, "text-wrap": "ellipsis", "text-max-width": 160 } },
+    ],
+  });
+  // Le temps va de gauche à droite : la mise en page verticale est tournée d'un quart de tour.
+  cy.nodes().positions((n) => ({ x: n.position("y") * 1.7, y: n.position("x") * 0.85 }));
+  cy.fit(undefined, 40);
+  cy.on("tap", "node", (ev) => mapTap(ev.target.id()));
+}
+
+function mapTap(id) {
+  if (joinFrom && !joinTarget) {
+    if (id === joinFrom) return;
+    joinTarget = id;
+  } else if (!joinFrom) {
+    mapSel = id;
+  }
+  if (cy) { cy.nodes().removeClass("sel"); cy.getElementById(joinTarget || mapSel).addClass("sel"); }
+  document.getElementById("map-side").innerHTML = mapSideHtml();
+}
+
+function titleOf(sid) { const s = scard(sid); return s ? s.title : sid; }
+
+function mapSideHtml() {
+  if (joinFrom) {
+    if (!joinTarget) return `<h3>Rassembler deux lignes</h3><p>Touchez sur la carte la scène où « ${esc(titleOf(joinFrom))} » rejoint une autre ligne.</p>
+      <div class="stack"><button class="btn quiet" onclick="cancelJoin()">Annuler</button></div>`;
+    const s = scard(joinTarget);
+    const moments = sortedPlans(s).map((p) => {
+      const line = s.dialogue[p.from_line];
+      return `<button class="ref" onclick="doJoin(${p.from_line})" title="${esc(line ? line.text : "")}">${p.image ? `<img src="${esc(p.image)}" alt="">` : `<span class="none">sans image</span>`}
+        <span>${p.from_line === 0 ? "Au début" : esc(line ? line.text : "")}</span></button>`;
+    }).join("");
+    return `<h3>Rejoindre « ${esc(s.title)} »</h3><p class="note">À quel moment la ligne arrive-t-elle ? La suite sera commune aux deux lignes.</p>
+      <div class="moments">${moments || `<button class="btn" onclick="doJoin(0)">Au début</button>`}</div>
+      <div class="stack"><button class="btn quiet" onclick="joinTarget=null; mapTap(joinFrom)">Choisir une autre scène</button><button class="btn quiet" onclick="cancelJoin()">Annuler</button></div>`;
+  }
+  if (mapSel) {
+    const s = scard(mapSel);
+    const r = rs(mapSel) || {};
+    if (!s) return "";
+    const state = r.open ? "Ligne ouverte : elle attend sa suite." : r.ending ? "Une fin de l'histoire." : r.choices.length ? "Un choix." : r.next ? `Continue vers « ${esc(titleOf(r.next))} ».` : "";
+    const actions = [];
+    if (r.open) actions.push(`<button class="btn primary" onclick="liveHere('${esc(s.id)}', false)">${s.id === cur() ? "Continuer cette ligne" : "Vivre cette ligne"}</button>`);
+    else if (r.next || r.choices.length) actions.push(`<button class="btn" onclick="liveHere('${esc(s.id)}', true)">Aller jusqu'au prochain choix</button>`);
+    if (r.open && r.return_to && scard(r.return_to) && s.dialogue.length) actions.push(`<button class="btn" onclick="joinNow('${esc(s.id)}', '${esc(r.return_to)}')">Revenir au fil : « ${esc(titleOf(r.return_to))} »</button>`);
+    if (r.open && s.dialogue.length) actions.push(`<button class="btn" onclick="startJoin('${esc(s.id)}')">Rejoindre une autre ligne…</button>`);
+    if (r.open && s.dialogue.length) actions.push(`<button class="btn quiet" onclick="mapAct('finish', '${esc(s.id)}')">Terminer ici (une fin)</button>`);
+    if (r.ending || (r.next && !r.choices.length && V.recit.graph.edges.some((e) => e.source === s.id && e.kind === "next") && r.next !== nextInOrder(s.id)))
+      actions.push(`<button class="btn quiet" onclick="mapAct('reopen', '${esc(s.id)}')">Rouvrir cette ligne</button>`);
+    const choices = r.choices.map((c) => `<label class="field" style="margin-top:8px">Vers « ${esc(titleOf(c.target))} »
+        <input type="text" maxlength="60" value="${esc(c.label)}" data-target="${esc(c.target)}" onchange="renameChoice('${esc(s.id)}', this.dataset.target, this.value)"></label>`).join("");
+    return `<p class="note" style="margin:0">${esc(s.location || "")}</p><h3>${esc(s.title)}</h3>
+      <p class="note">${s.dialogue.length} réplique${s.dialogue.length > 1 ? "s" : ""}. ${state}</p>
+      <div class="stack">${actions.join("")}</div>
+      ${choices ? `<h4>Libellés des choix</h4>${choices}` : ""}
+      <div class="stack"><button class="lnk" onclick="mapSel=null; mapTap(null)">Retour à la vue d'ensemble</button></div>`;
+  }
+  const opens = Object.entries(V.recit.scenes).filter(([, r]) => r.open).map(([id]) => id);
+  return `<h3>Vos lignes</h3>
+    <p class="note">Chaque choix ouvre des lignes ; une ligne peut en rejoindre une autre. Touchez une scène pour agir.</p>
+    ${opens.length ? `<h4>À vivre</h4><div class="stack">${opens.map((id) => `<button class="btn ${id === cur() ? "primary" : ""}" onclick="liveHere('${esc(id)}', false)">${esc(titleOf(id))}${id === cur() ? " (en cours)" : ""}</button>`).join("")}</div>` : `<p>Aucune ligne ouverte.</p>`}
+    <div class="stack"><button class="btn quiet" onclick="closeOverlay(); startReplay()">Rejouer depuis le début</button></div>
+    <div class="legend"><span><i style="border-color:#E0A526;border-style:dashed"></i>Ligne qui attend sa suite</span>
+      <span><i style="border-style:double;border-width:4px"></i>Une fin</span>
+      <span><i style="background:#D9512C;border-color:#D9512C;height:4px"></i>Un choix</span>
+      <span><i style="background:#E0A526;opacity:.6"></i>Là où vous êtes</span></div>`;
+}
+
+function nextInOrder(sid) {
+  const ids = V.scenes.map((s) => s.id);
+  const i = ids.indexOf(sid);
+  return i >= 0 && i + 1 < ids.length ? ids[i + 1] : null;
+}
+
+function liveHere(sid, follow) {
+  act(async () => {
+    await api("POST", "/api/recit/current", { scene: sid, follow });
+    overlay = null; P = null; pendingChoices = null; souvenir = null; failed = null;
+    if (cy) { cy.destroy(); cy = null; }
+  });
+}
+function startJoin(sid) { joinFrom = sid; joinTarget = null; mapSel = null; document.getElementById("map-side").innerHTML = mapSideHtml(); }
+function cancelJoin() { joinFrom = null; joinTarget = null; if (cy) cy.nodes().removeClass("sel"); document.getElementById("map-side").innerHTML = mapSideHtml(); }
+function doJoin(line) { joinNow(joinFrom, joinTarget, line); }
+function joinNow(sid, target, line = 0) {
+  act(async () => {
+    await api("POST", "/api/recit/rejoin", { scene: sid, target, line });
+    joinFrom = null; joinTarget = null; mapSel = null; P = null; pendingChoices = null;
+  }, "Les deux lignes se rejoignent.");
+}
+function mapAct(kind, sid) {
+  act(async () => { await api("POST", `/api/recit/${kind}`, { scene: sid }); P = null; mapSel = sid; },
+    kind === "finish" ? "Cette ligne se termine ici." : "La ligne attend de nouveau sa suite.");
+}
+function renameChoice(sid, target, label) { act(() => api("POST", "/api/recit/label", { scene: sid, target, label }), "Libellé enregistré."); }
+
+// --- Rejouer : lire une ligne comme le jeu, en choisissant aux carrefours ------------------------------------------
+function startReplay() {
+  if (!V.recit.graph.start) return;
+  replay = { sid: V.recit.graph.start, i: 0, img: null };
+  souvenir = null; drawerOpen = false;
+  render();
+}
+function stopReplay() { replay = null; render(); autoPropose(); }
+
+function replayImage() {
+  const s = scard(replay.sid);
+  let img = replay.img;
+  for (const p of sortedPlans(s)) if (p.from_line <= replay.i && p.image) img = p.image;
+  return img;
+}
+
+function replayNext() {
+  const s = scard(replay.sid);
+  if (replay.i < s.dialogue.length) { replay.i++; return render(); }
+  const r = rs(replay.sid) || {};
+  if (!r.choices.length && r.next && !r.ending) { replay = { sid: r.next, i: 0, img: replayImage() }; render(); }
+}
+function replayGo(target) { replay = { sid: target, i: 0, img: replayImage() }; render(); }
+function replayLive(sid) { replay = null; liveHere(sid, false); }
+
+function replayHtml() {
+  const s = scard(replay.sid);
+  const r = rs(replay.sid) || {};
+  const line = s.dialogue[replay.i];
+  const img = replayImage();
+  let layer = "";
+  if (line && line.speaker === NARR) layer = `<div class="recitatif">${esc(line.text)}</div>`;
+  else if (line) layer = `<div class="bubble"><span class="nameplate"><span>${esc(line.speaker)}</span></span><div style="font-size:19px">${esc(line.text)}</div></div>`;
+  else if (r.choices.length) layer = `<div class="menu" onclick="event.stopPropagation()"><h2>Que faire ?</h2>${r.choices.map((c, i) => `<button class="opt" onclick="replayGo('${esc(c.target)}')"><span class="key">${i + 1}</span>${esc(c.label)}</button>`).join("")}</div>`;
+  else if (r.ending) layer = `<div class="card-center" onclick="event.stopPropagation()"><h2>Fin</h2><div class="row"><button class="btn primary" onclick="startReplay()">Rejouer</button><button class="btn quiet" onclick="stopReplay()">Revenir au récit</button></div></div>`;
+  else if (r.open) layer = `<div class="card-center" onclick="event.stopPropagation()"><h2>${s.dialogue.length ? "À suivre…" : "Une ligne pas encore vécue"}</h2>
+      <p>${s.dialogue.length ? "Cette ligne attend sa suite." : "Ce choix n'a pas encore d'histoire."}</p>
+      <div class="row"><button class="btn primary" onclick="replayLive('${esc(s.id)}')">La vivre maintenant</button><button class="btn quiet" onclick="stopReplay()">Revenir au récit</button></div></div>`;
+  return `<div class="theatre"><div class="stage" onclick="replayNext()" style="cursor:pointer">
+      ${img ? `<img class="bg" src="${esc(img)}" alt="" style="cursor:pointer">` : `<div class="bg-empty"><span class="place">${esc(s.location || s.title)}</span></div>`}${layer}</div>
+    <div class="subactions"><span class="note" style="color:var(--mist)">Cliquez ou appuyez sur Entrée pour avancer.</span><button class="lnk" onclick="stopReplay()">Revenir au récit</button></div></div>`;
+}
+
+// --- Réglages des modèles (mêmes appels que l'atelier) ---------------------------------------------------------------
+async function openSettings() {
+  try {
+    settings = await api("GET", "/api/facile/settings");
+    overlay = "settings";
+    drawerOpen = false;
+    render();
+  } catch (e) { setMsg(e.message); render(); }
+}
+
+function settingsHtml() {
+  const t = settings.text;
+  const provider = t.choices.find((c) => c.name === t.provider) || t.choices[0];
+  const engines = { replicate: "Replicate (cloud)", comfyui: "ComfyUI (local)" };
+  const images = settings.image_rows.map((r, i) => `<div class="setrow">
+      <label class="field" style="margin:0">${esc(r.label)}<select id="img-engine-${i}">${Object.entries(engines).map(([k, v]) => `<option value="${k}" ${r.engine === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      <label class="field" style="margin:0">Workflow ComfyUI<select id="img-wf-${i}">${r.choices.map((w) => `<option ${w === r.workflow ? "selected" : ""}>${esc(w)}</option>`).join("")}</select></label></div>`).join("");
+  return `<div class="overlay" onclick="if (event.target === this) closeOverlay()">
+    <div class="window" role="dialog" aria-label="Modèles et moteurs" style="width:min(680px,100%)">
+      <div class="window-head"><h2>Modèles et moteurs</h2><button class="btn quiet" onclick="closeOverlay()">Fermer</button></div>
+      <div class="window-body"><section class="sheet-body">
+        <h3 style="font:400 22px var(--serif);margin:0">Écriture</h3>
+        <p class="note">Le fournisseur et le modèle qui écrivent le récit.</p>
+        <div class="setrow"><label class="field" style="margin:0">Fournisseur<select id="st-provider" onchange="settingsProviderChanged(this.value)">${t.choices.map((c) => `<option value="${esc(c.name)}" ${c.name === t.provider ? "selected" : ""}>${esc(c.label)}</option>`).join("")}</select></label>
+          <label class="field" style="margin:0">Modèle<input type="text" id="st-model" value="${esc(provider.model)}"></label></div>
+        <p class="note">${provider.key ? "Clé enregistrée." : "Aucune clé enregistrée pour ce fournisseur."}</p>
+        <h3 style="font:400 22px var(--serif);margin:18px 0 0">Images</h3>
+        <p class="note">Le moteur qui dessine chaque image : Replicate (cloud) ou ComfyUI (sur cette machine).</p>${images}
+        <h3 style="font:400 22px var(--serif);margin:18px 0 0">Clé Replicate</h3>
+        <p class="note">${settings.replicate_key ? "Clé enregistrée sur cet appareil. Elle n'est jamais affichée." : "Aucune clé enregistrée."}</p>
+        <div class="setrow"><input type="text" id="st-key" placeholder="Collez votre clé Replicate" autocomplete="off"><button class="btn" onclick="saveKey()">Enregistrer la clé</button></div>
+        <div class="row"><button class="btn primary" onclick="saveSettings()">Enregistrer les réglages</button></div>
+      </section></div></div></div>`;
+}
+
+function settingsProviderChanged(name) {
+  const c = settings.text.choices.find((x) => x.name === name);
+  if (c) document.getElementById("st-model").value = c.model;
+}
+
+async function saveSettings() {
+  const body = {
+    text_provider: document.getElementById("st-provider").value,
+    text_model: document.getElementById("st-model").value,
+    tasks: settings.tasks.map((r) => ({ task: r.task, provider: r.provider, model: r.model })),
+    images: settings.image_rows.map((r, i) => ({ role: r.role, engine: document.getElementById(`img-engine-${i}`).value,
+      workflow: document.getElementById(`img-wf-${i}`).value, steps: r.steps })),
+  };
+  try {
+    await api("POST", "/api/facile/settings", body);
+    closeOverlay();
+    setMsg("Réglages enregistrés.", true);
+    await load();
+  } catch (e) { setMsg(e.message); render(); }
+}
+
+async function saveKey() {
+  const value = document.getElementById("st-key").value.trim();
+  if (!value) return;
+  try {
+    await api("POST", "/api/facile/secret", { name: "REPLICATE_API_TOKEN", value });
+    closeOverlay();
+    setMsg("Clé enregistrée sur cet appareil.", true);
+    await load();
+  } catch (e) { setMsg(e.message); render(); }
+}
+
+// --- Visionneuse et clavier ------------------------------------------------------------------------------------------
+function openLightbox(src, caption) {
+  closeLightbox();
+  const box = document.createElement("div");
+  box.id = "lightbox";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-label", caption || "Image");
+  box.innerHTML = `<img src="${esc(src)}" alt="${esc(caption)}">`;
+  box.addEventListener("click", closeLightbox);
+  document.body.appendChild(box);
+}
+function closeLightbox() { const box = document.getElementById("lightbox"); if (box) box.remove(); }
+
+document.addEventListener("click", (ev) => {
+  const img = ev.target.closest && ev.target.closest("img[data-zoom]");
+  if (!img) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  openLightbox(img.src, img.alt || "");
+}, true);
+
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape") {
+    if (document.getElementById("lightbox")) return closeLightbox();
+    if (listening && rec) return rec.abort();
+    if (overlay) return closeOverlay();
+    if (drawerOpen) return closeDrawer();
+    if (replay) return stopReplay();
+    if (souvenir) return closeSouvenir();
+    return;
+  }
+  if (ev.target.closest && ev.target.closest("input, textarea, select")) return;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || !V || overlay || drawerOpen) return;
+  if (replay) {
+    if (["Enter", " ", "ArrowRight"].includes(ev.key)) { ev.preventDefault(); replayNext(); }
+    const s = scard(replay.sid);
+    const opts = (rs(replay.sid) || { choices: [] }).choices;
+    const k = Number(ev.key) - 1;
+    if (/^[1-4]$/.test(ev.key) && s && replay.i >= s.dialogue.length && k < opts.length) { ev.preventDefault(); replayGo(opts[k].target); }
+    return;
+  }
+  if (phase() !== "stage") return;
+  if (/^[1-4]$/.test(ev.key)) {
+    const k = Number(ev.key) - 1;
+    const r = cur() ? rs(cur()) : null;
+    if (pendingChoices && k < pendingChoices.options.length) { ev.preventDefault(); return pickChoice(k); }
+    if (r && !r.open && k < r.choices.length) { ev.preventDefault(); return pickExisting(r.choices[k].target); }
+  }
+  if ((ev.key === "Enter" || ev.key === "ArrowRight") && P && !souvenir && !pendingChoices) { ev.preventDefault(); return continueMoment(); }
+  if (ev.key.toLowerCase() === "m" && SR) { ev.preventDefault(); return toggleMic(); }
+});
+
+load().catch((e) => { document.getElementById("main").innerHTML = `<p class="msg">${esc(e.message)}</p>`; });
+</script>
+</body>
+</html>

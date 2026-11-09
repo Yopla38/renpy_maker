@@ -7,9 +7,8 @@ import urllib.error
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import image_replicate as REP  # noqa: E402
-import llm  # noqa: E402
+from renpy_maker import image_replicate as REP  # noqa: E402
+from renpy_maker import llm  # noqa: E402
 
 
 class Resp(io.BytesIO):
@@ -82,7 +81,7 @@ class ReplicateTests(unittest.TestCase):
             return {"id": "p", "status": "processing", "urls": {"get": "g", "cancel": "c"}}
 
         with mock.patch.object(REP, "_req", fake_req), \
-                mock.patch("background.should_stop", return_value=True):
+                mock.patch("renpy_maker.background.should_stop", return_value=True):
             with self.assertRaisesRegex(RuntimeError, "arrêtée"):
                 REP.generate("x", Path("/nonexistent/out.png"))
         self.assertIn(("POST", "c"), calls)

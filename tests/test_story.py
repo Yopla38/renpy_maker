@@ -1,12 +1,9 @@
 """Tests du modèle d'histoire (unittest, sans dépendance)."""
 
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import appsettings
-import story as S  # noqa: E402
+from renpy_maker import appsettings
+from renpy_maker import story as S  # noqa: E402
 
 ASSETS = {"assets": {
     "char_eve": {"kind": "character"},

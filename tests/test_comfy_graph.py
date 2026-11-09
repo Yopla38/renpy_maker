@@ -1,11 +1,8 @@
 """Graphe ComfyUI : rôles par type de nœud, insertion de LoRA. Un petit graphe de référence, sans réseau."""
 
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import comfy_graph as CG  # noqa: E402
+from renpy_maker import comfy_graph as CG  # noqa: E402
 
 
 def flux_like() -> dict:

@@ -11,11 +11,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import assets as A  # noqa: E402
-import keys  # noqa: E402
-import paths  # noqa: E402
-from webapp import server as SRV  # noqa: E402
+from renpy_maker import assets as A  # noqa: E402
+from renpy_maker import keys  # noqa: E402
+from renpy_maker import paths  # noqa: E402
+from renpy_maker.webapp import server as SRV  # noqa: E402
 
 
 class ServerGuardTests(unittest.TestCase):

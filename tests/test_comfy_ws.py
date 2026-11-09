@@ -2,13 +2,10 @@
 
 import json
 import socket
-import sys
 import unittest
-from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import comfy_client as CC  # noqa: E402
+from renpy_maker import comfy_client as CC  # noqa: E402
 
 
 def frame(opcode: int, payload: bytes) -> bytes:

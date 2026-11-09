@@ -1,13 +1,10 @@
 """Tests de la génération de plan, sans appel LLM."""
 
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import llm  # noqa: E402
-import plan as P  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import plan as P  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 RAW = {"title": "Le café", "summary": "Une rencontre.", "scenes": [
     {"title": "Arrivée", "summary": "Elle entre.", "characters": ["Eve"], "location": "Café", "outfits": {"Eve": "robe"}},

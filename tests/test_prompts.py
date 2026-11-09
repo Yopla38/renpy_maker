@@ -1,17 +1,15 @@
 """Suggestion de prompt image : requête, nettoyage, appel LLM simulé (aucun appel réel)."""
 
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import appsettings
-import paths
-import llm  # noqa: E402
-import prompts as PR  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import appsettings
+from renpy_maker import paths
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import prompts as PR  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 
 def sample():
@@ -31,7 +29,7 @@ def sample():
 
 class PromptTests(unittest.TestCase):
     # Style figé : sans style choisi dans l'histoire, c'est celui de config.yaml qui s'applique.
-    @mock.patch("assets.reference_style", return_value={"name": "3D réaliste", "positive_suffix": "photorealistic 3D render, realistic CGI character, soft cinematic lighting, detailed skin texture"})
+    @mock.patch("renpy_maker.assets.reference_style", return_value={"name": "3D réaliste", "positive_suffix": "photorealistic 3D render, realistic CGI character, soft cinematic lighting, detailed skin texture"})
     def test_request_contains_context_and_framing(self, _style):
         st, data = sample()
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
@@ -93,9 +91,77 @@ class StyleEndingTests(unittest.TestCase):
         self.assertEqual(PR.with_style("A woman.", ""), "A woman.")
 
 
+class CharacterPersonTests(unittest.TestCase):
+    """Le prompt d'un personnage doit représenter la personne choisie, même si l'histoire parle d'une femme."""
+
+    def test_the_chosen_gender_is_stated_for_a_character(self):
+        st = {"idea": "Une jeune femme fait un casting.", "synopsis": "", "settings": {}, "chapters": []}
+        assets = {"c": {"kind": "character", "name": "Homme inconnu", "descriptor": "adult man",
+                        "description": "", "candidates": [], "validated_candidate": None}}
+        _, user = PR.build_request(st, assets, "c")
+        self.assertIn("Person to depict : the man described by the descriptor 'adult man'", user)
+
+    def test_character_is_built_on_a_neutral_backdrop_without_scene_context(self):
+        st = {"idea": "Une jeune femme fait un casting.", "synopsis": "", "settings": {}, "chapters": [{
+            "id": "ch1", "title": "C1", "summary": "", "scenes": [{
+                "id": "s1", "title": "Train", "summary": "Un train de nuit.", "characters": ["Homme"],
+                "dialogue": [], "plans": []}]}]}
+        assets = {"c": {"kind": "character", "name": "Homme", "descriptor": "adult man",
+                        "description": "", "candidates": [], "validated_candidate": None}}
+        system, user = PR.build_request(st, assets, "c")
+        self.assertIn("plain neutral studio backdrop", system)
+        self.assertNotIn("Story context", user)
+        self.assertNotIn("train", user.lower())
+
+    def test_no_guess_when_the_gender_is_not_chosen(self):
+        st = {"idea": "Une jeune femme fait un casting.", "synopsis": "", "settings": {}, "chapters": []}
+        assets = {"c": {"kind": "character", "name": "Inconnu", "descriptor": "",
+                        "description": "", "candidates": [], "validated_candidate": None}}
+        _, user = PR.build_request(st, assets, "c")
+        self.assertIn("gender and age not chosen yet", user)
+
+
+class LocationEmptyTests(unittest.TestCase):
+    """Un lieu reste vide : ni ses notes (résumé de scène), ni les personnages dans le prompt."""
+
+    def setUp(self):
+        self.st = {"idea": "x", "synopsis": "", "settings": {}, "chapters": [{
+            "id": "ch1", "title": "C1", "summary": "", "scenes": [{
+                "id": "s1", "title": "Un voisin encombrant", "summary": "Un homme s'assied près de Léa.",
+                "characters": ["Léa"], "location": "loc_train", "dialogue": [], "plans": []}]}]}
+        self.assets = {"loc_train": {"kind": "location", "name": "Compartiment du train",
+                                     "description": "Un homme s'assied à côté de Léa.", "candidates": [],
+                                     "validated_candidate": None}}
+
+    def test_location_request_has_no_notes_and_no_scene_context(self):
+        _, user = PR.build_request(self.st, self.assets, "loc_train")
+        self.assertNotIn("Notes", user)
+        self.assertNotIn("Scene where", user)
+        self.assertNotIn("Un voisin", user)
+
+    def test_person_words_are_detected(self):
+        self.assertTrue(PR.shows_person("An old man sits opposite a young woman."))
+        self.assertFalse(PR.shows_person("An empty compartment with worn red seats and dust motes."))
+
+    def test_person_in_a_location_prompt_is_asked_again_then_refused(self):
+        assets_data = {"assets": self.assets}
+        answers = ["An old man sits in the compartment.", "A woman sits by the window."]
+        with mock.patch.object(PR.llm, "complete_task", side_effect=answers) as m:
+            with self.assertRaises(ValueError):
+                PR.suggest(self.st, assets_data, "loc_train", provider="anthropic")
+        self.assertEqual(m.call_count, 2)
+        self.assertIn("EMPTY", m.call_args_list[1][0][1])
+
+    def test_empty_location_prompt_is_kept(self):
+        assets_data = {"assets": self.assets}
+        with mock.patch.object(PR.llm, "complete_task", return_value="An empty compartment with red seats."):
+            text = PR.suggest(self.st, assets_data, "loc_train", provider="anthropic")
+        self.assertIn("empty compartment", text)
+
+
 class PersonNounTests(unittest.TestCase):
     def test_outfit_edit_uses_the_real_gender_word(self):
-        from prompts import EDIT_SYSTEM, person_noun
+        from renpy_maker.prompts import EDIT_SYSTEM, person_noun
         self.assertEqual(person_noun("Old man"), "man")
         self.assertEqual(person_noun("young woman"), "woman")
         self.assertEqual(person_noun(""), "person")
@@ -145,3 +211,78 @@ class ReferenceOrderTests(unittest.TestCase):
         _, user = PR.build_request(st, self.assets(), "o2")
         self.assertIn("Reference image 1 : the man wearing Chemise", user)
         self.assertIn("Reference image 2 : the old man", user)
+
+
+class NudeBaseTests(unittest.TestCase):
+    """Corps de base nu : seulement avec ComfyUI, histoire explicite, hors application enfants."""
+
+    def request(self, engine, explicit, kids=False):
+        st = {"idea": "Une femme.", "synopsis": "", "settings": {"explicit_content": explicit}, "chapters": []}
+        assets = {"c": {"kind": "character", "name": "Léa", "descriptor": "young woman", "description": "",
+                        "candidates": [], "validated_candidate": None}}
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": engine, "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", kids):
+            return PR.build_request(st, assets, "c")[1]
+
+    def test_comfyui_with_explicit_story_asks_for_a_nude_base(self):
+        self.assertIn("nude", self.request("comfyui", True))
+
+    def test_replicate_keeps_the_clothed_base(self):
+        self.assertNotIn("nude", self.request("replicate", True))
+
+    def test_without_explicit_content_the_base_stays_clothed(self):
+        self.assertNotIn("nude", self.request("comfyui", False))
+
+    def test_kids_never_get_a_nude_base(self):
+        self.assertNotIn("nude", self.request("comfyui", True, kids=True))
+
+
+class PhysicalOnlyBaseTests(unittest.TestCase):
+    """Corps nu : la description ne donne que les traits physiques ; les vêtements vont aux tenues."""
+
+    def setUp(self):
+        self.st = {"idea": "Une femme.", "synopsis": "", "settings": {"explicit_content": True}, "chapters": []}
+        self.assets = {"c": {"kind": "character", "name": "Clara", "descriptor": "young woman",
+                             "description": "Cheveux blonds, yeux verts. Un pull trop grand.",
+                             "candidates": [], "validated_candidate": None}}
+
+    def test_clothing_in_the_notes_is_marked_as_to_ignore(self):
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": "comfyui", "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", False):
+            _, user = PR.build_request(self.st, self.assets, "c")
+        self.assertIn("Physical traits only", user)
+        self.assertIn("IGNORE any clothing", user)
+
+    def test_a_prompt_that_still_describes_clothing_is_asked_again_then_refused(self):
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": "comfyui", "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", False), \
+                mock.patch.object(PR.llm, "complete_task", return_value="A woman in a sweater.") as m, \
+                mock.patch.object(PR.appsettings, "provider", return_value="ollama"):
+            with self.assertRaises(ValueError):
+                PR.suggest(self.st, {"assets": self.assets}, "c")
+        self.assertEqual(m.call_count, 2)
+
+    def test_a_physical_prompt_is_kept(self):
+        with mock.patch.object(PR.appsettings, "image_for", return_value={"engine": "comfyui", "workflow": None}), \
+                mock.patch.object(PR.paths, "KIDS", False), \
+                mock.patch.object(PR.llm, "complete_task", return_value="A woman with blonde hair and green eyes."), \
+                mock.patch.object(PR.appsettings, "provider", return_value="ollama"):
+            text = PR.suggest(self.st, {"assets": self.assets}, "c")
+        self.assertIn("blonde hair", text)
+
+
+class CharacterPromptFormTests(unittest.TestCase):
+    def test_every_character_prompt_starts_with_full_body_shot(self):
+        self.assertEqual(PR.character_prompt_rules("A young woman with green eyes.", False),
+                         "full body shot, a young woman with green eyes.")
+
+    def test_full_body_shot_is_not_repeated(self):
+        self.assertEqual(PR.character_prompt_rules("full body shot, a man.", False), "full body shot, a man.")
+
+    def test_nude_goes_right_before_the_gender_word(self):
+        self.assertEqual(PR.character_prompt_rules("A young woman with green eyes.", True),
+                         "full body shot, a young nude woman with green eyes.")
+
+    def test_nude_is_not_added_twice(self):
+        out = PR.character_prompt_rules("a young nude woman", True)
+        self.assertEqual(out.lower().count("nude"), 1)

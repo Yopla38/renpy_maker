@@ -1,0 +1,9 @@
+# Généré : copie du moteur (renpy_maker) à chaque compilation
+app/src/main/python/
+# Compilation et configuration locale
+build/
+app/build/
+.gradle/
+local.properties
+.idea/
+*.iml

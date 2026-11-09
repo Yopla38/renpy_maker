@@ -1,13 +1,11 @@
 """Export Ren'Py : texte généré et refus des histoires incomplètes (sans lancer Ren'Py)."""
 
 import re
-import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import renpy_export as RE  # noqa: E402
-import story as S  # noqa: E402
+from renpy_maker import renpy_export as RE  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
 
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "image_test.png"
@@ -237,7 +235,7 @@ class HostileInputTests(unittest.TestCase):
 
 class RenameTests(unittest.TestCase):
     def test_rename_character_updates_image_only_speaker_and_tags(self):
-        import facile_elements as FE
+        from renpy_maker import facile_elements as FE
         st, _ = sample()
         s1 = st["chapters"][0]["scenes"][0]
         s1["plans"].append({"id": "p9", "from_line": 2, "pause": True, "speaker": "Eve", "speech": "Hé"})
@@ -247,3 +245,18 @@ class RenameTests(unittest.TestCase):
         self.assertEqual(s1["line_tags"]["1"]["characters"], ["Ève"])
         self.assertEqual(s1["line_tags"]["1"]["outfits"], {"Ève": "robe"})
         self.assertEqual(S.validate(st), [])
+
+
+class RouteRulesTests(unittest.TestCase):
+    def test_explicit_next_and_open_line_follow_the_map(self):
+        st, data = sample()
+        ch = st["chapters"][0]
+        s1, s2 = ch["scenes"]
+        s3 = S.add_scene(ch, "s3", "Rattachée", "c", ["Eve"], "Ferme", {})
+        s3["dialogue"] = [{"speaker": "Eve", "text": "Ici.", "expression": "neutre"}]
+        s2["ending"] = False
+        s1["next"] = "s3"          # route rattachée : s1 mène à s3, pas à s2
+        s2["open"] = True          # ligne ouverte : elle attend sa suite
+        text = RE.build_story(st, data["assets"])
+        self.assertIn("    jump s3\n", text.split("label s2:")[0])
+        self.assertIn("    return\n", text.split("label s2:")[1].split("label s3:")[0])

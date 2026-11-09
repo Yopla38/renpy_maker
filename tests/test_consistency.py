@@ -8,11 +8,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import assets as A  # noqa: E402
-import background  # noqa: E402
-import paths  # noqa: E402
-import pipeline as PL  # noqa: E402
+from renpy_maker import assets as A  # noqa: E402
+from renpy_maker import background  # noqa: E402
+from renpy_maker import paths  # noqa: E402
+from renpy_maker import pipeline as PL  # noqa: E402
 
 
 class AtomicWriteTests(unittest.TestCase):
@@ -60,7 +59,7 @@ class CreatedAssetsMergeTests(unittest.TestCase):
 
 class SwitchWhileBusyTests(unittest.TestCase):
     def test_background_job_blocks_story_switch(self):
-        import facile as FA
+        from renpy_maker import facile as FA
         gate = threading.Event()
         background.start(gate.wait)
         try:

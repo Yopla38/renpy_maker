@@ -1,15 +1,12 @@
 """Répliques : normalisation, validation des locuteurs, génération simulée (aucun appel réel)."""
 
-import sys
 import unittest
-from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import llm  # noqa: E402
-import plan as P  # noqa: E402
-import story as S  # noqa: E402
-from webapp import server as SRV  # noqa: E402
+from renpy_maker import llm  # noqa: E402
+from renpy_maker import plan as P  # noqa: E402
+from renpy_maker import story as S  # noqa: E402
+from renpy_maker.webapp import server as SRV  # noqa: E402
 
 
 def story_with_dialogue(lines):
