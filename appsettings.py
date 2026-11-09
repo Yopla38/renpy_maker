@@ -116,15 +116,23 @@ def image_for(role: str) -> dict:
 WORKFLOW_DIR = paths.CODE / "comfy" / "workflows"
 
 
+def is_workflow(path: Path) -> bool:
+    """Vrai si le fichier est un workflow ComfyUI au format API (objet de nœuds avec class_type)."""
+    if path.suffix.lower() != ".json" or not path.is_file():
+        return False
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(data, dict) and bool(data) and all(isinstance(v, dict) and "class_type" in v
+                                                          for v in data.values())
+
+
 def available_workflows() -> list[str]:
     """Workflows ComfyUI proposés dans la roue : fichiers au format API du dossier comfy/workflows."""
     found = []
     for path in sorted(WORKFLOW_DIR.glob("*.json")):
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        if isinstance(data, dict) and data and all(isinstance(v, dict) and "class_type" in v for v in data.values()):
+        if is_workflow(path):
             found.append(path.relative_to(paths.CODE).as_posix())
     return found
 

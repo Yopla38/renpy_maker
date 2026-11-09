@@ -116,8 +116,8 @@ def save_settings_tasks(body: dict) -> None:
                 if not workflow:
                     workflow = appsettings.default_comfy_workflow(role)
                 wf = Path(workflow) if Path(workflow).is_absolute() else paths.CODE / workflow
-                if not wf.is_file():
-                    raise ValueError(f"Fichier de workflow introuvable : {workflow}")
+                if not appsettings.is_workflow(wf):
+                    raise ValueError(f"Workflow ComfyUI (JSON au format API) introuvable : {workflow}")
             chosen[role] = {"engine": engine, "workflow": workflow}
         data["image_engines"] = chosen
         steps = {}

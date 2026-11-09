@@ -40,8 +40,7 @@ def set(name: str, value: str) -> None:
     """Enregistre une clé dans le dossier de l'appareil et l'active tout de suite."""
     data = _read_secrets()
     data[name] = value.strip()
-    paths.SECRETS.parent.mkdir(parents=True, exist_ok=True)
-    paths.SECRETS.write_text(json.dumps(data), encoding="utf-8")
+    paths.atomic_write(paths.SECRETS, json.dumps(data), mode=0o600)  # lisible par l'utilisateur seul
     os.environ[name] = value.strip()
 
 

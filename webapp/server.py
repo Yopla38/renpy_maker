@@ -79,6 +79,17 @@ def _asset_view(aid: str, a: dict) -> dict:
     }
 
 
+MAX_BODY = 10 * 1024 * 1024
+CSRF_HEADER = "X-Renpy-Maker"
+_LOCAL_NAMES = {"127.0.0.1", "localhost", "::1"}
+
+
+def _local_host(netloc: str) -> bool:
+    """Vrai si « hôte[:port] » désigne la machine locale."""
+    host = urlparse("//" + netloc).hostname if netloc else None
+    return host in _LOCAL_NAMES
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "renpy_maker/0.1"
 
@@ -95,14 +106,48 @@ class Handler(BaseHTTPRequestHandler):
         self._send(code, json.dumps(obj, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
 
     def _body(self) -> dict:
-        n = int(self.headers.get("Content-Length", "0") or 0)
-        return json.loads(self.rfile.read(n) or b"{}")
+        """Corps JSON de la requête : un objet, de taille bornée (ValueError sinon → 400)."""
+        try:
+            n = int(self.headers.get("Content-Length", "0") or 0)
+        except ValueError:
+            raise ValueError("Content-Length invalide") from None
+        if n < 0 or n > MAX_BODY:
+            raise ValueError("Corps de requête invalide ou trop gros")
+        try:
+            data = json.loads(self.rfile.read(n) or b"{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise ValueError("JSON invalide") from None
+        if not isinstance(data, dict):
+            raise ValueError("Objet JSON attendu")
+        return data
+
+    def _allowed(self, post: bool) -> bool:
+        """Refuse les requêtes venues d'autres sites (CSRF) ou d'un autre nom d'hôte (DNS rebinding).
+
+        - l'en-tête Host doit désigner la machine locale ;
+        - une requête qui modifie l'état doit porter l'en-tête X-Renpy-Maker, qu'une autre page web
+          ne peut pas ajouter sans pré-vérification CORS (que ce serveur n'accorde jamais) ;
+        - si le navigateur indique une origine, elle doit être locale.
+        """
+        if not _local_host(self.headers.get("Host", "")):
+            self._json(403, {"error": "Hôte refusé"})
+            return False
+        origin = self.headers.get("Origin")
+        if origin and origin != "null" and not _local_host(urlparse(origin).netloc):
+            self._json(403, {"error": "Origine refusée"})
+            return False
+        if post and self.headers.get(CSRF_HEADER) != "1":
+            self._json(403, {"error": f"En-tête {CSRF_HEADER} manquant"})
+            return False
+        return True
 
     def log_message(self, fmt, *args):  # journal court sur stderr
         sys.stderr.write("%s %s\n" % (self.command, self.path))
 
     # ----- GET -----
     def do_GET(self):
+        if not self._allowed(post=False):
+            return
         path = urlparse(self.path).path
         if path == "/":
             return self._send(200, INDEX.read_bytes(), "text/html; charset=utf-8")
@@ -181,11 +226,16 @@ class Handler(BaseHTTPRequestHandler):
 
     # ----- POST -----
     def do_POST(self):
+        if not self._allowed(post=True):
+            return
         path = urlparse(self.path).path
-        if path.startswith("/api/facile"):
-            return self._facile("POST", path, self._body())
         try:
             body = self._body()
+        except ValueError as e:
+            return self._json(400, {"error": str(e)})
+        if path.startswith("/api/facile"):
+            return self._facile("POST", path, body)
+        try:
             if path == "/api/asset":
                 return self._create_asset(body)
             if path == "/api/generate":

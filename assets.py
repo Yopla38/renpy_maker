@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+import re
 from pathlib import Path
 
 import threading
@@ -84,8 +85,21 @@ def check(data: dict | None = None) -> list[str]:
 
 # ---------- opérations ----------
 
+ID_RE = re.compile(r"[A-Za-z0-9_-]{1,80}")
+
+
+def check_id(asset_id) -> str:
+    """Un identifiant d'actif sert de nom de dossier : lettres, chiffres, _ et - seulement."""
+    if not isinstance(asset_id, str) or not ID_RE.fullmatch(asset_id):
+        raise ValueError(f"Identifiant d'actif invalide : {asset_id!r}")
+    return asset_id
+
+
 def add_asset(data: dict, asset_id: str, kind: str, name: str, description: str,
               parent: str | None = None) -> None:
+    check_id(asset_id)
+    if parent is not None:
+        check_id(parent)
     if kind not in KINDS:
         raise ValueError(f"kind doit être dans {sorted(KINDS)}")
     if asset_id in data["assets"]:
@@ -186,7 +200,7 @@ def generate_candidate(asset_id: str, ref_ids: list[str], prompt: str, seed: int
         aspect = aspect or DEFAULT_ASPECT[a["kind"]]
         loras = list(a.get("loras", []) if loras is None else loras)
     choice = appsettings.image_for("edit" if refs else "base")
-    folder = paths.data_root() / "assets" / asset_id
+    folder = paths.data_root() / "assets" / check_id(asset_id)
     folder.mkdir(parents=True, exist_ok=True)
     tmp = folder / f"tmp_{uuid.uuid4().hex[:8].lower()}.png"
     if choice["engine"] == "comfyui":

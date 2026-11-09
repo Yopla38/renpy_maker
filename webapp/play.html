@@ -131,7 +131,7 @@ function imageFor(scene, line) {
 
 function showTitle(text, sub) {
   const t = $("title");
-  t.firstElementChild.innerHTML = `<small>${sub}</small>${text}`;
+  t.firstElementChild.replaceChildren(Object.assign(document.createElement("small"), { textContent: sub ?? "" }), String(text ?? ""));
   t.classList.add("on");
   setTimeout(() => t.classList.remove("on"), 1900);
 }

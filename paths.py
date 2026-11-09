@@ -16,6 +16,7 @@ est alors interdit, et les filtres de sécurité des images restent activés.
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 
 CODE = Path(__file__).resolve().parent
@@ -23,6 +24,36 @@ HOME = Path(os.environ.get("RENPY_MAKER_HOME") or CODE)
 PROJECTS = HOME / "projects"
 SECRETS = HOME / "secrets.json"          # clés saisies dans l'application (jamais dans le code)
 KIDS = os.environ.get("RENPY_MAKER_MODE", "expert") == "enfants"
+
+def atomic_write(path: Path, text: str, mode: int | None = None) -> None:
+    """Écrit un fichier texte d'un seul coup : jamais de fichier vide ou tronqué, même en cas d'arrêt.
+
+    Le contenu va dans un fichier temporaire du même dossier, puis remplace l'ancien (os.replace).
+    mode : droits du fichier (ex. 0o600 pour les secrets)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600 if mode is None else mode)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        if mode is None and path.exists():
+            os.chmod(tmp, path.stat().st_mode & 0o777)
+        elif mode is None:
+            os.chmod(tmp, 0o666 & ~_umask())
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def _umask() -> int:
+    m = os.umask(0)
+    os.umask(m)
+    return m
+
 
 _active: Path | None = None   # dossier de l'histoire ouverte ; None = histoire d'origine (racine)
 _chosen = False                # faux tant que l'utilisateur n'a rien ouvert depuis le démarrage

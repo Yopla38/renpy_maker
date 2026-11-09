@@ -95,7 +95,7 @@ function toast(msg, isErr = false) {
 async function api(method, url, body) {
   const r = await fetch(url, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Renpy-Maker": "1" },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await r.json().catch(() => ({}));
