@@ -10,6 +10,7 @@ Rôles d'image    : base (sans référence, « équivalent FLUX 1 »), edit (ave
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 
 import yaml
@@ -25,6 +26,9 @@ def config() -> dict:
     return yaml.safe_load((paths.CODE / "config.yaml").read_text(encoding="utf-8")) or {}
 
 
+LOCK = threading.RLock()  # lecture-modification-écriture de app_settings.yaml
+
+
 def load() -> dict:
     if not paths.app_settings_file().exists():
         return {}
@@ -34,7 +38,7 @@ def load() -> dict:
 def save(data: dict) -> None:
     FILE = paths.app_settings_file()
     FILE.parent.mkdir(parents=True, exist_ok=True)
-    FILE.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    paths.atomic_write(FILE, yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
 
 
 # Fournisseurs de l'histoire (fichier app_settings.yaml de l'histoire, clé « providers »).
@@ -63,9 +67,10 @@ def set_provider(role: str, value: str) -> None:
         raise ValueError(f"Rôle de fournisseur inconnu : {role}")
     if value not in PROVIDER_CHOICES[role]:
         raise ValueError(f"{role} : '{value}' non reconnu")
-    data = load()
-    data.setdefault("providers", {})[role] = value
-    save(data)
+    with LOCK:
+        data = load()
+        data.setdefault("providers", {})[role] = value
+        save(data)
 
 
 def absorb_story_providers(st: dict) -> bool:
@@ -74,12 +79,13 @@ def absorb_story_providers(st: dict) -> bool:
     legacy = (st.get("settings") or {}).pop("providers", None)
     if legacy is None:
         return False
-    data = load()
-    prov = data.setdefault("providers", {})
-    for role in PROVIDER_ROLES:
-        if legacy.get(role) in PROVIDER_CHOICES[role] and role not in prov:
-            prov[role] = legacy[role]
-    save(data)
+    with LOCK:
+        data = load()
+        prov = data.setdefault("providers", {})
+        for role in PROVIDER_ROLES:
+            if legacy.get(role) in PROVIDER_CHOICES[role] and role not in prov:
+                prov[role] = legacy[role]
+        save(data)
     return True
 
 

@@ -13,6 +13,7 @@ import traceback
 import unicodedata
 
 import assets as A
+import background
 import plan as P
 import prompts as PR
 import scenes as SC
@@ -108,6 +109,17 @@ def stage_dialogue() -> None:
         _log("répliques : déjà présentes, rien à faire")
 
 
+def save_created_assets(data: dict, before: set) -> None:
+    """Enregistre les éléments créés sur un instantané du registre, sans écraser ce qui a changé
+    entre-temps (candidats générés, prompts, verrous…) : seuls les nouveaux identifiants sont ajoutés."""
+    with A.LOCK:
+        cur = A.load()
+        for aid, a in data["assets"].items():
+            if aid not in before and aid not in cur["assets"]:
+                cur["assets"][aid] = a
+        A.save(cur)
+
+
 def stage_elements() -> list[str]:
     """Crée les éléments manquants. Renvoie les identifiants utilisés par l'histoire (pour les ancres)."""
     STATE["stage"] = "éléments"
@@ -115,6 +127,7 @@ def stage_elements() -> list[str]:
         st = S.load()
     with A.LOCK:
         data = A.load()
+    before = set(data["assets"])
     created = 0
     used: list[str] = []
 
@@ -151,10 +164,20 @@ def stage_elements() -> list[str]:
                     _log(f"éléments : « {v['name']} » ajouté à la scène {sc['id']}")
             else:
                 use(v["kind"], v["name"], v.get("description", ""))
+    # Les appels au LLM ont pris du temps : on reporte seulement nos ajouts sur l'état enregistré.
     with S.LOCK:
-        S.save(st)
-    with A.LOCK:
-        A.save(data)
+        cur = S.load()
+        mine = {sc["id"]: sc for sc in S.all_scenes(st)}
+        for sc in S.all_scenes(cur):
+            new = mine.get(sc["id"])
+            if new is None:
+                continue
+            for field in ("characters", "decor"):
+                for name in new.get(field, []):
+                    if name not in sc.setdefault(field, []):
+                        sc[field].append(name)
+        S.save(cur)
+    save_created_assets(data, before)
     _log(f"éléments : {created} créé(s), {len(used)} utilisé(s)")
     return used
 
@@ -234,7 +257,7 @@ def run(sizes: list[int], guidance: str = "") -> None:
 
 
 def start(sizes: list[int], guidance: str = "") -> None:
-    threading.Thread(target=run, args=(sizes, guidance), daemon=True).start()
+    background.start(run, sizes, guidance)
 
 
 def anchors_only() -> None:

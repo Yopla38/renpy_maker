@@ -14,6 +14,7 @@ import shutil
 import time
 
 import assets as A
+import background
 import appsettings
 import paths
 import pipeline as PL
@@ -265,6 +266,7 @@ def _elements_work(job_id: str) -> None:
         st = S.load()
     with A.LOCK:
         data = A.load()
+    before = set(data["assets"])
     _say(job_id, "Personnages et lieux…")
     scenes = S.all_scenes(st)
     for name in _characters(st):
@@ -276,8 +278,7 @@ def _elements_work(job_id: str) -> None:
     for char, outfit in _outfits(st):
         if char in chars:
             PL.create_element(st, data, "outfit", outfit, "", parent_name=char)
-    with A.LOCK:
-        A.save(data)
+    PL.save_created_assets(data, before)
 
 def _write_dialogue(job_id: str, sid: str) -> None:
     _say(job_id, f"Répliques de la scène {sid}…")
@@ -344,8 +345,8 @@ def route(method: str, path: str, body: dict) -> dict:
     elif method == "POST":
         routes = {
             "/api/facile/style": lambda: set_style(body["style"]),
-            "/api/facile/projects/create": lambda: PJ.open_project(PJ.create(body.get("name", ""), body.get("idea", "")), _busy.locked()),
-            "/api/facile/projects/open": lambda: PJ.open_project(body.get("id", ""), _busy.locked()),
+            "/api/facile/projects/create": lambda: PJ.open_project(PJ.create(body.get("name", ""), body.get("idea", "")), _busy.locked() or background.running() > 0),
+            "/api/facile/projects/open": lambda: PJ.open_project(body.get("id", ""), _busy.locked() or background.running() > 0),
             "/api/facile/projects/rename": lambda: PJ.rename(body.get("id", ""), body.get("name", "")),
             "/api/facile/projects/delete": lambda: PJ.delete(body.get("id", "")),
             "/api/facile/settings": lambda: save_settings(body),

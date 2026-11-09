@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import appsettings
+import functools
 import re
 import uuid
 
@@ -28,6 +29,16 @@ def _refs_for(assets: dict, aid: str) -> list[str]:
                              "sa tenue s'appuie sur son image.")
     return PR.ref_order(assets, aid)
 
+def _story_and_assets_locked(fn):
+    """Lecture, modification et écriture sans relâcher les verrous (ordre fixe : histoire, puis éléments).
+    Réservé aux fonctions sans appel réseau."""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with S.LOCK, A.LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
+
+@_story_and_assets_locked
 def set_element_refs(aid: str, refs: list, based_on: str | None = None) -> dict:
     """Images de référence choisies pour un personnage, une tenue ou un lieu, et tenue de départ d'une tenue."""
     with A.LOCK:
@@ -95,6 +106,7 @@ def _rename_outfit(st: dict, character: str, old: str, new: str) -> None:
             tags["outfits"] = {k: (new if _same(k, character) and _same(v, old) else v)
                                for k, v in tags.get("outfits", {}).items()}
 
+@_story_and_assets_locked
 def update_element(aid: str, name: str | None = None, description: str | None = None,
                    descriptor: str | None = None) -> dict:
     """Designer, onglet Identité : nom, description, genre et âge (personnage ou tenue)."""
@@ -193,6 +205,7 @@ def suggest_identity(aid: str) -> dict:
     descriptor = str(raw.get("descriptor", "")).strip().lower() if isinstance(raw, dict) else ""
     return {"description": description, "descriptor": descriptor if PR.valid_descriptor(descriptor) else ""}
 
+@_story_and_assets_locked
 def create_outfit(character_aid: str, name: str, description: str, scene_ids: list[str]) -> dict:
     """Designer, atelier : crée une tenue pour un personnage et la porte dans les scènes choisies."""
     if not name.strip():
@@ -296,7 +309,8 @@ def _wrong_person(text: str, assets: dict, aid: str) -> bool:
 
 def _card_work(job_id: str, aid: str, prompt: str | None = None) -> None:
     with S.LOCK:
-        _ensure_descriptors(S.load())
+        st = S.load()
+    _ensure_descriptors(st)  # appels au LLM : jamais en tenant le verrou de l'histoire
     with A.LOCK:
         data = A.load()
     a = data["assets"][aid]

@@ -84,6 +84,11 @@ def _images_view() -> list[dict]:
 
 def save_settings_tasks(body: dict) -> None:
     """Enregistre les choix par tâche et par moteur d'image (game_spec/app_settings.yaml)."""
+    with appsettings.LOCK:
+        _save_settings_tasks(body)
+
+
+def _save_settings_tasks(body: dict) -> None:
     data = appsettings.load()
     tasks = body.get("tasks")
     if tasks is not None:
@@ -146,7 +151,7 @@ def save_settings(body: dict) -> dict:
         if paths.llm_models_file().exists():
             overrides = yaml.safe_load(paths.llm_models_file().read_text(encoding="utf-8")) or {}
         overrides.setdefault(provider, {})["model"] = model
-        paths.llm_models_file().write_text(yaml.safe_dump(overrides, allow_unicode=True), encoding="utf-8")
+        paths.atomic_write(paths.llm_models_file(), yaml.safe_dump(overrides, allow_unicode=True))
     with S.LOCK:
         st = S.load()
         appsettings.set_provider("text", provider)

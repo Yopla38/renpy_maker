@@ -21,7 +21,7 @@ import threading
 import yaml
 
 import paths
-LOCK = threading.Lock()  # protège game_spec/story.yaml : partagé par le serveur et le pipeline
+LOCK = threading.RLock()  # protège game_spec/story.yaml : partagé par le serveur et le pipeline
 NARRATOR = "Narration"
 
 
@@ -95,7 +95,7 @@ def load(path: Path | None = None) -> dict:
 def save(story: dict, path: Path | None = None) -> None:
     path = path or paths.story_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(story, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    paths.atomic_write(path, yaml.safe_dump(story, allow_unicode=True, sort_keys=False))
 
 
 def add_chapter(story: dict, chapter_id: str, title: str, summary: str, scene_count: int) -> dict:

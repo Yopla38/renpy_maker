@@ -55,7 +55,7 @@ def _meta(folder: Path) -> dict:
 
 
 def _write_meta(folder: Path, meta: dict) -> None:
-    (folder / META).write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    paths.atomic_write(folder / META, json.dumps(meta, ensure_ascii=False, indent=2))
 
 
 def _thumbnail(root: Path, folder: Path | None, assets: dict) -> str | None:
@@ -152,7 +152,7 @@ def open_project(pid: str, busy: bool) -> dict:
     if appsettings.absorb_story_providers(st):
         S.save(st)
     paths.PROJECTS.mkdir(parents=True, exist_ok=True)
-    (paths.PROJECTS / LAST).write_text(json.dumps({"id": pid}), encoding="utf-8")
+    paths.atomic_write(paths.PROJECTS / LAST, json.dumps({"id": pid}))
     return current()
 
 

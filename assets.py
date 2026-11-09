@@ -25,7 +25,7 @@ import threading
 
 import yaml
 
-LOCK = threading.Lock()  # protège game_spec/assets.yaml : partagé par le serveur et le pipeline
+LOCK = threading.RLock()  # protège game_spec/assets.yaml : partagé par le serveur et le pipeline
 
 import paths
 
@@ -46,7 +46,7 @@ def load(path: Path | None = None) -> dict:
 def save(data: dict, path: Path | None = None) -> None:
     path = path or paths.assets_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    paths.atomic_write(path, yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
 
 
 def _get(data: dict, asset_id: str) -> dict:

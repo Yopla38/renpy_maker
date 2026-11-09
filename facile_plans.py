@@ -61,6 +61,19 @@ def refresh_outfit_decisions(st: dict, sc: dict, plans: list[dict]) -> None:
         if value is not None:
             plan["outfit_change"] = {"hash": digest, "change": value}
 
+def _merge_outfit_decisions(sc: dict, decisions: dict) -> bool:
+    """Reporte sur le découpage enregistré les décisions de tenue prises sur un instantané, seulement
+    pour les plans dont le texte n'a pas changé entre-temps. Renvoie True si quelque chose a changé."""
+    changed = False
+    for plan in sc.get("plans", []):
+        dec = decisions.get(plan["id"])
+        if not dec or plan.get("outfit_change") == dec:
+            continue
+        if dec.get("hash") == _text_hash((plan.get("shot") or {}).get("note", "")):
+            plan["outfit_change"] = dec
+            changed = True
+    return changed
+
 def apply_continuity(sc: dict, assets: dict) -> bool:
     """Continuité : à partir du deuxième plan, l'image du plan précédent est une référence (état réel des
     personnages). Sauf si le texte du plan décrit un changement de tenue, la tenue de référence des
@@ -414,14 +427,19 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
     _ensure_descriptors(st)
     sc = _find_scene(st, sid)
     k, plan = _find_plan(sc, pid)
-    with A.LOCK:
-        data = A.load()
-    refresh_outfit_decisions(st, sc, sc.get("plans", []))
-    if apply_continuity(sc, data["assets"]):
-        with S.LOCK:
-            cur = S.load()
-            _find_scene(cur, sid)["plans"] = sc["plans"]
-            S.save(cur)
+    refresh_outfit_decisions(st, sc, sc.get("plans", []))  # appels réseau, hors verrou
+    decisions = {p["id"]: p["outfit_change"] for p in sc.get("plans", []) if p.get("outfit_change")}
+    # Le découpage a pu changer pendant les appels : on repart de l'état enregistré, sans jamais
+    # réécrire la liste de plans de l'instantané.
+    with S.LOCK:
+        st = S.load()
+        sc = _find_scene(st, sid)
+        k, plan = _find_plan(sc, pid)
+        changed = _merge_outfit_decisions(sc, decisions)
+        with A.LOCK:
+            data = A.load()
+        if apply_continuity(sc, data["assets"]) or changed:
+            S.save(st)
     info = SC.plan_refs(data["assets"], sc, plan)
     if info["missing"]:
         raise ValueError("Il manque encore une image pour : " + ", ".join(info["missing"]))
@@ -449,15 +467,14 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
 
 def set_continuity(sid: str, pid: str, on: bool) -> dict:
     """Active ou désactive la continuité d'un plan (« tenue d'origine » quand elle est désactivée)."""
-    with S.LOCK:
+    with S.LOCK:  # lecture, modification et écriture sans relâcher le verrou
         st = S.load()
         sc = _find_scene(st, sid)
         _, plan = _find_plan(sc, pid)
         plan["continuity"] = bool(on)
-    with A.LOCK:
-        assets = A.load()["assets"]
-    apply_continuity(sc, assets)
-    with S.LOCK:
+        with A.LOCK:
+            assets = A.load()["assets"]
+        apply_continuity(sc, assets)
         S.save(st)
     return {"ok": True}
 

@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import assets as A  # noqa: E402
+import background  # noqa: E402
 import plan as P  # noqa: E402
 import prompts as PR  # noqa: E402
 import scenes as SC  # noqa: E402
@@ -251,7 +252,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/anchors/generate-missing":
                 if PL.STATE["state"] == "running":
                     raise ValueError("Une exécution est déjà en cours")
-                threading.Thread(target=PL.anchors_only, daemon=True).start()
+                background.start(PL.anchors_only)
                 return self._json(202, {"started": True})
             m = re.fullmatch(r"/api/anchors/([\w-]+)/regenerate", path)
             if m:
@@ -407,7 +408,7 @@ class Handler(BaseHTTPRequestHandler):
                 traceback.print_exc()
                 _jobs[job_id].update(state="error", message=f"{type(e).__name__}: {e}")
 
-        threading.Thread(target=work, daemon=True).start()
+        background.start(work)
         self._json(202, {"job": job_id})
 
     # ----- export Ren'Py -----
@@ -622,7 +623,7 @@ class Handler(BaseHTTPRequestHandler):
                 traceback.print_exc()
                 _jobs[job_id].update(state="error", message=f"{type(e).__name__}: {e}")
 
-        threading.Thread(target=work, daemon=True).start()
+        background.start(work)
         self._json(202, {"job": job_id})
 
     def _dialogue_generate(self, cid: str, sid: str, body: dict) -> None:
@@ -652,7 +653,7 @@ class Handler(BaseHTTPRequestHandler):
                 traceback.print_exc()
                 _jobs[job_id].update(state="error", message=f"{type(e).__name__}: {e}")
 
-        threading.Thread(target=work, daemon=True).start()
+        background.start(work)
         self._json(202, {"job": job_id})
 
     def _chapter_update(self, cid: str, body: dict) -> None:
@@ -754,7 +755,7 @@ class Handler(BaseHTTPRequestHandler):
                 traceback.print_exc()
                 _jobs[job_id].update(state="error", message=f"{type(e).__name__}: {e}")
 
-        threading.Thread(target=work, daemon=True).start()
+        background.start(work)
         self._json(202, {"job": job_id})
 
 
