@@ -13,7 +13,6 @@ import assets as A  # noqa: E402
 import background  # noqa: E402
 import paths  # noqa: E402
 import pipeline as PL  # noqa: E402
-import projects as PJ  # noqa: E402
 
 
 class AtomicWriteTests(unittest.TestCase):

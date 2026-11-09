@@ -14,7 +14,6 @@ import mimetypes
 import os
 import re
 import sys
-import threading
 import traceback
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

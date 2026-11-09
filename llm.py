@@ -67,7 +67,7 @@ def _post(url: str, headers: dict, payload: dict, timeout: int = 600) -> dict:
     passagères sont réessayées quelques fois, à délai croissant."""
     req = urllib.request.Request(url, data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json", **headers})
-    for attempt, wait in enumerate((*RETRY_WAITS, None)):
+    for wait in (*RETRY_WAITS, None):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = json.loads(r.read())
