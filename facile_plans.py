@@ -459,6 +459,7 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
     _check_cancel(job_id)
     idx = A.generate_candidate(plan["asset"], info["refs"], prompt, None, "replicate", None,
                                on_progress=_progress(job_id), on_submit=_submit(job_id))
+    _check_cancel(job_id)  # arrêt demandé pendant le dessin : l'image reste candidate, non retenue
     with A.LOCK:
         data = A.load()
         data["assets"][plan["asset"]]["prompt"] = prompt

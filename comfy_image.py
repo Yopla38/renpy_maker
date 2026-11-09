@@ -93,7 +93,9 @@ def generate(workflow: str | None, prompt: str, refs: list[Path], loras: list[di
         pairs = [(item["name"], float(item.get("strength", 1.0))) for item in loras]
         graph = CG.insert_loras(graph, pairs, with_clip=any(item.get("clip") for item in loras))
 
-    files = CC.run(graph, base, timeout_s, on_progress=on_progress, on_submit=on_submit)
+    import background
+    files = CC.run(graph, base, timeout_s, on_progress=on_progress, on_submit=on_submit,
+                   should_stop=background.should_stop)
     if not files:
         raise RuntimeError("ComfyUI n'a produit aucune image")
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -196,7 +196,7 @@ class StepsTests(unittest.TestCase):
     def test_steps_from_config_are_written_into_the_sampler(self):
         sent = {}
 
-        def fake_run(graph, base, timeout_s=0, on_progress=None, on_submit=None):
+        def fake_run(graph, base, timeout_s=0, on_progress=None, on_submit=None, should_stop=None):
             sent["graph"] = copy.deepcopy(graph)
             return [{"filename": "o.png", "subfolder": "", "type": "output"}]
 
@@ -441,7 +441,7 @@ class ComfyImageTests(unittest.TestCase):
     def setUp(self):
         self.sent = {}
 
-        def fake_run(graph, base, timeout_s=0, on_progress=None, on_submit=None):
+        def fake_run(graph, base, timeout_s=0, on_progress=None, on_submit=None, should_stop=None):
             self.sent["graph"] = copy.deepcopy(graph)
             return [{"filename": "sortie_00001_.png", "subfolder": "", "type": "output"}]
 

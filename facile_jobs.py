@@ -6,6 +6,7 @@ import threading
 import traceback
 import uuid
 
+import background
 from facile_base import _ensure_token
 
 JOBS: dict[str, dict] = {}
@@ -20,6 +21,7 @@ def _start(label: str, work, *args) -> dict:
                     "cancel_requested": False, "comfy_prompt": None}
 
     def run():
+        background.set_stop_check(lambda: JOBS[job_id]["cancel_requested"])
         try:
             _ensure_token()
             work(job_id, *args)
@@ -31,6 +33,7 @@ def _start(label: str, work, *args) -> dict:
                 traceback.print_exc()
                 JOBS[job_id].update(state="error", error=f"{type(e).__name__}: {e}")
         finally:
+            background.set_stop_check(None)
             _busy.release()
 
     threading.Thread(target=run, daemon=True).start()
@@ -64,8 +67,8 @@ def cancel_job(job_id: str) -> dict:
         import comfy_image
         try:
             CC.interrupt(comfy_image.base_url(), job["comfy_prompt"])
-        except OSError:
-            pass  # ComfyUI injoignable : la tâche s'arrête à l'étape suivante
+        except Exception as e:  # ComfyUI injoignable : la boucle d'attente voit l'arrêt demandé
+            print(f"Arrêt ComfyUI non transmis : {type(e).__name__}: {e}", flush=True)
     return {"ok": True}
 
 def _progress(job_id: str):

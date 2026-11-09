@@ -13,6 +13,7 @@ import json
 import mimetypes
 import os
 import time
+import urllib.error
 import urllib.request
 
 import paths
@@ -40,30 +41,51 @@ def _token() -> str:
 
 
 def _req(method: str, url: str, body: dict | None = None, timeout: int = 120, retries: int = 6) -> dict:
-    """Appel Replicate. Sur 429 (trop de requêtes, souvent faute de crédit), on attend et on réessaie."""
-    import time
+    """Appel Replicate, avec nouvelles tentatives à délai croissant :
+    - 429 (trop de requêtes, souvent faute de crédit) et 5xx : toujours (Retry-After respecté) ;
+    - coupure réseau : seulement pour une lecture (GET). Une création (POST) n'est pas renvoyée,
+      pour ne pas lancer deux prédictions payantes."""
     data = json.dumps(body).encode() if body is not None else None
+    headers = {"Authorization": f"Bearer {_token()}", "User-Agent": "histoire-ia/0.1",
+               "Content-Type": "application/json"}
+    if method == "POST" and url.endswith("/predictions"):
+        headers["Prefer"] = "wait=60"
     for attempt in range(retries + 1):
-        req = urllib.request.Request(
-            url,
-            data=data,
-            method=method,
-            headers={
-                "Authorization": f"Bearer {_token()}",
-                "User-Agent": "histoire-ia/0.1",
-                "Content-Type": "application/json",
-                "Prefer": "wait=60",
-            },
-        )
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return json.loads(r.read())
+                raw = r.read()
+            return json.loads(raw) if raw.strip() else {}
         except urllib.error.HTTPError as e:
-            if e.code != 429 or attempt == retries:
+            if not (e.code == 429 or e.code >= 500) or attempt == retries:
                 raise
-            wait = 10 * (2 ** attempt)  # 10, 20, 40, 80… secondes
-            print(f"Replicate 429 : nouvelle tentative dans {wait} s", flush=True)
-            time.sleep(wait)
+            wait = _retry_after(e) or 10 * (2 ** attempt)  # 10, 20, 40, 80… secondes
+            print(f"Replicate {e.code} : nouvelle tentative dans {wait} s", flush=True)
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            if method != "GET" or attempt == retries:
+                raise
+            wait = min(5 * (2 ** attempt), 60)
+            print(f"Replicate injoignable ({e}) : nouvelle tentative dans {wait} s", flush=True)
+        time.sleep(wait)
+    raise AssertionError("inaccessible")
+
+
+def _retry_after(e: urllib.error.HTTPError) -> int | None:
+    try:
+        return max(1, min(int(e.headers.get("Retry-After", "")), 300))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _cancel(pred: dict) -> None:
+    """Annule une prédiction en cours chez Replicate (elle ne coûte plus rien)."""
+    url = (pred.get("urls") or {}).get("cancel")
+    if not url:
+        return
+    try:
+        _req("POST", url, retries=1)
+    except Exception as e:  # noqa: BLE001 — l'annulation est un effort, l'erreur d'origine prime
+        print(f"Annulation Replicate impossible : {e}", flush=True)
 
 
 def _data_uri(path: Path) -> str:
@@ -110,17 +132,25 @@ def generate(
     if seed is not None:
         inp["seed"] = seed
 
+    import background
     pred = _req("POST", f"{API}/models/{model}/predictions", {"input": inp})
     t0 = time.time()
     while pred.get("status") not in ("succeeded", "failed", "canceled"):
+        if background.should_stop():
+            _cancel(pred)
+            raise RuntimeError("Génération arrêtée")
         if time.time() - t0 > timeout_s:
+            _cancel(pred)
             raise TimeoutError(f"Prédiction {pred.get('id')} trop longue")
         time.sleep(2)
         pred = _req("GET", pred["urls"]["get"])
     if pred["status"] != "succeeded":
         raise RuntimeError(f"Échec Replicate ({model}) : {pred.get('error')}")
 
-    url = pred["output"][0] if isinstance(pred["output"], list) else pred["output"]
+    output = pred.get("output")
+    url = (output[0] if output else None) if isinstance(output, list) else output
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise RuntimeError(f"Réponse Replicate sans image ({model}) : {output!r}")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with urllib.request.urlopen(url, timeout=120) as r:
         out_path.write_bytes(r.read())

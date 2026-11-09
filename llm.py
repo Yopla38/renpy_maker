@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import urllib.error
 import urllib.request
 
@@ -57,15 +58,36 @@ def key_available(name: str) -> bool:
         return False
 
 
+RETRY_CODES = {429, 500, 502, 503, 504, 529}  # surcharge ou panne passagère du fournisseur
+RETRY_WAITS = (5, 15, 45)                     # secondes entre deux tentatives
+
+
 def _post(url: str, headers: dict, payload: dict, timeout: int = 600) -> dict:
+    """Appel HTTP d'un fournisseur. Toute erreur devient une LLMError ; les surcharges et coupures
+    passagères sont réessayées quelques fois, à délai croissant."""
     req = urllib.request.Request(url, data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json", **headers})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        raise LLMError(f"HTTP {e.code} : {body[:500]}") from None
+    for attempt, wait in enumerate((*RETRY_WAITS, None)):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = json.loads(r.read())
+            if not isinstance(data, dict):
+                raise LLMError("Réponse du fournisseur inattendue (objet JSON attendu)")
+            return data
+        except urllib.error.HTTPError as e:
+            body = e.read().decode(errors="replace")
+            error = LLMError(f"HTTP {e.code} : {body[:500]}")
+            if e.code not in RETRY_CODES:
+                raise error from None
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            error = LLMError(f"Fournisseur injoignable : {getattr(e, 'reason', e)}")
+        except ValueError:  # corps non JSON (page d'erreur d'un proxy…)
+            error = LLMError("Réponse du fournisseur illisible (pas du JSON)")
+        if wait is None:
+            raise error from None
+        print(f"{error} : nouvelle tentative dans {wait} s", flush=True)
+        time.sleep(wait)
+    raise AssertionError("inaccessible")
 
 
 def complete(provider: str, system: str, user: str, model: str | None = None) -> str:
@@ -90,6 +112,8 @@ def complete(provider: str, system: str, user: str, model: str | None = None) ->
         )
         if data.get("stop_reason") == "refusal":
             raise LLMError("Le modèle a refusé la demande (refusal)")
+        if data.get("stop_reason") == "max_tokens":
+            raise LLMError("Réponse coupée (max_tokens atteint) : augmentez max_tokens dans config.yaml")
         return "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
     if provider == "openai":
         data = _post(
@@ -98,7 +122,10 @@ def complete(provider: str, system: str, user: str, model: str | None = None) ->
             {"model": p["model"], "temperature": p["temperature"],
              "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]},
         )
-        return data["choices"][0]["message"]["content"]
+        content = ((data.get("choices") or [{}])[0].get("message") or {}).get("content")
+        if not content:
+            raise LLMError("Réponse vide du modèle (refus ou réponse coupée)")
+        return content
     if provider == "ollama":
         data = _post(
             p["base_url"].rstrip("/") + "/api/chat", {},
@@ -159,9 +186,13 @@ def _replicate_text(p: dict, system: str, user: str) -> str:
 
 def extract_json(text: str) -> dict:
     """Extrait le premier objet JSON d'une réponse (tolère les blocs ```json)."""
-    m = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.S)
-    raw = m.group(1) if m else text[text.find("{"): text.rfind("}") + 1]
-    try:
-        return json.loads(raw)
-    except (json.JSONDecodeError, ValueError):
-        raise LLMError("Réponse du modèle non exploitable (JSON invalide) :\n" + text[:800]) from None
+    decoder = json.JSONDecoder()
+    # Premier objet JSON complet, en ignorant le texte autour (blocs ```json, phrase après l'objet…).
+    for m in re.finditer(r"\{", text):
+        try:
+            obj, _ = decoder.raw_decode(text, m.start())
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    raise LLMError("Réponse du modèle non exploitable (JSON invalide) :\n" + text[:800])

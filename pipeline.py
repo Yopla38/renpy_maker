@@ -240,6 +240,11 @@ def run(sizes: list[int], guidance: str = "") -> None:
     if not _run_lock.acquire(blocking=False):
         raise RuntimeError("Une exécution est déjà en cours")
     STATE.update(state="running", error=None, log=[], stage="")
+    _run_held(sizes, guidance)
+
+
+def _run_held(sizes: list[int], guidance: str) -> None:
+    """Corps du pipeline ; le verrou est déjà pris par l'appelant et relâché ici."""
     try:
         _log(f"démarrage : chapitres {sizes}" + (f" · consigne : {guidance}" if guidance else ""))
         stage_plan(sizes, guidance)
@@ -257,7 +262,12 @@ def run(sizes: list[int], guidance: str = "") -> None:
 
 
 def start(sizes: list[int], guidance: str = "") -> None:
-    background.start(run, sizes, guidance)
+    """Lance le pipeline. Le verrou et l'état « running » sont pris tout de suite, dans le thread de
+    la requête : un second clic est refusé, et la page ne lit jamais l'ancien état « done »."""
+    if not _run_lock.acquire(blocking=False):
+        raise ValueError("Une exécution est déjà en cours")
+    STATE.update(state="running", error=None, log=[], stage="")
+    background.start(_run_held, sizes, guidance)
 
 
 def anchors_only() -> None:

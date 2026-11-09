@@ -35,7 +35,8 @@ def _post(path: str, payload: dict, base: str) -> dict:
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())
+        raw = r.read()
+    return json.loads(raw) if raw.strip() else {}  # /interrupt et /queue répondent sans corps
 
 
 def is_api_format(wf: dict) -> bool:
@@ -202,13 +203,38 @@ class WebSocketConnection:
 
 
 def interrupt(base: str = DEFAULT_URL, prompt_id: str | None = None) -> None:
-    """Arrête la génération en cours et retire la génération demandée de la file d'attente."""
-    _post("/interrupt", {}, base)
+    """Arrête une génération : retirée de la file si elle attend, interrompue si elle tourne.
+
+    Avec prompt_id, seule cette génération est interrompue (pas celle d'un autre client)."""
     if prompt_id:
         _post("/queue", {"delete": [prompt_id]}, base)
+    _post("/interrupt", {"prompt_id": prompt_id} if prompt_id else {}, base)
 
 
-def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800, on_progress=None, on_submit=None) -> list[dict]:
+QUEUE_CHECK_S = 10  # intervalle de vérification de la file quand la génération tarde
+
+
+class Stopped(RuntimeError):
+    """Génération arrêtée à la demande de l'auteur."""
+
+
+def _queued(pid: str, base: str) -> bool:
+    """Vrai si la génération est encore dans la file de ComfyUI (en cours ou en attente)."""
+    q = _get("/queue", base)
+    return any(len(item) > 1 and item[1] == pid
+               for key in ("queue_running", "queue_pending") for item in q.get(key, []))
+
+
+def _outputs(entry: dict) -> list[dict]:
+    files = []
+    for out in entry.get("outputs", {}).values():
+        for key in ("images", "gifs", "videos"):
+            files.extend(out.get(key, []))
+    return files
+
+
+def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800, on_progress=None, on_submit=None,
+        should_stop=None) -> list[dict]:
     """Envoie le graphe et renvoie la liste des fichiers produits (dict nom/subfolder/type).
 
     on_progress(valeur, maximum) est appelé à chaque étape d'échantillonnage, si le canal WebSocket
@@ -227,11 +253,21 @@ def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800, on_progress=N
         pid = resp["prompt_id"]
         if on_submit is not None:
             on_submit(pid)  # permet d'arrêter cette génération précise
-        t0 = time.time()
-        while time.time() - t0 < timeout_s:
-            if ws is not None:
+        deadline = time.monotonic() + timeout_s
+        last_queue_check = time.monotonic()
+        while time.monotonic() < deadline:
+            if should_stop is not None and should_stop():
                 try:
-                    while True:
+                    interrupt(base, pid)
+                except Exception:  # noqa: BLE001 — ComfyUI injoignable : on s'arrête quand même
+                    pass
+                raise Stopped("Génération arrêtée")
+            finished = False
+            if ws is not None:
+                # Messages lus au plus 2 s d'affilée : une extension bavarde ne bloque jamais l'attente.
+                until = min(time.monotonic() + 2, deadline)
+                try:
+                    while time.monotonic() < until:
                         message = ws.recv(timeout=0.5)
                         if message is None:
                             break
@@ -239,10 +275,16 @@ def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800, on_progress=N
                         if opcode != 1:
                             continue  # images d'aperçu (binaire) : ignorées
                         event = json.loads(payload)
-                        if event.get("type") == "progress" and on_progress is not None:
-                            data = event.get("data", {})
-                            if data.get("prompt_id", pid) == pid:
-                                on_progress(int(data.get("value", 0)), int(data.get("max", 0)))
+                        data = event.get("data") or {}
+                        if data.get("prompt_id", pid) != pid:
+                            continue
+                        kind = event.get("type")
+                        if kind == "progress" and on_progress is not None:
+                            on_progress(int(data.get("value", 0)), int(data.get("max", 0)))
+                        elif kind in ("execution_success", "execution_error", "execution_interrupted") or (
+                                kind == "executing" and data.get("node") is None and "prompt_id" in data):
+                            finished = True
+                            break
                 except (ConnectionError, OSError, ValueError):
                     ws.close()
                     ws = None
@@ -251,12 +293,16 @@ def run(api: dict, base: str = DEFAULT_URL, timeout_s: int = 1800, on_progress=N
                 status = hist[pid].get("status", {})
                 if status.get("status_str") == "error":
                     raise RuntimeError(f"Erreur d'exécution : {status}")
-                files = []
-                for out in hist[pid].get("outputs", {}).values():
-                    for key in ("images", "gifs", "videos"):
-                        files.extend(out.get(key, []))
+                files = _outputs(hist[pid])
                 if files:
                     return files
+                if status.get("completed"):
+                    raise RuntimeError("ComfyUI a terminé sans produire d'image (le workflow a-t-il un nœud SaveImage ?)")
+            elif finished or time.monotonic() - last_queue_check > QUEUE_CHECK_S:
+                # Ni dans l'historique, ni dans la file : retirée (arrêt) ou perdue (ComfyUI redémarré).
+                last_queue_check = time.monotonic()
+                if not _queued(pid, base) and pid not in _get(f"/history/{pid}", base):
+                    raise RuntimeError("La génération a disparu de ComfyUI (arrêtée ou serveur redémarré)")
             if ws is None:
                 time.sleep(2)
         raise TimeoutError(f"Pas de résultat après {timeout_s}s pour {pid}")
