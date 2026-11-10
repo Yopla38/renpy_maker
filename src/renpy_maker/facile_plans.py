@@ -114,7 +114,15 @@ def _refs_view(sc: dict, plan: dict, assets: dict) -> dict:
         a = assets.get(it["id"], {})
         auto.append({"key": it["key"], "label": it["label"], "excluded": it["excluded"], "ok": it["ok"],
                      "image": _url(a, a.get("validated_candidate")) if a else None})
-    return {"auto": auto, "extra": [e["id"] for e in info["extra"]], "missing": info["missing"]}
+    extra_items = []
+    for e in info["extra"]:
+        aid, k = SC.split_ref(e["id"])
+        a = assets.get(aid, {})
+        idx = k if k is not None else a.get("validated_candidate")
+        extra_items.append({"ref": e["id"], "label": e["label"], "image": _url(a, idx) if a else None,
+                            "continuity": e["id"] == plan.get("continuity_ref")})
+    return {"auto": auto, "extra": [e["id"] for e in info["extra"]], "extra_items": extra_items,
+            "missing": info["missing"], "notes": info["notes"], "mode": info["mode"], "order": info["labels"]}
 
 def _plan_view(sc: dict, plan: dict, assets: dict) -> dict:
     a = assets.get(plan["asset"], {})
@@ -441,8 +449,6 @@ def _plan_work(job_id: str, sid: str, pid: str, prompt: str | None = None) -> No
     info = SC.plan_refs(data["assets"], sc, plan)
     if info["missing"]:
         raise ValueError("Il manque encore une image pour : " + ", ".join(info["missing"]))
-    if info["too_many"]:
-        raise ValueError("Trop de personnages pour une seule image (5 références au maximum)")
     if not prompt:
         prompt = data["assets"][plan["asset"]].get("prompt")
     if not prompt:

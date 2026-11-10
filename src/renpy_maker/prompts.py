@@ -126,8 +126,9 @@ def _retained(assets: dict, rid: str) -> bool:
 
 def ref_order(assets: dict, aid: str) -> list[str]:
     """Images de référence d'un élément, dans l'ordre où le prompt les nomme (image 1, image 2…).
-    Une tenue commence par la tenue de départ si elle en a une, puis par son personnage ; viennent ensuite
-    les images choisies à la main. Seules les images retenues comptent."""
+    Une tenue part d'UNE image de la personne : la tenue de départ si elle en a une (elle montre déjà la
+    personne), sinon le personnage ; deux images de la même personne la dédoublent ou mêlent les tenues.
+    Viennent ensuite les images choisies à la main. Seules les images retenues comptent."""
     a = assets[aid]
     order: list[str] = []
     if a["kind"] == "location" and a.get("parent"):  # point de vue : part de l'image de base de son lieu
@@ -139,7 +140,7 @@ def ref_order(assets: dict, aid: str) -> list[str]:
         base = a.get("based_on") or (assets.get(parent, {}).get("default_outfit") or "")
         if base and base != aid and _retained(assets, base):
             order.append(base)
-        if parent and _retained(assets, parent) and parent not in order:
+        elif parent and _retained(assets, parent):
             order.append(parent)
     for rid in a.get("refs", []):
         if rid != aid and _retained(assets, rid) and rid not in order:
@@ -187,7 +188,9 @@ def build_request(st: dict, assets: dict, aid: str) -> tuple[str, str]:
         # modèle l'applique à la personne à habiller. La description de la tenue suffit.
         return system, "\n".join(l for l in lines if l)
     style = llm_style()
-    framing = t(f"image.framing.{a['kind']}") if a["kind"] in (prompt_get("image.framing") or {}) else ""
+    # Un point de vue est un lieu rattaché à son lieu : il se dessine à partir de l'image de celui-ci.
+    rule = "viewpoint" if a["kind"] == "location" and a.get("parent") else a["kind"]
+    framing = t(f"image.framing.{rule}") if rule in (prompt_get("image.framing") or {}) else ""
     if a["kind"] in ("object", "location"):
         framing += " " + t("image.no_person")
     system = t("image.system", no_names=t("image.no_names"), style=style, framing=framing)

@@ -33,18 +33,19 @@ class PromptTests(unittest.TestCase):
     def test_request_contains_context_and_framing(self, _style):
         st, data = sample()
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
-        self.assertIn("Keep the woman from image 1", system)  # une tenue est une retouche de la personne
-        self.assertIn("Reference image 1 : the young woman", user)
+        self.assertIn("Dress the woman from image 1", system)  # une tenue est une retouche de la personne
+        self.assertIn("Image 1 : the young woman", user)
         self.assertNotIn("entre au Velvet", user)  # une tenue n'envoie pas de résumé de scène
         self.assertNotIn("Eve", user)  # aucun prénom dans ce que lit le modèle image
-        self.assertIn("photorealistic 3D render", system)  # style de référence, lu dans config.yaml
+        self.assertIn("no style words", system)  # le style est ajouté par le programme (suggest)
 
     def test_location_requests_no_people(self):
         st, data = sample()
         data["assets"]["loc_velvet"] = {"kind": "location", "name": "Le Velvet", "description": "bar",
                                         "prompt": "", "parent": None, "status": "draft", "candidates": []}
         system, _ = PR.build_request(st, data["assets"], "loc_velvet")
-        self.assertIn("no people", system)
+        self.assertIn("empty, deserted place", system)     # formulé positivement pour le modèle d'image
+        self.assertIn("never mention a person", system)    # consigne à l'IA d'écriture
 
     def test_clean_keeps_first_paragraph_only(self):
         self.assertEqual(PR.clean('"A woman in a blue dress."\n\nNote: ok'), "A woman in a blue dress.")
@@ -73,8 +74,8 @@ class EditPromptTests(unittest.TestCase):
         st, data = sample()
         system, user = PR.build_request(st, data["assets"], "outfit_robe")
         self.assertIn("EDIT", system)
-        self.assertIn("Keep the woman from image 1", system)
-        self.assertIn("Reference image 1 : the young woman", user)
+        self.assertIn("Dress the woman from image 1", system)
+        self.assertIn("Image 1 : the young woman", user)
         self.assertNotIn("Eve", user)
 
 
@@ -195,8 +196,9 @@ class ReferenceOrderTests(unittest.TestCase):
             "loc": {"kind": "location", "name": "Bureau", "validated_candidate": 0, "refs": []},
         }
 
-    def test_outfit_starts_from_its_base_then_the_character(self):
-        self.assertEqual(PR.ref_order(self.assets(), "o2"), ["o1", "c"])
+    def test_outfit_starts_from_one_image_of_the_person(self):
+        # La tenue de départ montre déjà la personne : pas de seconde image d'elle (dédoublement).
+        self.assertEqual(PR.ref_order(self.assets(), "o2"), ["o1"])
         self.assertEqual(PR.ref_order(self.assets(), "o1"), ["c"])
 
     def test_chosen_references_come_after_and_unretained_ones_are_dropped(self):
@@ -211,8 +213,8 @@ class ReferenceOrderTests(unittest.TestCase):
     def test_outfit_request_names_the_base_outfit_as_image_one(self):
         st = {"settings": {"style": "aquarelle"}, "idea": "", "synopsis": "", "chapters": []}
         _, user = PR.build_request(st, self.assets(), "o2")
-        self.assertIn("Reference image 1 : the man wearing Chemise", user)
-        self.assertIn("Reference image 2 : the old man", user)
+        self.assertIn("Image 1 : the man wearing Chemise", user)
+        self.assertNotIn("Image 2", user)
 
 
 class NudeBaseTests(unittest.TestCase):

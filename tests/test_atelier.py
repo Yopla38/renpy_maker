@@ -169,15 +169,16 @@ class OutfitEditTests(unittest.TestCase):
     def test_add_with_a_reference_image_names_it(self):
         args = self.run_edit("add", "Chaussures", ref="shoes")
         prompt, extra, store = args[0][2], args[0][3], args[0][4]
-        self.assertIn("Reference image 1 : the current outfit", prompt)  # la tenue actuelle est gardée
-        self.assertIn("reference image 2", prompt)                      # les chaussures : image 2
+        self.assertIn("Add the chaussures from image 2 to the outfit of the person in image 1", prompt)
+        self.assertIn("Keep everything else exactly as in image 1", prompt)  # la tenue actuelle est gardée
+        self.assertLess(len(prompt.split()), 60)                             # court, comme le veut Klein
         self.assertEqual(extra, [])
         self.assertEqual(args[0][5], ["outfit_r", "shoes"])  # tenue actuelle, puis chaussures
         self.assertFalse(store)  # le prompt de la tenue n'est pas remplacé
 
     def test_remove_needs_no_reference(self):
         args = self.run_edit("remove", "Collier")
-        self.assertIn("Remove only the collier", args[0][2])
+        self.assertIn("Remove the collier from the outfit of the person in image 1", args[0][2])
         self.assertEqual(args[0][5], ["outfit_r"])  # seule la tenue actuelle
 
 

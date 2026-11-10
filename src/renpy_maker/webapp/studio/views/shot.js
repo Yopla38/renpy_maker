@@ -102,7 +102,8 @@ export function openShot(ctx, sid, pid) {
 }
 
 const excludedKeys = (p) => p.refs.auto.filter((r) => r.excluded).map((r) => r.key);
-const extras = (p) => (p.refs.extra || []).map((r) => r.ref || r.key || r.aid).filter(Boolean);
+// refs.extra : identifiants des images ajoutées (à renvoyer tels quels) ; refs.extra_items : leur détail.
+const extras = (p) => (p.refs.extra || []).map((r) => (typeof r === "string" ? r : r.ref)).filter(Boolean);
 
 function body(data, sc, plan) {
   const st = sceneState(sc.id);
@@ -145,14 +146,18 @@ function body(data, sc, plan) {
 
     <section class="stack">
       <p class="section-title">Références</p>
-      <p class="small muted">Les images qui guident le dessin (décor, personnages, tenues, image d'avant). Touchez pour écarter ou reprendre.</p>
+      <p class="small muted">${refs.mode === "edit"
+        ? "Retouche de l'image précédente : elle est l'image 1, le même plan un instant plus tard. Le décor et les personnes déjà présentes viennent d'elle."
+        : "Nouveau plan, composé à partir du décor et des personnages."} Touchez une image pour l'écarter ou la reprendre.</p>
+      ${(refs.order || []).length ? `<p class="small">Ordre reçu par Klein : ${refs.order.map((l, i) => `<b>image ${i + 1}</b> ${esc(l.replace(" (ajoutée)", ""))}`).join(" · ")}</p>` : ""}
+      ${(refs.notes || []).map((n) => `<p class="notice small">${esc(n)}</p>`).join("")}
       <div class="subgrid">
         ${refs.auto.map((r) => `<button class="lib-card" data-act="ref-toggle" data-key="${esc(r.key)}" title="${r.excluded ? "Reprendre" : "Écarter"}">
           ${r.image ? `<div class="thumb square" style="${r.excluded ? "opacity:.35" : ""}"><img src="${esc(r.image)}" alt=""></div>` : `<div class="thumb square empty">à dessiner</div>`}
           <span class="small ${r.excluded ? "chip off" : ""}" style="${r.excluded ? "border:0;padding:0" : ""}">${esc(r.label)}</span></button>`).join("")}
-        ${(refs.extra || []).map((r) => `<button class="lib-card" data-act="ref-remove" data-ref="${esc(r.ref || r.key || r.aid)}" title="Retirer">
+        ${(refs.extra_items || []).map((r) => `<button class="lib-card" data-act="ref-remove" data-ref="${esc(r.ref)}" title="Retirer">
           ${r.image ? `<div class="thumb square"><img src="${esc(r.image)}" alt=""></div>` : `<div class="thumb square empty"></div>`}
-          <span class="small">＋ ${esc(r.label || r.ref)}</span></button>`).join("")}
+          <span class="small">${r.continuity ? "image précédente" : `＋ ${esc(r.label)}`}</span></button>`).join("")}
       </div>
       <label class="field"><span>Ajouter une référence</span><select data-change="ref-add"><option value="">Choisir une image retenue…</option>
         ${(data.ref_choices || []).filter((c) => !extraKeys.has(c.ref)).map((c) => `<option value="${esc(c.ref)}">${esc(c.label)}</option>`).join("")}</select></label>

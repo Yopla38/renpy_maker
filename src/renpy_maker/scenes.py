@@ -16,7 +16,7 @@ from renpy_maker import prompts as PR
 from renpy_maker import story as S
 from renpy_maker.prompt_texts import t
 
-MAX_REFS = 5  # limite d'images de référence de Klein (décor compris)
+MAX_REFS = 4  # images de référence de Klein (base comprise) : limite de l'API de BFL et du workflow ComfyUI
 
 # Valeurs de cadrage : clés en anglais (utilisées dans le prompt), libellés en français dans l'interface.
 FRAMINGS = ["extreme close-up", "close-up", "medium close-up", "medium shot", "cowboy shot",
@@ -47,8 +47,21 @@ def plan_characters(sc: dict, plan: dict) -> list[str]:
     if k is None:
         return sc.get("characters", [])
     speakers = {l["speaker"] for l in plan_lines(sc, k)}
-    chosen = [c for c in sc.get("characters", []) if c in speakers]
+    # Un personnage cité dans « ce que l'on voit » est dans l'image, même s'il ne parle pas
+    # (« Léa seule sur le quai, Tom arrive au loin »).
+    note = (plan.get("shot") or {}).get("note", "")
+    named = {c for c in sc.get("characters", []) if _names_in(c, note)}
+    chosen = [c for c in sc.get("characters", []) if c in speakers or c in named]
+    # Le même plan un instant plus tard (continuité, sans nouveau cadrage) : ceux qui étaient là y restent,
+    # même s'ils ne parlent pas.
+    if k > 0 and plan.get("continuity", True) and not _has_shot(plan):
+        before = plan_characters(sc, sc["plans"][k - 1])
+        chosen = [c for c in sc.get("characters", []) if c in chosen or c in before]
     return chosen or sc.get("characters", [])
+
+
+def _names_in(name: str, text: str) -> bool:
+    return bool(name) and bool(re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text or "", re.IGNORECASE))
 
 
 def split_ref(ref: str):
@@ -56,75 +69,127 @@ def split_ref(ref: str):
     return _split(ref)
 
 
-def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
-    """Références d'un plan.
+def _previous_plan(sc: dict, plan: dict) -> dict | None:
+    plans = sc.get("plans", [])
+    k = next((i for i, p in enumerate(plans) if p is plan or p.get("id") == plan.get("id")), None)
+    return plans[k - 1] if k else None
 
-    Automatiques : décor et tenue (ou personnage) de chaque personnage du plan.
-    Chacune peut être décochée (plan["refs_exclude"]). On peut ajouter n'importe quelle image
-    retenue (plan["refs_extra"], par exemple l'image précédente pour la continuité).
-    `missing` liste ce qui bloque : référence automatique non retenue, ajout non retenu.
+
+def _has_shot(plan: dict) -> bool:
+    shot = plan.get("shot") or {}
+    return bool(shot.get("framing") or shot.get("angle") or shot.get("note"))
+
+
+def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
+    """Images de référence d'un plan, dans l'ordre où Klein les reçoit (image 1, image 2…).
+
+    Deux cas :
+    - retouche (« edit ») : le plan suit l'image précédente (continuité) sans cadrage choisi. L'image précédente
+      est l'image 1 (la base) ; le décor n'est pas repris (elle le montre déjà), ni les personnages qui y sont
+      déjà ; seuls les personnages qui entrent dans l'image ajoutent leur référence ;
+    - nouveau plan (« new ») : le décor, puis une image par personnage (sa tenue dans la scène, à défaut sa
+      tenue par défaut ou son image de base), puis les images ajoutées, puis l'image précédente.
+
+    Au plus MAX_REFS images : au-delà, les moins utiles sont écartées (dans l'ordre : image précédente d'un
+    nouveau plan, images ajoutées, personnages qui ne parlent pas, décor) et le plan le signale (`notes`).
+    Chaque référence automatique peut être décochée (plan["refs_exclude"]) ; `missing` liste ce qui bloque.
     """
     chars = {S.norm(a["name"]): k for k, a in assets.items() if a["kind"] == "character"}
     excluded = set(plan.get("refs_exclude", []))
-    auto = []  # {id, key, label, ok, why} ; key = rôle stable (décor, tenue de X, personnage X)
+    manual = plan.get("manual_refs", {})
+    people = plan_characters(sc, plan)
+    prev = _previous_plan(sc, plan)
+    prev_people = plan_characters(sc, prev) if prev else []
+    # Image de base d'une retouche : l'image précédente (continuité), sinon une image de scène ajoutée à la main.
+    def usable(ref):
+        aid, k = split_ref(ref)
+        a = assets.get(aid)
+        idx = k if k is not None else (a or {}).get("validated_candidate")
+        return a is not None and aid != plan.get("asset") and idx is not None and idx < len(a.get("candidates", []))
+    extras = plan.get("refs_extra", [])
+    cont = plan.get("continuity_ref") if plan.get("continuity_ref") in extras else None
+    if cont and not usable(cont):
+        cont = None
+    if cont is None:
+        cont = next((r for r in extras if usable(r) and assets[split_ref(r)[0]].get("kind") == "scene"), None)
+    mode = "edit" if cont and not _has_shot(plan) else "new"
+    staying = [n for n in people if n in prev_people] if mode == "edit" else []
+    speakers = {l["speaker"] for k, p in enumerate(sc.get("plans", []))
+                if p is plan or p.get("id") == plan.get("id") for l in plan_lines(sc, k)}
 
+    auto = []  # {id, key, label, ok, why, role, person} ; key = rôle stable (décor, tenue de X, personnage X)
     if sc.get("location"):
         lid = PR.match_asset(assets, {"kind": "location", "name": sc["location"], "parent_name": None}, chars)
         view = plan.get("viewpoint")  # point de vue choisi pour ce moment (sinon le lieu lui-même)
         if view and view in assets and assets[view].get("parent") == lid:
             lid = view
-        auto.append({"id": lid, "key": "decor", "label": f"décor : {sc['location']}",
+        auto.append({"id": lid, "key": "decor", "label": f"décor : {sc['location']}", "role": "decor",
                      "ok": bool(lid) and assets[lid]["status"] == "validated",
                      "why": f"décor « {sc['location']} » : image à retenir"})
     else:
         auto.append({"id": None, "key": None, "label": "", "ok": False, "why": "aucun lieu indiqué dans la scène"})
 
-    for name in plan_characters(sc, plan):
+    for name in people:
         outfit = sc.get("outfits", {}).get(name)
         if outfit:
             oid = PR.match_asset(assets, {"kind": "outfit", "name": outfit, "parent_name": name}, chars)
             auto.append({"id": oid, "key": f"tenue:{S.norm(name)}", "label": f"{name} en tenue", "person": name,
-                         "ok": bool(oid) and assets[oid]["status"] == "validated",
+                         "role": "person", "outfit": outfit, "ok": bool(oid) and assets[oid]["status"] == "validated",
                          "why": f"tenue « {outfit} » de {name} : image à retenir"})
         else:
             cid = chars.get(S.norm(name))
             # Sans tenue notée dans la scène : la tenue par défaut du personnage, sinon son image de base.
             dflt = (assets.get(cid) or {}).get("default_outfit") if cid else None
+            outfit_name = None
             if dflt and dflt in assets and assets[dflt].get("validated_candidate") is not None:
-                cid = dflt
-            auto.append({"id": cid, "key": f"perso:{S.norm(name)}", "label": name, "person": name,
-                         "ok": bool(cid) and assets[cid]["status"] == "validated",
+                cid, outfit_name = dflt, assets[dflt].get("name")
+            auto.append({"id": cid, "key": f"perso:{S.norm(name)}", "label": name, "person": name, "role": "person",
+                         "outfit": outfit_name, "ok": bool(cid) and assets[cid]["status"] == "validated",
                          "why": f"{name} : image de personnage à retenir"})
 
-    refs, labels, missing = [], [], []
-    auto_out = []
-    people = set(plan_characters(sc, plan))
     # Une tenue ajoutée à la main remplace la tenue automatique du même personnage : le choix manuel prime
     # sur la tenue notée dans la scène.
-    overridden = set()
+    overridden, extra_people = set(), {}
     for ref in plan.get("refs_extra", []):
         aid, _ = split_ref(ref)
         a = assets.get(aid)
+        owner = ""
         if a and a.get("kind") == "outfit" and a.get("parent"):
             owner = assets.get(a["parent"], {}).get("name", "")
-            if owner:
-                overridden.add(f"tenue:{S.norm(owner)}")
+        elif a and a.get("kind") == "character":
+            owner = a.get("name", "")
+        if owner:  # l'image ajoutée d'une personne remplace sa référence automatique
+            overridden.add(f"tenue:{S.norm(owner)}")
+            overridden.add(f"perso:{S.norm(owner)}")
+            extra_people[ref] = owner
+
+    chosen, missing, notes, auto_out = [], [], [], []   # chosen : {ref, label, role, person, outfit, priority}
     for it in auto:
-        is_excluded = ((it["id"] is not None and it["id"] in excluded) or (it.get("key") in excluded)
-                       or it.get("key") in overridden)
-        if it["id"] is not None:
-            auto_out.append({"id": it["id"], "key": it["key"], "label": it["label"], "excluded": is_excluded,
-                             "ok": it["ok"], "why": it["why"]})
+        if it["id"] is None:
+            missing.append(it["why"])
+            continue
+        is_excluded = it["id"] in excluded or it.get("key") in excluded or it.get("key") in overridden
+        if mode == "edit" and it["role"] == "decor" and manual.get("decor") is not False:
+            is_excluded = True   # l'image précédente montre déjà le lieu
+        if mode == "edit" and it.get("person") in staying and manual.get(it["key"]) is not False:
+            is_excluded = True   # la personne est déjà dans l'image précédente
+        auto_out.append({"id": it["id"], "key": it["key"], "label": it["label"], "excluded": is_excluded,
+                         "ok": it["ok"], "why": it["why"]})
         if is_excluded:
-            if it.get("person") in people and not plan.get("refs_extra"):
+            if (it.get("person") in people and it.get("person") not in staying and not plan.get("refs_extra")
+                    and it.get("key") not in overridden):
                 missing.append(f"{it['person']} est dans l'image mais sans image de référence : "
                                "recochez sa tenue ou retirez-le de l'image")
             continue
-        if it["ok"]:
-            refs.append(it["id"])
-            labels.append(it["label"])
-        else:
+        if not it["ok"]:
             missing.append(it["why"])
+            continue
+        if it["role"] == "decor":
+            priority = 2
+        else:
+            priority = 1 if it["person"] in speakers else 3
+        chosen.append({"ref": it["id"], "label": it["label"], "role": it["role"], "person": it.get("person"),
+                       "outfit": it.get("outfit"), "priority": priority})
 
     extra_out = []
     for ref in plan.get("refs_extra", []):
@@ -135,14 +200,37 @@ def plan_refs(assets: dict, sc: dict, plan: dict) -> dict:
         name = a.get("name", aid) + (f" #{k}" if k is not None else "")
         extra_out.append({"id": ref, "label": name})
         idx = k if k is not None else a.get("validated_candidate")
-        if idx is not None and idx < len(a.get("candidates", [])) and ref not in refs:
-            refs.append(ref)
-            labels.append(f"{name} (ajoutée)")
-        else:
+        if idx is None or idx >= len(a.get("candidates", [])):
             missing.append(f"« {name} » ajoutée : image introuvable")
+            continue
+        if any(c["ref"] == ref for c in chosen):
+            continue
+        if ref == cont:
+            chosen.append({"ref": ref, "label": f"{name} (ajoutée)", "role": "continuity", "person": None,
+                           "outfit": None, "priority": 0 if mode == "edit" else 5})
+        else:
+            owner = extra_people.get(ref)
+            chosen.append({"ref": ref, "label": f"{name} (ajoutée)", "role": "person" if owner else "extra",
+                           "person": owner,
+                           "outfit": a.get("name") if owner and a.get("kind") == "outfit" else None, "kind": a.get("kind"),
+                           "priority": 1 if owner in speakers else (3 if owner else 4)})
 
-    return {"refs": refs, "labels": labels, "missing": missing, "too_many": len(refs) > MAX_REFS,
-            "auto": auto_out, "extra": extra_out}
+    # Au plus MAX_REFS : on écarte d'abord les moins utiles (priorité la plus haute en dernier).
+    keep = sorted(chosen, key=lambda c: c["priority"])[:MAX_REFS]
+    for c in chosen:
+        if c not in keep:
+            notes.append(f"« {c['label']} » écartée : Klein reçoit {MAX_REFS} images au plus")
+    # Ordre envoyé à Klein : l'image de base d'abord (image précédente en retouche, sinon le décor).
+    rank = ({"continuity": 0, "person": 1, "decor": 2, "extra": 3} if mode == "edit"
+            else {"decor": 0, "person": 1, "extra": 2, "continuity": 3})
+    ordered = sorted(keep, key=lambda c: (rank[c["role"]], chosen.index(c)))
+
+    entering = [n for n in people if n not in prev_people] if mode == "edit" else []
+    leaving = [n for n in prev_people if n not in people] if mode == "edit" else []
+    return {"refs": [c["ref"] for c in ordered], "labels": [c["label"] for c in ordered],
+            "roles": [{k: c.get(k) for k in ("ref", "role", "person", "outfit", "kind")} for c in ordered],
+            "mode": mode, "people": people, "staying": staying, "entering": entering, "leaving": leaving,
+            "missing": missing, "notes": notes, "too_many": False, "auto": auto_out, "extra": extra_out}
 
 
 def is_placed(sc: dict, plan: dict, asset: dict, asset_id: str) -> bool:
@@ -165,9 +253,6 @@ def plan_status(assets: dict, sc: dict, k: int) -> dict:
                 "asset_status": a.get("status"), "candidates": len(a.get("candidates", []))}
     info = plan_refs(assets, sc, plan)
     issues = list(info["missing"])
-    if info["too_many"]:
-        issues.append(f"{len(info['refs'])} références : Klein en accepte {MAX_REFS} au plus. "
-                      "Retirez un personnage du plan ou scindez-le en deux plans.")
     asset = assets.get(plan["asset"], {})
     if asset.get("status") != "validated" and not issues:
         issues.append("image de plan à retenir")
@@ -175,7 +260,7 @@ def plan_status(assets: dict, sc: dict, k: int) -> dict:
             "characters": plan_characters(sc, plan), "refs": info["refs"], "labels": info["labels"],
             "auto": info["auto"], "extra": info["extra"], "shot": plan.get("shot", {}), "reused": False,
             "image_index": assets[plan["asset"]].get("validated_candidate"),
-            "issues": issues, "ready": not issues,
+            "issues": issues, "ready": not issues, "notes": info["notes"], "mode": info["mode"],
             "asset_status": asset.get("status"), "candidates": len(asset.get("candidates", []))}
 
 
@@ -196,90 +281,85 @@ def scene_status(st: dict, assets: dict) -> list[dict]:
     return out
 
 
-def _people_line(plan: dict, sc: dict, info: dict, assets: dict) -> str:
-    """Qui est dans l'image (genre et âge, jamais le prénom), et de quelle image de référence on le tire."""
-    labels = info["labels"]
-    # Image de continuité : l'image du plan précédent (étiquette « · plan N »), qui montre les personnages.
-    cont = next((i + 1 for i, lab in enumerate(labels) if lab.endswith("(ajoutée)") and " · plan " in lab), None)
-    parts = []
-    for name in plan_characters(sc, plan):
-        plain = [lab.replace(" (ajoutée)", "") for lab in labels]
-        idx = next((i + 1 for i, lab in enumerate(plain) if lab in (name, f"{name} en tenue")), None) or cont
-        word = PR.person_word(assets, name)
-        parts.append(t("scene_image.user.person", person=word, n=idx) if idx
-                     else t("scene_image.user.person_without_reference", person=word))
-    return t("scene_image.user.people", people=", ".join(parts))
+def _person_index(info: dict, name: str) -> int | None:
+    """Numéro de l'image qui montre cette personne : sa propre référence, sinon l'image précédente."""
+    roles = info["roles"]
+    own = next((i + 1 for i, r in enumerate(roles) if r["role"] == "person" and r["person"] == name), None)
+    if own:
+        return own
+    return next((i + 1 for i, r in enumerate(roles) if r["role"] == "continuity"), None)
+
+
+def _reference_line(assets: dict, n: int, r: dict) -> str:
+    u = "scene_image.user."
+    if r["role"] == "continuity":
+        return t(u + "ref_previous", n=n)
+    if r["role"] == "decor":
+        return t(u + "ref_place", n=n, place=assets.get(r["ref"], {}).get("name", ""))
+    if r["role"] == "person":
+        who = PR.person_word(assets, r["person"])
+        if r.get("outfit"):
+            return t(u + "ref_person_outfit", n=n, name=r["person"], person=who, outfit=r["outfit"])
+        return t(u + "ref_person", n=n, name=r["person"], person=who)
+    aid, _ = split_ref(r["ref"])
+    return t(u + "ref_other", n=n, name=assets.get(aid, {}).get("name", aid))
 
 
 def build_request(st: dict, assets: dict, sc: dict, k: int) -> tuple[str, str]:
-    """Prompt d'édition pour FLUX.2 Klein.
-
-    Deux cas :
-    - continuité (une image de référence ajoutée, par exemple la précédente, sans cadrage choisi) :
-      c'est une RETOUCHE : même cadrage, même composition, seule l'action ou l'expression change ;
-    - sinon : un nouveau plan. Le cadrage est alors explicite, et la composition est nouvelle.
-    """
+    """Demande de prompt pour FLUX.2 Klein (consigne et données), selon les règles de Klein : décrire ce qui se
+    passe et ce qui change, nommer chaque image de référence par son numéro, ne jamais redécrire ce qu'elle
+    montre. Deux cas (voir plan_refs) : retouche de l'image précédente, ou nouveau plan."""
     plan = sc["plans"][k]
     info = plan_refs(assets, sc, plan)
-    if info["refs"]:
-        order = "; ".join(t("scene_image.reference", n=i + 1, label=PR.anonymize(lab, assets))
-                          for i, lab in enumerate(info["labels"]))
-        refs_line = t("scene_image.references", order=order)
-    else:
-        refs_line = t("scene_image.no_references")
-    style = PR.llm_style()
+    edit = info["mode"] == "edit"
+    system = t("scene_image.system_edit" if edit else "scene_image.system_new")
+    u = "scene_image.user."
     shot = plan.get("shot") or {}
-    has_shot = bool(shot.get("framing") or shot.get("angle") or shot.get("note"))
-    cont = next((i + 1 for i, lab in enumerate(info["labels"]) if lab.endswith("(ajoutée)")), None)
-    edit_only = cont is not None and not has_shot
-
-    rules = t("scene_image.rules_edit", image=cont) if edit_only else t("scene_image.rules_new")
-    system = t("scene_image.system", references=refs_line, rules=rules, style=style)
-    names = sc.get("characters", [])
-    lines = [t("scene_image.user.scene", title=sc["title"], summary=PR.anonymize(sc["summary"], assets, names))]
-    if sc.get("location"):
-        lines.append(t("scene_image.user.location", location=sc["location"]))
-    lines.append(_people_line(plan, sc, info, assets))
+    lines = [t(u + "scene", title=sc["title"], summary=sc.get("summary", ""))]
+    if info["refs"]:
+        lines.append(t(u + "references"))
+        lines += [_reference_line(assets, i + 1, r) for i, r in enumerate(info["roles"])]
+    else:
+        lines.append(t(u + "no_references", location=sc.get("location")))
+    people = []
+    for name in info["people"]:
+        n = _person_index(info, name)
+        who = PR.person_word(assets, name)
+        if n is None:
+            people.append(t(u + "person_without_reference", name=name, person=who))
+        elif name in info["entering"]:
+            people.append(t(u + "person_entering", name=name, person=who, n=n))
+        else:
+            people.append(t(u + "person", name=name, person=who, n=n))
+    lines.append(t(u + "people", people="; ".join(people)))
+    if info["leaving"]:
+        lines.append(t(u + "leaving", people=", ".join(
+            t(u + "person_leaving", name=n, person=PR.person_word(assets, n)) for n in info["leaving"])))
     if sc.get("decor"):
-        lines.append(t("scene_image.user.decor", decor=", ".join(sc["decor"])))
-    if has_shot:
-        lines.append(t("scene_image.user.shot_with_focus" if shot.get("note") else "scene_image.user.shot",
-                       framing=shot.get("framing"), angle=shot.get("angle"), note=shot.get("note")))
-    elif not edit_only:
-        lines.append(t("scene_image.user.shot_unset"))
-    if k > 0 and not edit_only:
-        prev = sc["plans"][k - 1].get("shot") or {}
+        lines.append(t(u + "decor", decor=", ".join(sc["decor"])))
+    if not edit:
+        if shot.get("framing") or shot.get("angle"):
+            lines.append(t(u + "shot", framing=shot.get("framing"), angle=shot.get("angle")))
+        else:
+            lines.append(t(u + "shot_unset"))
+        prev = sc["plans"][k - 1].get("shot") or {} if k > 0 else {}
         if prev.get("framing") or prev.get("angle"):
-            lines.append(t("scene_image.user.previous_shot", framing=prev.get("framing", "?"),
-                           angle=prev.get("angle", "?")))
-    # Seules les répliques des personnages visibles décrivent l'image : une réplique de quelqu'un
-    # absent du plan ferait réapparaître cette personne dans le prompt.
-    visible = set(plan_characters(sc, plan)) | {S.NARRATOR}
+            lines.append(t(u + "previous_shot", framing=prev.get("framing", "?"), angle=prev.get("angle", "?")))
+    if shot.get("note"):
+        lines.append(t(u + "note", note=shot["note"]))
+    # Seules les répliques des personnes visibles décrivent l'image : une réplique de quelqu'un absent du plan
+    # ferait réapparaître cette personne dans le prompt.
+    visible = set(info["people"]) | {S.NARRATOR}
     shown = [l for l in plan_lines(sc, k) if l["speaker"] in visible]
-    def who(speaker: str) -> str:
-        return speaker if speaker == S.NARRATOR else PR.person_word(assets, speaker)
-
     expr = {}
     for line in shown:
-        expr[line["speaker"]] = line.get("expression", "neutre")
+        if line["speaker"] != S.NARRATOR and line.get("expression"):
+            expr[line["speaker"]] = line["expression"]
     if expr:
-        lines.append(t("scene_image.user.expressions", expressions=", ".join(
-            t("scene_image.user.expression", who=who(n), expression=e) for n, e in expr.items())))
-    lines.append(t("scene_image.user.dialogue"))
-    lines += [t("scene_image.user.dialogue_line", who=who(l["speaker"]), text=PR.anonymize(l["text"], assets, names))
-              for l in shown] or [t("scene_image.user.no_dialogue")]
-    if info["refs"]:
-        lines.append(t("scene_image.user.references"))
-        for rid, lab in zip(info["refs"], [PR.anonymize(x, assets) for x in info["labels"]]):
-            aid, k = split_ref(rid)
-            if k is not None:
-                # Image précise : Klein la voit ; le prompt de l'élément ne la décrit pas forcément.
-                lines.append(t("scene_image.user.reference_exact", n=info["refs"].index(rid) + 1, label=lab))
-                continue
-            src = assets.get(aid, {})
-            text = src.get("prompt") or src.get("description", "")
-            lines.append(t("scene_image.user.reference", n=info["refs"].index(rid) + 1, label=lab,
-                           text=PR.anonymize(text, assets)))
+        lines.append(t(u + "expressions", expressions=", ".join(
+            t(u + "expression", name=n, expression=e) for n, e in expr.items())))
+    lines.append(t(u + "dialogue"))
+    lines += [t(u + "dialogue_line", name=l["speaker"], text=l["text"]) for l in shown] or [t(u + "no_dialogue")]
     return system, "\n".join(lines)
 
 

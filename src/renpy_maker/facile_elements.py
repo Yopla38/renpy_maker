@@ -402,7 +402,7 @@ def _edit_work(job_id: str, aid: str, mode: str, text: str, ref: str) -> None:
         take = t("outfit_edit.add_from_reference" if ref else "outfit_edit.add", item=item)
     else:
         take = t("outfit_edit.remove", item=item)
-    body = " ".join((t("outfit_edit.keep"), take, t("outfit_edit.end")))
+    body = f"{take} {t('outfit_edit.end')}"
     prompt = PR.with_style(body, PR.llm_style())
     only = [aid] + ([ref] if ref else [])
     _card_work(job_id, aid, prompt, [], False, only)

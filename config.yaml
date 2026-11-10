@@ -45,7 +45,8 @@ story:
 # Style visuel : à fixer au début de chaque projet.
 visual_style:
   name: "3D réaliste"                      # rendu CGI réaliste, style des jeux Ren'Py adultes
-  positive_suffix: "photorealistic 3D render, realistic CGI character, soft cinematic lighting, detailed skin texture"
+  # Sans sujet (« character », « skin ») : ce suffixe termine aussi les prompts des lieux et des objets.
+  positive_suffix: "photorealistic 3D render, cinematic CGI look, soft cinematic lighting, fine realistic detail"
   negative_prompt: "low quality, blurry, deformed, watermark, text, cartoon, anime, flat shading"
   seed: 42                                 # graine de référence pour les ancres
 

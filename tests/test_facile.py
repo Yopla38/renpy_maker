@@ -302,7 +302,8 @@ class Plans(Setup, unittest.TestCase):
         sc = S.all_scenes(st)[0]
         system, user = SC_.build_request(st, A.load()["assets"], sc, 0)
         self.assertNotIn("Tom", user)
-        self.assertIn("- young woman :", user)
+        self.assertIn("- Léa :", user)
+        self.assertIn("Léa = the young woman", user)
 
     def test_dropped_image_is_a_copy_in_the_target_plan(self):
         import tempfile

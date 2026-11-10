@@ -51,15 +51,21 @@ class SceneTests(unittest.TestCase):
         info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
         self.assertTrue(any("robe bleue" in m for m in info["missing"]))
 
-    def test_more_than_five_refs_is_flagged(self):
+    def test_more_than_four_refs_keeps_the_most_useful_ones(self):
         st, sc, data = make(chars=("Eve", "Adrien", "Léa", "Marc", "Zoé"))
         for n in ("Léa", "Marc", "Zoé"):
             data["assets"][f"char_{n}"] = asset("character", n)
-        sc["dialogue"] += [{"speaker": n, "text": "Bonjour.", "expression": "neutre"} for n in ("Léa", "Marc", "Zoé")]
+        # Zoé ne parle pas : sa référence part en premier ; puis le décor, avant un personnage qui parle.
+        sc["dialogue"] += [{"speaker": n, "text": "Bonjour.", "expression": "neutre"} for n in ("Léa", "Marc")]
+        sc["plans"][0]["characters"] = ["Eve", "Adrien", "Léa", "Marc", "Zoé"]
         info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
-        self.assertTrue(info["too_many"])
+        self.assertEqual(len(info["refs"]), SC.MAX_REFS)
+        self.assertEqual(info["refs"], ["outfit_robe", "char_adrien", "char_Léa", "char_Marc"])
+        self.assertEqual(len(info["notes"]), 2)  # décor et Zoé écartés, signalés sans bloquer
         status = SC.plan_status(data["assets"], sc, 0)
-        self.assertTrue(any("5 au plus" in i for i in status["issues"]))
+        self.assertFalse(any("au plus" in i for i in status["issues"]))
+        _, user = SC.build_request(st, data["assets"], sc, 0)
+        self.assertIn("Zoé = the person (no reference image", user)
 
     def test_plan_ready_only_when_its_image_is_retained(self):
         st, sc, data = make()
@@ -84,11 +90,13 @@ class SceneTests(unittest.TestCase):
     def test_prompt_request_names_references_in_order(self):
         st, sc, data = make()
         system, user = SC.build_request(st, data["assets"], sc, 0)
-        self.assertIn("image 1 = décor : Le Velvet", system)
-        self.assertIn("by its position", system)
-        self.assertIn("never more than 100", system)
-        self.assertIn("young woman : défi", user)  # dernière expression du plan
-        self.assertIn("- young woman : Bonsoir.", user)
+        self.assertIn("- image 1 : the place « Le Velvet »", user)
+        self.assertIn("- image 2 : Eve, the young woman, wearing the outfit « robe bleue »", user)
+        self.assertIn("- image 3 : Adrien, the young man", user)
+        self.assertIn("25 to 60 words", system)
+        self.assertIn("Eve : défi", user)  # dernière expression du plan
+        self.assertIn("- Eve : Bonsoir.", user)
+        self.assertNotIn("Reference descriptions", user)  # plus les anciens prompts des références
 
     @mock.patch.object(paths, "app_settings_file", lambda p=Path(tempfile.mkdtemp()) / "app_settings.yaml": p)
     def test_suggest_with_mocked_llm(self):
@@ -129,15 +137,15 @@ class RefChoiceTests(unittest.TestCase):
         info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
         self.assertEqual(info["missing"], [])
 
-    def test_added_reference_still_maps_to_its_person(self):
+    def test_added_outfit_still_maps_to_its_person(self):
         st, sc, data = make()
-        sc["plans"][0]["refs_exclude"] = []
+        data["assets"]["outfit_manteau"] = asset("outfit", "manteau", parent="char_eve")
+        sc["plans"][0]["refs_extra"] = ["outfit_manteau"]
         info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
-        sc["plans"][0]["refs_extra"] = []
-        data["assets"]["char_eve"]["status"] = "validated"
-        line = SC._people_line(sc["plans"][0], sc, {"labels": ["décor : Le Velvet", "Eve (ajoutée)"]}, data["assets"])
-        self.assertIn("young woman (image 2)", line)
-        self.assertNotIn("Eve", line)
+        self.assertNotIn("outfit_robe", info["refs"])  # la tenue ajoutée remplace celle de la scène
+        _, user = SC.build_request(st, data["assets"], sc, 0)
+        n = info["refs"].index("outfit_manteau") + 1
+        self.assertIn(f"Eve = the young woman from image {n}", user)
 
     def test_default_people_are_the_speakers_of_the_image(self):
         st, sc, data = make()
@@ -147,13 +155,17 @@ class RefChoiceTests(unittest.TestCase):
         sc["plans"] = [{"id": "p1", "from_line": 0, "characters": [], "asset": "scene_s1_p1"}]
         self.assertEqual(SC.plan_characters(sc, sc["plans"][0]), ["Eve", "Adrien"])
 
-    def test_people_line_maps_names_to_reference_numbers(self):
+    def test_people_legend_maps_names_to_reference_numbers(self):
         st, sc, data = make()
-        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
-        line = SC._people_line(sc["plans"][0], sc, info, data["assets"])
-        self.assertIn("young man (image", line)
-        self.assertIn("young woman (image", line)
-        self.assertNotIn("Adrien", line)
+        _, user = SC.build_request(st, data["assets"], sc, 0)
+        self.assertIn("People in this image : Eve = the young woman from image 2; "
+                      "Adrien = the young man from image 3.", user)
+
+    def test_a_character_named_in_the_shot_is_in_the_image(self):
+        st, sc, data = make()
+        sc["dialogue"] = [{"speaker": "Eve", "text": "a", "expression": "neutre"}]
+        sc["plans"][0]["shot"] = {"framing": "wide shot", "angle": "", "note": "Eve au bar, Adrien arrive au loin"}
+        self.assertEqual(SC.plan_characters(sc, sc["plans"][0]), ["Eve", "Adrien"])
 
     def test_extra_ref_adds_previous_image_for_continuity(self):
         st, sc, data = make()
@@ -204,9 +216,11 @@ class CandidateRefTests(unittest.TestCase):
                                           "validated_candidate": 5,
                                           "candidates": [{"index": i, "file": "f.png"} for i in range(6)]}
         sc["plans"][0]["refs_extra"] = ["scene_s0_p1@4"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertEqual(info["refs"][0], "scene_s0_p1@4")  # image de scène sans cadrage : la base à retoucher
         _, user = SC.build_request(st, data["assets"], sc, 0)
-        self.assertNotIn("two people in a field", user)  # l'élément ne décrit pas l'image précise
-        self.assertIn("(Image précédente #4 (ajoutée))", user)
+        self.assertNotIn("two people in a field", user)  # plus de description recopiée
+        self.assertIn("- image 1 : the previous image of this scene", user)
 
     def test_reference_to_unknown_candidate_is_reported(self):
         st, sc, data = make()
@@ -225,10 +239,14 @@ class ContinuityTests(unittest.TestCase):
         data["assets"]["scene_s0_p1"] = asset("scene", "Image précédente", prompt="previous shot")
         sc["plans"][0]["refs_extra"] = ["scene_s0_p1"]
         system, user = SC.build_request(st, data["assets"], sc, 0)
-        self.assertIn("This is an EDIT of image", system)
-        self.assertIn("keep its framing", system)
+        self.assertIn("Image 1 is the previous image", system)
+        self.assertIn("15 to 45 words", system)
         self.assertNotIn("composition is new", system)
         self.assertNotIn("Choose a framing", user)
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertEqual(info["mode"], "edit")
+        self.assertEqual(info["refs"][0], "scene_s0_p1")      # la base d'abord
+        self.assertNotIn("loc_velvet", info["refs"])          # l'image précédente montre déjà le lieu
 
     def test_continuity_does_not_block_people_without_outfit_ref(self):
         st, sc, data = make()
@@ -252,7 +270,8 @@ class ShotTests(unittest.TestCase):
         st, sc, data = make()
         sc["plans"][0]["shot"] = {"framing": "close-up", "angle": "from behind", "note": "her hand on the rail"}
         system, user = SC.build_request(st, data["assets"], sc, 0)
-        self.assertIn("framing close-up, camera from behind", user)
+        self.assertIn("Requested shot : close-up, from behind.", user)
+        self.assertIn("What the image shows (French) : her hand on the rail", user)
         self.assertIn("composition is new", system)
 
     def test_next_image_must_differ_from_previous_shot(self):
@@ -260,8 +279,7 @@ class ShotTests(unittest.TestCase):
         sc["plans"][0]["shot"] = {"framing": "wide shot", "angle": "eye level", "note": ""}
         sc["plans"].append({"id": "p2", "from_line": 1, "characters": [], "asset": "scene_s1_p2"})
         _, user = SC.build_request(st, data["assets"], sc, 1)
-        self.assertIn("Previous image shot : framing wide shot", user)
-        self.assertIn("Do not reuse its composition", user)
+        self.assertIn("Previous image : wide shot, eye level. Choose a different composition.", user)
 
 
 class ReuseTests(unittest.TestCase):
@@ -320,3 +338,44 @@ class ManualOutfitPriorityTests(unittest.TestCase):
         info = SC.plan_refs(assets, sc, plan)
         self.assertIn("jupe", info["refs"])
         self.assertNotIn("culotte", info["refs"])
+
+
+class KleinRefsTests(unittest.TestCase):
+    """Références envoyées à Klein : retouche de l'image précédente, personnes ajoutées à la main."""
+
+    def two_plans(self):
+        st, sc, data = make()
+        data["assets"]["scene_s1_p1"] = asset("scene", "Table · plan 1")
+        data["assets"]["scene_s1_p2"] = asset("scene", "Table · plan 2", status="draft", prompt="")
+        sc["plans"][0]["shot"] = {"framing": "wide shot", "angle": "", "note": ""}
+        sc["plans"].append({"id": "p2", "from_line": 2, "asset": "scene_s1_p2", "refs_extra": ["scene_s1_p1"],
+                            "continuity_ref": "scene_s1_p1"})
+        return st, sc, data
+
+    def test_edit_keeps_everyone_and_sends_only_the_previous_image(self):
+        st, sc, data = self.two_plans()
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][1])
+        self.assertEqual(info["mode"], "edit")
+        self.assertEqual(info["refs"], ["scene_s1_p1"])          # ni décor ni tenues : tout est dans l'image 1
+        self.assertEqual(info["people"], ["Eve", "Adrien"])       # Adrien reste, même s'il ne parle plus
+        _, user = SC.build_request(st, data["assets"], sc, 1)
+        self.assertIn("Eve = the young woman from image 1; Adrien = the young man from image 1", user)
+        self.assertNotIn("Leaving", user)
+
+    def test_edit_names_who_leaves_and_who_enters(self):
+        st, sc, data = self.two_plans()
+        sc["plans"][0]["characters"] = ["Eve"]
+        sc["plans"][1]["characters"] = ["Adrien"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][1])
+        self.assertEqual(info["refs"], ["scene_s1_p1", "char_adrien"])  # la base, puis celui qui entre
+        _, user = SC.build_request(st, data["assets"], sc, 1)
+        self.assertIn("Adrien = the young man from image 2, entering the image", user)
+        self.assertIn("Leaving the image : Eve (the young woman)", user)
+
+    def test_character_added_by_hand_is_that_person(self):
+        st, sc, data = make()
+        sc["plans"][0]["refs_extra"] = ["char_eve"]
+        info = SC.plan_refs(data["assets"], sc, sc["plans"][0])
+        self.assertNotIn("outfit_robe", info["refs"])
+        _, user = SC.build_request(st, data["assets"], sc, 0)
+        self.assertIn(f"Eve = the young woman from image {info['refs'].index('char_eve') + 1}", user)
